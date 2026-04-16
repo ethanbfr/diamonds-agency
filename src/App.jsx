@@ -2223,7 +2223,7 @@ export default function App(){
         <div style={{width:195,flexShrink:0,background:T.card,borderRight:`1px solid ${T.b}`,display:"flex",flexDirection:"column"}}>
           <div style={{padding:"14px 10px 16px",cursor:"pointer"}} onClick={()=>setTab("dash")}><Brand/></div>
           <div style={{padding:"0 8px",flex:1,overflowY:"auto"}}>
-            {nav.map(n=><button key={n.id} className={`nb${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.l}</button>)}
+            {nav.map(n=>(<button key={n.id} className={`nb${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.l}</button>))}
           </div>
           <div style={{padding:"9px 10px",borderTop:`1px solid ${T.b}`,display:"flex",alignItems:"center",gap:8}}>
             <AV name={(auth.profile?.email||"?")[0].toUpperCase()} color={T.acc} size={28}/>
