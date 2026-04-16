@@ -46,20 +46,12 @@ const css=`
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Inter,sans-serif;background:${T.bgGradient};color:${T.tx};font-size:13px;overflow-x:hidden}
 
-/* Futuristic animations 2030 */
-@keyframes spk{0%,100%{transform:translate(0,0) scale(1);opacity:.9}35%{transform:translate(4px,-6px) scale(1.3);opacity:.4}70%{transform:translate(-3px,-2px) scale(.8);opacity:.3}}
-@keyframes fup{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fupScale{from{opacity:0;transform:translateY(20px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+/* Clean and subtle animations */
+@keyframes fup{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fupScale{from{opacity:0;transform:translateY(15px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes sp2{to{transform:rotate(360deg)}}
-@keyframes neonGlow{0%,100%{box-shadow:0 0 20px ${T.accGlow},0 0 40px ${T.neonPurple}}50%{box-shadow:0 0 30px ${T.accGlow},0 0 60px ${T.neonPurple},0 0 80px ${T.neon}}}
-@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
-@keyframes cyberLine{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
-@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
-@keyframes glowPulse{0%,100%{box-shadow:0 0 20px ${T.accGlow}}50%{box-shadow:0 0 40px ${T.accGlow},0 0 60px ${T.neon}}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
 
 .fup{animation:fupScale .4s cubic-bezier(0.4, 0, 0.2, 1) both}.fup1{animation:fupScale .4s .1s cubic-bezier(0.4, 0, 0.2, 1) both}.fup2{animation:fupScale .4s .2s cubic-bezier(0.4, 0, 0.2, 1) both}.fup3{animation:fupScale .4s .3s cubic-bezier(0.4, 0, 0.2, 1) both}
 
@@ -406,10 +398,7 @@ function LoginPage(){
           <div style={{display:"flex",flexDirection:"column",gap:11}}>
             <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Email</label>
               <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())} placeholder="vous@email.com"/></div>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>@ TikTok * <span style={{color:T.acc}}>(OBLIGATOIRE)</span></label>
-              <input className="inp" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} placeholder="@votre_pseudo_tiktok" style={{fontFamily:"monospace",borderColor:!handle.trim()?T.ng:T.b}}/>
-              <div style={{fontSize:11,color:!handle.trim()?T.ng:T.sec,marginTop:3}}>Doit tre EXACTEMENT identique  votre pseudo TikTok (avec @)</div>
-            </div>
+                        </div>
             <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Mot de passe</label>
               <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())} placeholder=""/></div>
             {mode==="register"&&(
