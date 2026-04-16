@@ -5,7 +5,36 @@ const SB_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 
-const T={bg:"#0A0418",card:"#1A1035",b:"#2D1F5E",acc:"#FF006E",cy:"#00F5FF",sec:"#7B6FA0",ok:"#00D9FF",ng:"#FF3366",go:"#FFAA00",pu:"#B366FF",tx:"#FFFFFF",stripe:"#8B5CF6"};
+const T={
+  bg:"#0A0015",
+  bgGradient:"linear-gradient(135deg, #0A0015 0%, #1A0033 25%, #2D0052 50%, #1A0033 75%, #0A0015 100%)",
+  card:"rgba(139, 92, 246, 0.08)",
+  cardGlass:"rgba(139, 92, 246, 0.12)",
+  cardGlassHover:"rgba(139, 92, 246, 0.18)",
+  b:"rgba(139, 92, 246, 0.2)",
+  acc:"#8B5CF6",
+  accLight:"#A78BFA",
+  accGlow:"rgba(139, 92, 246, 0.6)",
+  cy:"#00D4FF",
+  cyLight:"#5EEADF",
+  cyGlow:"rgba(0, 212, 255, 0.5)",
+  sec:"#A78BFA",
+  ok:"#00D4FF",
+  okGlow:"rgba(0, 212, 255, 0.4)",
+  ng:"#FF4757",
+  ngGlow:"rgba(255, 71, 87, 0.4)",
+  go:"#FFA502",
+  goGlow:"rgba(255, 165, 2, 0.4)",
+  pu:"#C4B5FD",
+  puGlow:"rgba(196, 181, 253, 0.5)",
+  tx:"#FFFFFF",
+  txDim:"#C4B5FD",
+  stripe:"#8B5CF6",
+  neon:"#00FFFF",
+  neonPink:"#FF00FF",
+  neonGreen:"#00FF88",
+  neonPurple:"#8B5CF6"
+};
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
 const PRICE=149;
@@ -13,30 +42,80 @@ const PRICE=149;
 const css=`
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;500;600;700;800;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Inter,sans-serif;background:${T.bg};color:${T.tx};font-size:13px}
+body{font-family:Inter,sans-serif;background:${T.bgGradient};color:${T.tx};font-size:13px;overflow-x:hidden}
+
+/* Futuristic animations 2030 */
 @keyframes spk{0%,100%{transform:translate(0,0) scale(1);opacity:.9}35%{transform:translate(4px,-6px) scale(1.3);opacity:.4}70%{transform:translate(-3px,-2px) scale(.8);opacity:.3}}
-@keyframes fup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fup{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fupScale{from{opacity:0;transform:translateY(20px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes sp2{to{transform:rotate(360deg)}}
-.fup{animation:fup .3s ease both}.fup1{animation:fup .3s .06s ease both}.fup2{animation:fup .3s .12s ease both}.fup3{animation:fup .3s .18s ease both}
-.nb{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:500;border:none;background:transparent;width:100%;color:${T.sec};transition:all .18s;text-align:left;font-family:Inter,sans-serif}
-.nb:hover{background:rgba(255,0,110,.1);color:${T.acc}}.nb.on{background:rgba(255,0,110,.15);color:${T.acc};position:relative}
-.nb.on::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:2px;background:${T.acc};border-radius:0 2px 2px 0}
-.btn{background:linear-gradient(135deg,${T.acc},#FF4D9D);color:#fff;border:none;border-radius:9px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:Inter,sans-serif;transition:all .2s}
-.btn:hover{box-shadow:0 4px 18px rgba(255,0,110,.4);transform:translateY(-1px)}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
-.btng{background:transparent;color:${T.sec};border:1px solid ${T.b};border-radius:8px;padding:4px 10px;font-size:11px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:Inter,sans-serif;transition:all .18s}
-.btng:hover{background:rgba(255,0,110,.1);color:${T.acc};border-color:rgba(255,0,110,.3)}
-.tag{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}
-.cr{display:grid;align-items:center;padding:9px 14px;border-bottom:1px solid ${T.b};transition:background .15s}
-.cr:last-child{border-bottom:none}.cr:hover{background:rgba(255,0,110,.04)}
-input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:20px;background:rgba(255,255,255,.1);outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:${T.acc};cursor:pointer}
-.inp{width:100%;padding:8px 11px;border-radius:8px;border:1px solid ${T.b};background:rgba(255,255,255,.04);color:${T.tx};font-size:12.5px;outline:none;font-family:Inter,sans-serif;transition:border .18s}
-.inp:focus{border-color:${T.acc};box-shadow:0 0 0 3px rgba(255,0,110,.1)}.inp::placeholder{color:${T.sec}}
-select.inp option{background:#1A1035;color:#F0EAFF}
-.card{background:${T.card};border-radius:12px;border:1px solid ${T.b}}
-.glow{background:${T.card};border-radius:12px;border:1px solid rgba(255,0,110,.3)}
-.tog{width:38px;height:20px;border-radius:10px;cursor:pointer;border:none;position:relative;flex-shrink:0;transition:background .2s}
-.tog .kn{position:absolute;top:3px;width:14px;height:14px;border-radius:50%;background:white;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+@keyframes neonGlow{0%,100%{box-shadow:0 0 20px ${T.accGlow},0 0 40px ${T.neonPurple}}50%{box-shadow:0 0 30px ${T.accGlow},0 0 60px ${T.neonPurple},0 0 80px ${T.neon}}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes cyberLine{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+.fup{animation:fupScale .4s cubic-bezier(0.4, 0, 0.2, 1) both}.fup1{animation:fupScale .4s .1s cubic-bezier(0.4, 0, 0.2, 1) both}.fup2{animation:fupScale .4s .2s cubic-bezier(0.4, 0, 0.2, 1) both}.fup3{animation:fupScale .4s .3s cubic-bezier(0.4, 0, 0.2, 1) both}
+
+/* Futuristic navigation */
+.nb{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;cursor:pointer;font-size:12px;font-weight:600;border:none;background:transparent;width:100%;color:${T.txDim};transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);text-align:left;font-family:Inter,sans-serif;position:relative;overflow:hidden}
+.nb::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg, transparent, ${T.accGlow}, transparent);transform:translateX(-100%);transition:transform .6s}
+.nb:hover::before{transform:translateX(100%)}
+.nb:hover{background:${T.cardGlassHover};color:${T.tx};transform:translateX(6px)}.nb.on{background:linear-gradient(135deg, ${T.accGlow}, ${T.accLight});color:#fff;position:relative;transform:translateX(8px)}
+.nb.on::before{content:'';position:absolute;left:0;top:25%;bottom:25%;width:3px;background:${T.neon};border-radius:0 3px 3px 0;box-shadow:0 0 15px ${T.neon}}
+
+/* Futuristic buttons */
+.btn{background:linear-gradient(135deg,${T.acc},${T.accLight});color:#fff;border:none;border-radius:12px;padding:12px 20px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-family:Inter,sans-serif;transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);position:relative;overflow:hidden;text-transform:uppercase;letterSpacing:"0.05em"}
+.btn::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg, transparent, rgba(255,255,255,0.3), transparent);transform:translateX(-100%);transition:transform .6s}
+.btn:hover::before{transform:translateX(100%)}
+.btn:hover{box-shadow:0 8px 32px ${T.accGlow},0 0 20px ${T.neonPurple};transform:translateY(-2px) scale(1.02);animation:neonGlow 2s ease-in-out infinite}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;animation:none}
+
+.btng{background:transparent;color:${T.txDim};border:1px solid ${T.b};border-radius:10px;padding:8px 14px;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:Inter,sans-serif;transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);text-transform:uppercase}
+.btng:hover{background:${T.cardGlassHover};color:${T.tx};border-color:${T.acc};transform:translateY(-1px);box-shadow:0 4px 16px ${T.accGlow}}
+
+/* Futuristic tags */
+.tag{display:inline-flex;align-items:center;padding:6px 12px;border-radius:20px;font-size:10px;font-weight:700;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.2);text-transform:uppercase;letterSpacing:"0.05em"}
+
+/* Futuristic cards */
+.cr{display:grid;align-items:center;padding:14px 18px;border-bottom:1px solid ${T.b};transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);position:relative}
+.cr::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg, transparent, ${T.accGlow}, transparent);opacity:0;transition:opacity .3s}
+.cr:hover::before{opacity:0.3}
+.cr:last-child{border-bottom:none}.cr:hover{background:${T.cardGlassHover};transform:translateX(6px)}
+
+/* Futuristic inputs */
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:20px;background:${T.cardGlass};outline:none;position:relative}
+input[type=range]::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg, ${T.acc}, ${T.cy});border-radius:20px;opacity:0.5}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg, ${T.acc}, ${T.accLight});cursor:pointer;box-shadow:0 2px 8px ${T.accGlow};transition:all .3s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);box-shadow:0 4px 16px ${T.accGlow},0 0 20px ${T.neon}}
+
+.inp{width:100%;padding:14px 18px;border-radius:12px;border:1px solid ${T.b};background:${T.cardGlass};color:${T.tx};font-size:12.5px;outline:none;font-family:Inter,sans-serif;transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);backdrop-filter:blur(20px)}
+.inp:focus{border-color:${T.acc};box-shadow:0 0 0 3px ${T.accGlow},0 0 20px ${T.neonPurple};background:${T.cardGlassHover}}.inp::placeholder{color:${T.txDim}}
+select.inp option{background:${T.bg};color:${T.tx}}
+
+/* Futuristic cards with glassmorphism */
+.card{background:${T.cardGlass};border-radius:16px;border:1px solid ${T.b};backdrop-filter:blur(20px);position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg, rgba(139,92,246,0.1), transparent);opacity:0.5;pointer-events:none}
+.glow{background:${T.cardGlassHover};border-radius:16px;border:1px solid ${T.acc};backdrop-filter:blur(20px);box-shadow:0 8px 32px ${T.accGlow},0 0 20px ${T.neonPurple};position:relative;overflow:hidden}
+.glow::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg, ${T.accGlow}, transparent);opacity:0.3;pointer-events:none}
+
+/* Futuristic toggle */
+.tog{width:48px;height:26px;border-radius:13px;cursor:pointer;border:none;position:relative;flex-shrink:0;transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);background:${T.cardGlass}}
+.tog .kn{position:absolute;top:3px;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg, #fff, #f0f0f0);transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+.tog.on{background:linear-gradient(135deg, ${T.acc}, ${T.accLight});box-shadow:0 0 20px ${T.accGlow}}
+.tog.on .kn{left:22px;transform:scale(1.1);box-shadow:0 0 15px ${T.neon}}
+
+/* Scrollbar styling */
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:${T.cardGlass}}
+::-webkit-scrollbar-thumb{background:${T.b};border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:${T.acc}}
+
+/* Selection styling */
+::selection{background:${T.accGlow};color:#fff}
+
+/* Focus styles */
+:focus-visible{outline:2px solid ${T.acc};outline-offset:2px}
 `;
 
 /* ─── UTILS ─────────────────────────────── */
@@ -107,13 +186,41 @@ const fetchAllLiveEntries=async()=>{if(!sb) return [];const {data}=await sb.from
 const DiamondSVG=({size=40})=>(
   <svg width={size} height={size} viewBox="0 0 40 40">
     <defs>
-      <linearGradient id="dg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#C080FF"/><stop offset="55%" stopColor="#7F00FF"/><stop offset="100%" stopColor="#00E5FF"/></linearGradient>
-      <linearGradient id="dg2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="rgba(255,255,255,.6)"/><stop offset="100%" stopColor="rgba(255,255,255,0)"/></linearGradient>
+      <linearGradient id="dg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor={T.neon}/>
+        <stop offset="25%" stopColor={T.acc}/>
+        <stop offset="50%" stopColor={T.accLight}/>
+        <stop offset="75%" stopColor={T.cy}/>
+        <stop offset="100%" stopColor={T.neonPurple}/>
+      </linearGradient>
+      <linearGradient id="dg2" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="rgba(255,255,255,.8)"/>
+        <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
+      </linearGradient>
+      <filter id="neonGlow">
+        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
     </defs>
-    <polygon points="20,2 37,15 20,38 3,15" fill="url(#dg)" style={{filter:"drop-shadow(0 0 8px rgba(127,0,255,.5))"}}/>
-    <polygon points="20,2 37,15 20,15 3,15" fill="url(#dg2)" opacity=".6"/>
-    <line x1="3" y1="15" x2="37" y2="15" stroke="rgba(255,255,255,.2)" strokeWidth=".8"/>
-    <line x1="20" y1="2" x2="20" y2="15" stroke="rgba(255,255,255,.15)" strokeWidth=".6"/>
+    <polygon 
+      points="20,2 37,15 20,38 3,15" 
+      fill="url(#dg)" 
+      filter="url(#neonGlow)"
+      style={{filter:"drop-shadow(0 0 12px rgba(139,92,246,0.8))"}}
+    />
+    <polygon 
+      points="20,2 37,15 20,15 3,15" 
+      fill="url(#dg2)" 
+      opacity=".8"
+    />
+    <line x1="3" y1="15" x2="37" y2="15" stroke={T.neon} strokeWidth="1" opacity="0.6"/>
+    <line x1="20" y1="2" x2="20" y2="15" stroke={T.cy} strokeWidth="0.8" opacity="0.7"/>
+    <circle cx="20" cy="20" r="2" fill={T.neon} opacity="0.8">
+      <animate attributeName="opacity" values="0.8;0.3;0.8" dur="2s" repeatCount="indefinite"/>
+    </circle>
   </svg>
 );
 const Spk=({x,y,d})=>(
@@ -122,14 +229,20 @@ const Spk=({x,y,d})=>(
   </div>
 );
 const Brand=({big=false})=>(
-  <div style={{display:"flex",alignItems:"center",gap:big?14:8}}>
-    <div style={{position:"relative",width:big?60:28,height:big?60:28,flexShrink:0}}>
-      <DiamondSVG size={big?60:28}/>
-      {big&&<><Spk x={-7} y={-5} d={0}/><Spk x={57} y={-3} d={.4}/><Spk x={-4} y={52} d={.7}/><Spk x={58} y={50} d={.2}/></>}
+  <div style={{display:"flex",alignItems:"center",gap:big?20:12,position:"relative"}}>
+    <div style={{position:"relative",width:big?80:36,height:big?80:36,flexShrink:0}}>
+      <div style={{position:"absolute",inset:0,background:`linear-gradient(135deg, ${T.accGlow}, ${T.cyGlow})`,borderRadius:"50%",filter:"blur(25px)",opacity:0.7,animation:"pulse 3s ease-in-out infinite"}}/>
+      <div style={{position:"relative",width:"100%",height:"100%",background:`linear-gradient(135deg, ${T.cardGlassHover}, ${T.cardGlass})`,borderRadius:"50%",border:`2px solid ${T.acc}`,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(20px)"}}>
+        <DiamondSVG size={big?65:30}/>
+      </div>
+      {big&&<><Spk x={-12} y={-8} d={0}/><Spk x={75} y={-6} d={.4}/><Spk x={-10} y={68} d={.7}/><Spk x={78} y={66} d={.2}/></>}
     </div>
     <div>
-      <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:big?32:14,color:T.tx,letterSpacing:"-0.025em",lineHeight:1}}>Diamond<span style={{color:T.cy}}>'</span>s</div>
-      <div style={{fontSize:big?10:8.5,color:T.sec,marginTop:1,letterSpacing:".06em"}}>by Belive Academy</div>
+      <div style={{fontFamily:"Space Grotesk,sans-serif",fontWeight:900,fontSize:big?40:18,letterSpacing:"-0.03em",lineHeight:1}}>
+        <span style={{color:T.tx,background:`linear-gradient(135deg, ${T.tx}, ${T.accLight}, ${T.cy})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",textShadow:`0 0 30px ${T.accGlow}`}}>Diamond</span>
+        <span style={{color:T.cy,filter:`drop-shadow(0 0 15px ${T.cyGlow})`}}'s</span>
+      </div>
+      <div style={{fontSize:big?12:9,color:T.txDim,marginTop:2,letterSpacing:".08em",fontWeight:600,textTransform:"uppercase"}}>by Belive Academy</div>
     </div>
   </div>
 );
