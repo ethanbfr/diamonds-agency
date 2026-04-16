@@ -93,6 +93,16 @@ const fetchLiveEntries=async(profileId)=>{if(!sb) return [];const {data}=await s
 const addLiveEntry=async(entry)=>{if(!sb) return {error:"no sb"};const {data,error}=await sb.from("live_entries").insert(entry).select().single();return error?{error:error.message}:{data};};
 const importBackstage=async(agId,importerId,rows)=>{if(!sb) return {error:"Supabase non configuré"};const {data,error}=await sb.rpc("import_backstage",{p_agency_id:agId,p_importer_id:importerId,p_data:rows});return error?{error:error.message}:data;};
 
+/* ---- GLOBAL ADMIN FUNCTIONS ---- */
+const fetchAllProfiles=async()=>{if(!sb) return [];const {data}=await sb.from("profiles").select("*").order("created_at",{ascending:false});return data||[];};
+const fetchAllCreators=async()=>{if(!sb) return [];const {data}=await sb.from("creators").select("*").order("created_at",{ascending:false});return data||[];};
+const fetchAllAgents=async()=>{if(!sb) return [];const {data}=await sb.from("agents").select("*").order("created_at",{ascending:false});return data||[];};
+const fetchAllManagers=async()=>{if(!sb) return [];const {data}=await sb.from("managers").select("*").order("created_at",{ascending:false});return data||[];};
+const fetchAllDirectors=async()=>{if(!sb) return [];const {data}=await sb.from("directors").select("*").order("created_at",{ascending:false});return data||[];};
+const fetchAllMatches=async()=>{if(!sb) return [];const {data}=await sb.from("matches").select("*").order("match_date",{ascending:false});return data||[];};
+const fetchAllSchedules=async()=>{if(!sb) return [];const {data}=await sb.from("schedules").select("*").order("day_of_week","start_time");return data||[];};
+const fetchAllLiveEntries=async()=>{if(!sb) return [];const {data}=await sb.from("live_entries").select("*").order("live_date",{ascending:false}).limit(100);return data||[];};
+
 /* ─── SHARED UI ─────────────────────────── */
 const DiamondSVG=({size=40})=>(
   <svg width={size} height={size} viewBox="0 0 40 40">
@@ -151,7 +161,7 @@ const billingTag=(s,isOffered)=>{
 
 /* ─── NAV ───────────────────────────────── */
 const NAVS={
-  admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"}],
+  admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"all_users",l:"Tous les utilisateurs"},{id:"all_creators",l:"Tous créateurs"},{id:"all_staff",l:"Tout staff"},{id:"all_matches",l:"Tous matchs"},{id:"all_schedules",l:"Tous plannings"},{id:"all_lives",l:"Tous lives"}],
   agency:  [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Liens d'invitation"},{id:"matches",l:"Matchs"},{id:"settings",l:"Paramètres"}],
   director:[{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"}],
   manager: [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"}],
@@ -211,14 +221,16 @@ function LoginPage(){
   };
   const register=async()=>{
     if(!code.trim()){setErr("Code d'invitation requis");return;}
+    if(!handle.trim() || !handle.startsWith("@")){setErr("@ TikTok obligatoire - doit commencer par @");return;}
+    if(handle.length < 3){setErr("@ TikTok trop court (minimum 3 caractères)");return;}
     setErr("");setLoad(true);
     if(!sb){setErr("Supabase non configuré");setLoad(false);return;}
     const {data,error}=await sb.auth.signUp({email,password:pw});
     if(error){setErr(error.message);setLoad(false);return;}
     const {error:cErr}=await sb.rpc("use_invite_code",{p_code:code.trim().toUpperCase(),p_user_id:data.user?.id});
     if(cErr){setErr("Code invalide ou expiré");setLoad(false);return;}
-    // Save TikTok handle
-    if(handle.trim()) await sb.from("profiles").update({tiktok_handle:"@"+handle.trim()}).eq("id",data.user?.id);
+    // Save TikTok handle (OBLIGATOIRE)
+    await sb.from("profiles").update({tiktok_handle:handle.trim()}).eq("id",data.user?.id);
     // Upload avatar if provided
     if(avatar&&sb){
       const ext=avatar.name.split(".").pop();
@@ -259,14 +271,14 @@ function LoginPage(){
           <div style={{display:"flex",flexDirection:"column",gap:11}}>
             <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Email</label>
               <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())} placeholder="vous@email.com"/></div>
+            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>@ TikTok * <span style={{color:T.acc}}>(OBLIGATOIRE)</span></label>
+              <input className="inp" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} placeholder="@votre_pseudo_tiktok" style={{fontFamily:"monospace",borderColor:!handle.trim()?T.ng:T.b}}/>
+              <div style={{fontSize:11,color:!handle.trim()?T.ng:T.sec,marginTop:3}}>Doit être EXACTEMENT identique à votre pseudo TikTok (avec @)</div>
+            </div>
             <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Mot de passe</label>
               <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())} placeholder="••••••••"/></div>
             {mode==="register"&&(
               <>
-                <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>@ TikTok * (même que sur TikTok)</label>
-                  <input className="inp" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} placeholder="mon_pseudo_tiktok" style={{fontFamily:"monospace"}}/>
-                  <div style={{fontSize:11,color:T.sec,marginTop:3}}>Doit être identique à votre compte TikTok</div>
-                </div>
                 <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Photo de profil (même que TikTok)</label>
                   <input className="inp" type="file" accept="image/*" onChange={e=>setAvatar(e.target.files[0])} style={{fontSize:11.5}}/>
                 </div>
@@ -530,7 +542,360 @@ function AdminAgencies(){
   );
 }
 
-/* ─── ADMIN BILLING ─────────────────────── */
+/* ─── ADMIN GLOBAL USERS ──────────────────── */
+function AdminAllUsersView(){
+  const [profiles,setProfiles]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState("");
+  const [filter,setFilter]=useState("all");
+  
+  useEffect(()=>{
+    const load=async()=>{
+      const data=await fetchAllProfiles();
+      setProfiles(data);
+      setLoading(false);
+    };
+    load();
+  },[]);
+  
+  const filtered=profiles.filter(p=>{
+    const matchesSearch=!search || 
+      p.email?.toLowerCase().includes(search.toLowerCase()) ||
+      p.tiktok_handle?.toLowerCase().includes(search.toLowerCase()) ||
+      p.role?.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter=filter==="all" || p.role===filter;
+    return matchesSearch && matchesFilter;
+  });
+  
+  const roleColors={admin:T.acc,agency:T.cy,director:T.pu,manager:T.go,agent:T.ok,creator:T.ng};
+  const stats={
+    total:profiles.length,
+    admin:profiles.filter(p=>p.role==="admin").length,
+    agency:profiles.filter(p=>p.role==="agency").length,
+    director:profiles.filter(p=>p.role==="director").length,
+    manager:profiles.filter(p=>p.role==="manager").length,
+    agent:profiles.filter(p=>p.role==="agent").length,
+    creator:profiles.filter(p=>p.role==="creator").length,
+    withTikTok:profiles.filter(p=>p.tiktok_handle).length,
+  };
+  
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:24,fontWeight:800,color:T.tx,marginBottom:8}}>Tous les utilisateurs</h1>
+        <div style={{fontSize:13,color:T.sec}}>Vue globale de tous les inscrits sur Diamond's</div>
+      </div>
+      
+      {/* Statistiques */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+        <SC label="Total utilisateurs" val={stats.total} sub="Inscrits" accent={T.acc}/>
+        <SC label="Avec @ TikTok" val={stats.withTikTok} sub={`${Math.round(stats.withTikTok/stats.total*100)}%`} accent={T.cy}/>
+        <SC label="Staff total" val={stats.admin+stats.agency+stats.director+stats.manager+stats.agent} sub="Non créateurs" accent={T.pu}/>
+        <SC label="Créateurs" val={stats.creator} sub={`${Math.round(stats.creator/stats.total*100)}%`} accent={T.ok}/>
+      </div>
+      
+      {/* Filtres */}
+      <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+        <input 
+          className="inp" 
+          placeholder="Rechercher par email, @ TikTok, rôle..." 
+          value={search}
+          onChange={e=>setSearch(e.target.value)}
+          style={{flex:1,minWidth:300,maxWidth:500}}
+        />
+        <select className="inp" value={filter} onChange={e=>setFilter(e.target.value)} style={{width:150}}>
+          <option value="all">Tous les rôles</option>
+          <option value="admin">Admin</option>
+          <option value="agency">Agence</option>
+          <option value="director">Directeur</option>
+          <option value="manager">Manager</option>
+          <option value="agent">Agent</option>
+          <option value="creator">Créateur</option>
+        </select>
+      </div>
+      
+      {/* Liste des utilisateurs */}
+      {loading?<div style={{textAlign:"center",padding:40,color:T.sec}}><Spin/> Chargement...</div>:
+      <div className="card" style={{overflow:"hidden"}}>
+        <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>
+          {filtered.length} utilisateur{filtered.length>1?"s":""} {search && `(recherche: "${search}")`}
+        </div>
+        <div style={{overflowX:"auto"}}>
+          <div style={{minWidth:800}}>
+            <div className="cr" style={{gridTemplateColumns:"60px 1fr 120px 120px 120px 100px 80px",background:"rgba(255,255,255,.02)",borderBottom:`1px solid ${T.b}`,fontSize:11,fontWeight:600,color:T.sec,textTransform:"uppercase"}}>
+              <div>Date</div><div>Utilisateur</div><div>@ TikTok</div><div>Email</div><div>Rôle</div><div>Agence</div><div>Actions</div>
+            </div>
+            {filtered.map(p=>(
+              <div key={p.id} className="cr" style={{gridTemplateColumns:"60px 1fr 120px 120px 120px 100px 80px"}}>
+                <div style={{fontSize:11,color:T.sec}}>{new Date(p.created_at).toLocaleDateString("fr-FR")}</div>
+                <div>
+                  <div style={{fontWeight:600,fontSize:12.5,color:T.tx,marginBottom:2}}>
+                    {p.first_name} {p.last_name}
+                  </div>
+                  <div style={{fontSize:11,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    {p.email}
+                  </div>
+                </div>
+                <div style={{fontSize:12,fontWeight:600,color:p.tiktok_handle?T.ok:T.ng}}>
+                  {p.tiktok_handle||<span style={{color:T.ng}}>Non défini</span>}
+                </div>
+                <div style={{fontSize:11,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                  {p.email}
+                </div>
+                <span className="tag" style={{background:`${roleColors[p.role]}18`,color:roleColors[p.role]}}>
+                  {p.role}
+                </span>
+                <div style={{fontSize:11,color:T.sec}}>
+                  {/* TODO: Ajouter nom de l'agence */}
+                </div>
+                <button className="btng" style={{fontSize:9.5,padding:"2px 6px"}}>Voir</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>}
+    </div>
+  );
+}
+
+/* ---- ADMIN ALL CREATORS ---- */
+function AdminAllCreatorsView(){
+  const [creators,setCreators]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState("");
+  const [sortBy,setSortBy]=useState("created_at");
+  
+  useEffect(()=>{
+    const load=async()=>{
+      const data=await fetchAllCreators();
+      setCreators(data);
+      setLoading(false);
+    };
+    load();
+  },[]);
+  
+  const filtered=creators.filter(c=>{
+    const matchesSearch=!search || 
+      c.pseudo?.toLowerCase().includes(search.toLowerCase()) ||
+      c.tiktok_id?.toLowerCase().includes(search.toLowerCase()) ||
+      (c.first_name+" "+c.last_name).toLowerCase().includes(search.toLowerCase());
+    return matchesSearch;
+  }).sort((a,b)=>{
+    if(sortBy==="diamonds") return (b.diamonds||0)-(a.diamonds||0);
+    if(sortBy==="days_live") return (b.days_live||0)-(a.days_live||0);
+    if(sortBy==="hours_live") return (b.hours_live||0)-(a.hours_live||0);
+    return new Date(b.created_at)-new Date(a.created_at);
+  });
+  
+  const stats={
+    total:creators.length,
+    totalDiamonds:creators.reduce((sum,c)=>sum+(c.diamonds||0),0),
+    avgDays:Math.round(creators.reduce((sum,c)=>sum+(c.days_live||0),0)/creators.length)||0,
+    avgHours:Math.round(creators.reduce((sum,c)=>sum+(c.hours_live||0),0)/creators.length)||0,
+    withTikTok:creators.filter(c=>c.tiktok_id).length,
+  };
+  
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:24,fontWeight:800,color:T.tx,marginBottom:8}}>Tous les créateurs</h1>
+        <div style={{fontSize:13,color:T.sec}}>Vue globale de tous les créateurs TikTok</div>
+      </div>
+      
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+        <SC label="Total créateurs" val={stats.total} sub="Inscrits" accent={T.cy}/>
+        <SC label="Total diamants" val={stats.totalDiamonds.toLocaleString()} sub="Cumulés" accent={T.acc}/>
+        <SC label="Moyenne jours" val={stats.avgDays} sub="Days live" accent={T.ok}/>
+        <SC label="Moyenne heures" val={stats.avgHours} sub="Hours live" accent={T.go}/>
+      </div>
+      
+      <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+        <input 
+          className="inp" 
+          placeholder="Rechercher par pseudo, TikTok ID, nom..." 
+          value={search}
+          onChange={e=>setSearch(e.target.value)}
+          style={{flex:1,minWidth:300,maxWidth:500}}
+        />
+        <select className="inp" value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{width:150}}>
+          <option value="created_at">Date d'inscription</option>
+          <option value="diamonds">Diamants</option>
+          <option value="days_live">Jours live</option>
+          <option value="hours_live">Heures live</option>
+        </select>
+      </div>
+      
+      {loading?<div style={{textAlign:"center",padding:40,color:T.sec}}><Spin/> Chargement...</div>:
+      <div className="card" style={{overflow:"hidden"}}>
+        <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>
+          {filtered.length} créateur{filtered.length>1?"s":""} {search && `(recherche: "${search}")`}
+        </div>
+        <div style={{overflowX:"auto"}}>
+          <div style={{minWidth:1000}}>
+            <div className="cr" style={{gridTemplateColumns:"60px 80px 1fr 100px 80px 80px 100px 100px 120px",background:"rgba(255,255,255,.02)",borderBottom:`1px solid ${T.b}`,fontSize:11,fontWeight:600,color:T.sec,textTransform:"uppercase"}}>
+              <div>Date</div><div>Avatar</div><div>Créateur</div><div>@ TikTok</div><div>Diamants</div><div>Jours</div><div>Heures</div><div>Agent</div><div>Agence</div><div>Statut</div>
+            </div>
+            {filtered.map(c=>(
+              <div key={c.id} className="cr" style={{gridTemplateColumns:"60px 80px 1fr 100px 80px 80px 100px 100px 120px"}}>
+                <div style={{fontSize:11,color:T.sec}}>{new Date(c.created_at).toLocaleDateString("fr-FR")}</div>
+                <div style={{display:"flex",justifyContent:"center"}}>
+                  <AV name={(c.pseudo||"??").replace("@","").slice(0,2)} color={T.cy} size={32}/>
+                </div>
+                <div>
+                  <div style={{fontWeight:600,fontSize:12.5,color:T.tx,marginBottom:2}}>
+                    @{c.pseudo}
+                  </div>
+                  <div style={{fontSize:11,color:T.sec}}>
+                    {c.first_name} {c.last_name}
+                  </div>
+                </div>
+                <div style={{fontSize:12,fontWeight:600,color:c.tiktok_id?T.ok:T.ng}}>
+                  {c.tiktok_id||<span style={{color:T.ng}}>Non défini</span>}
+                </div>
+                <div style={{fontWeight:700,color:T.cy,fontSize:12}}>
+                  {(c.diamonds||0).toLocaleString()}
+                </div>
+                <div style={{fontSize:12,color:(c.days_live||0)>=20?T.ok:T.ng}}>
+                  {c.days_live||0}j
+                </div>
+                <div style={{fontSize:12,color:(c.hours_live||0)>=40?T.ok:T.ng}}>
+                  {c.hours_live||0}h
+                </div>
+                <div style={{fontSize:11,color:T.sec}}>
+                  {/* TODO: Agent name */}
+                </div>
+                <div style={{fontSize:11,color:T.sec}}>
+                  {/* TODO: Agency name */}
+                </div>
+                <span className="tag" style={{background:`${T.ok}18`,color:T.ok}}>
+                  Actif
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>}
+    </div>
+  );
+}
+
+/* ---- ADMIN ALL STAFF ---- */
+function AdminAllStaffView(){
+  const [agents,setAgents]=useState([]);
+  const [managers,setManagers]=useState([]);
+  const [directors,setDirectors]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState("");
+  const [filter,setFilter]=useState("all");
+  
+  useEffect(()=>{
+    const load=async()=>{
+      const [agData,mgrData,dirData]=await Promise.all([
+        fetchAllAgents(),
+        fetchAllManagers(),
+        fetchAllDirectors()
+      ]);
+      setAgents(agData);
+      setManagers(mgrData);
+      setDirectors(dirData);
+      setLoading(false);
+    };
+    load();
+  },[]);
+  
+  const allStaff=[
+    ...agents.map(a=>({...a,type:"agent",color:T.cy})),
+    ...managers.map(m=>({...m,type:"manager",color:T.pu})),
+    ...directors.map(d=>({...d,type:"director",color:T.acc}))
+  ].filter(s=>{
+    const matchesSearch=!search || 
+      s.name?.toLowerCase().includes(search.toLowerCase()) ||
+      s.email?.toLowerCase().includes(search.toLowerCase()) ||
+      s.type?.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter=filter==="all" || s.type===filter;
+    return matchesSearch && matchesFilter;
+  });
+  
+  const stats={
+    total:allStaff.length,
+    agents:agents.length,
+    managers:managers.length,
+    directors:directors.length,
+  };
+  
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:24,fontWeight:800,color:T.tx,marginBottom:8}}>Tout le staff</h1>
+        <div style={{fontSize:13,color:T.sec}}>Vue globale de tous les staff Diamond's</div>
+      </div>
+      
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+        <SC label="Total staff" val={stats.total} sub="Membres" accent={T.acc}/>
+        <SC label="Agents" val={stats.agents} sub="Staff commercial" accent={T.cy}/>
+        <SC label="Managers" val={stats.managers} sub="Gestionnaires" accent={T.pu}/>
+        <SC label="Directeurs" val={stats.directors} sub="Pôles" accent={T.go}/>
+      </div>
+      
+      <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+        <input 
+          className="inp" 
+          placeholder="Rechercher par nom, email, rôle..." 
+          value={search}
+          onChange={e=>setSearch(e.target.value)}
+          style={{flex:1,minWidth:300,maxWidth:500}}
+        />
+        <select className="inp" value={filter} onChange={e=>setFilter(e.target.value)} style={{width:150}}>
+          <option value="all">Tous les rôles</option>
+          <option value="agent">Agents</option>
+          <option value="manager">Managers</option>
+          <option value="director">Directeurs</option>
+        </select>
+      </div>
+      
+      {loading?<div style={{textAlign:"center",padding:40,color:T.sec}}><Spin/> Chargement...</div>:
+      <div className="card" style={{overflow:"hidden"}}>
+        <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>
+          {allStaff.length} staff{allStaff.length>1?"s":""} {search && `(recherche: "${search}")`}
+        </div>
+        <div style={{overflowX:"auto"}}>
+          <div style={{minWidth:800}}>
+            <div className="cr" style={{gridTemplateColumns:"60px 80px 1fr 120px 120px 100px",background:"rgba(255,255,255,.02)",borderBottom:`1px solid ${T.b}`,fontSize:11,fontWeight:600,color:T.sec,textTransform:"uppercase"}}>
+              <div>Date</div><div>Avatar</div><div>Staff</div><div>Email</div><div>Téléphone</div><div>Rôle</div>
+            </div>
+            {allStaff.map(s=>(
+              <div key={s.id} className="cr" style={{gridTemplateColumns:"60px 80px 1fr 120px 120px 100px"}}>
+                <div style={{fontSize:11,color:T.sec}}>{new Date(s.created_at).toLocaleDateString("fr-FR")}</div>
+                <div style={{display:"flex",justifyContent:"center"}}>
+                  <AV name={s.name?.slice(0,2)||"??"} color={s.color} size={32}/>
+                </div>
+                <div>
+                  <div style={{fontWeight:600,fontSize:12.5,color:T.tx,marginBottom:2}}>
+                    {s.name}
+                  </div>
+                  <div style={{fontSize:11,color:T.sec}}>
+                    {/* TODO: Agency name */}
+                  </div>
+                </div>
+                <div style={{fontSize:12,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                  {s.email}
+                </div>
+                <div style={{fontSize:12,color:T.sec}}>
+                  {s.phone||"Non défini"}
+                </div>
+                <span className="tag" style={{background:`${s.color}18`,color:s.color}}>
+                  {s.type}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>}
+    </div>
+  );
+}
+
+/* ---- ADMIN BILLING ---- */─────────────────────── */
 function AdminBilling(){
   const [agencies,setAgencies]=useState([]);
   useEffect(()=>{fetchAllAgencies().then(setAgencies);},[]);
@@ -1419,6 +1784,9 @@ export default function App(){
     dash:    ()=>role==="admin"?<AdminDash setTab={setTab}/>:<DashView profile={auth.profile} creators={team.creators} agents={team.agents} managers={team.managers} directors={team.directors}/>,
     agencies:()=><AdminAgencies/>,
     billing: ()=><AdminBilling/>,
+    all_users:()=><AdminAllUsersView/>,
+    all_creators:()=><AdminAllCreatorsView/>,
+    all_staff:()=><AdminAllStaffView/>,
     team:    ()=><TeamView agents={team.agents} managers={team.managers} directors={team.directors}/>,
     creators:()=><CreatorsView profile={auth.profile} creators={team.creators} agents={team.agents} reload={reload}/>,
     import:  ()=><ImportView profile={auth.profile} reload={reload}/>,
