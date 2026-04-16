@@ -622,7 +622,16 @@ function SettingsView({ profile, reload }) {
 function DashView({ profile, creators, agents, managers, directors }) {
   const ag   = profile?.agencies;
   const role = profile?.role;
-  if (!ag) return <div style={{color:T.sec,padding:20,textAlign:"center"}}>Chargement des données…</div>;
+  // Admin n'a pas d'agence - afficher AdminDash directement
+  if (role === "admin") return <AdminDash/>;
+  // Si pas d'agence et pas admin, attendre max 5s puis afficher message
+  if (!ag) return (
+    <div style={{textAlign:"center",padding:40}}>
+      <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:8}}>Bienvenue sur Diamond's</div>
+      <div style={{fontSize:12,color:T.sec,marginBottom:16}}>Aucune agence liée à votre compte.</div>
+      <div style={{fontSize:11.5,color:T.sec}}>Contactez l'administrateur pour obtenir un code d'invitation.</div>
+    </div>
+  );
 
   if (role === "creator") {
     const c = creators[0];
@@ -1047,7 +1056,7 @@ export default function App() {
 
   if (!auth.user) return <><style>{css}</style><LoginPage onLogin={() => {}} /></>;
 
-  const nav = NAVS[role] || [];
+  const nav = NAVS[role] || NAVS['admin'] || [];
 
   const views = {
     dash:    () => role === "admin" ? <AdminDash /> : <DashView profile={auth.profile} creators={team.creators} agents={team.agents} managers={team.managers} directors={team.directors}/>,
