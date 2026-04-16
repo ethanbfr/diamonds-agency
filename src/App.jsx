@@ -588,7 +588,7 @@ function AdminAgencies(){
     
     // Afficher les identifiants
     alert(`Agence créée avec succès!\n\nEmail: ${email}\nMot de passe temporaire: ${tempPassword}\nCode d'invitation: ${code}`);
-  };
+    
     await genCode(ag.id,user.id,"admin",targetRole);
     await loadCodes(ag.id);setGenning(null);
   };
