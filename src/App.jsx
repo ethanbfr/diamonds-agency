@@ -197,6 +197,8 @@ function LoginPage(){
   const [email,setEmail]=useState("");
   const [pw,setPw]=useState("");
   const [code,setCode]=useState("");
+  const [handle,setHandle]=useState("");
+  const [avatar,setAvatar]=useState(null);
   const [mode,setMode]=useState("login");
   const [err,setErr]=useState("");
   const [load,setLoad]=useState(false);
@@ -215,6 +217,16 @@ function LoginPage(){
     if(error){setErr(error.message);setLoad(false);return;}
     const {error:cErr}=await sb.rpc("use_invite_code",{p_code:code.trim().toUpperCase(),p_user_id:data.user?.id});
     if(cErr){setErr("Code invalide ou expiré");setLoad(false);return;}
+    // Save TikTok handle
+    if(handle.trim()) await sb.from("profiles").update({tiktok_handle:"@"+handle.trim()}).eq("id",data.user?.id);
+    // Upload avatar if provided
+    if(avatar&&sb){
+      const ext=avatar.name.split(".").pop();
+      const path=`avatars/${data.user?.id}.${ext}`;
+      await sb.storage.from("avatars").upload(path,avatar,{upsert:true});
+      const {data:urlData}=sb.storage.from("avatars").getPublicUrl(path);
+      if(urlData?.publicUrl) await sb.from("profiles").update({tiktok_avatar_url:urlData.publicUrl}).eq("id",data.user?.id);
+    }
     setMode("confirm");setLoad(false);
   };
 
@@ -250,10 +262,19 @@ function LoginPage(){
             <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Mot de passe</label>
               <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())} placeholder="••••••••"/></div>
             {mode==="register"&&(
-              <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Code d'invitation</label>
-                <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="NOVA-AGENT-XXXXXX" style={{fontFamily:"monospace",letterSpacing:".08em"}}/>
-                <div style={{fontSize:11,color:T.sec,marginTop:4}}>Code fourni par votre agence</div>
-              </div>
+              <>
+                <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>@ TikTok * (même que sur TikTok)</label>
+                  <input className="inp" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} placeholder="mon_pseudo_tiktok" style={{fontFamily:"monospace"}}/>
+                  <div style={{fontSize:11,color:T.sec,marginTop:3}}>Doit être identique à votre compte TikTok</div>
+                </div>
+                <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Photo de profil (même que TikTok)</label>
+                  <input className="inp" type="file" accept="image/*" onChange={e=>setAvatar(e.target.files[0])} style={{fontSize:11.5}}/>
+                </div>
+                <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Code d'invitation</label>
+                  <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="NOVA-AGENT-XXXXXX" style={{fontFamily:"monospace",letterSpacing:".08em"}}/>
+                  <div style={{fontSize:11,color:T.sec,marginTop:4}}>Code fourni par votre agence</div>
+                </div>
+              </>
             )}
             {err&&<div style={{padding:"7px 10px",borderRadius:8,background:"rgba(244,67,54,.1)",border:"1px solid rgba(244,67,54,.2)",fontSize:11.5,color:T.ng}}>{err}</div>}
             <button className="btn" style={{width:"100%",justifyContent:"center",padding:"9px",marginTop:4}} onClick={mode==="login"?login:register} disabled={load}>
@@ -775,6 +796,7 @@ function MatchesView({profile,creators}){
   const [form,setForm]=useState({creator_a:"",creator_b:"",match_date:"",match_time:"20:00",is_inter_agency:false});
   const [saving,setSaving]=useState(false);
   const [autoResult,setAutoResult]=useState(null);
+  const [poster,setPoster]=useState(null);
   const ag=profile?.agencies;
   const role=profile?.role;
 
@@ -881,7 +903,21 @@ function MatchesView({profile,creators}){
       )}
 
       {loading?<div style={{textAlign:"center",padding:20,color:T.sec}}>Chargement…</div>:
-      matches.length===0?(
+      matches.filter(m=>m.status==="pending"&&!m.creator_b).length>0&&(
+        <div className="card" style={{padding:16,marginBottom:14,background:"rgba(0,200,83,.04)",border:"1px solid rgba(0,200,83,.2)"}}>
+          <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>🔓 Matchs ouverts — postuler</div>
+          {matches.filter(m=>m.status==="pending"&&!m.creator_b).map(m=>(
+            <div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,background:"rgba(255,255,255,.03)",marginBottom:7,border:`1px solid ${T.b}`}}>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>Match ouvert · {m.match_date?new Date(m.match_date).toLocaleDateString("fr-FR"):"Date libre"}</div>
+                <div style={{fontSize:11,color:T.sec}}>{m.match_time||"Heure libre"} · {m.is_inter_agency?"Inter-agences":"Intra-agence"}</div>
+              </div>
+              <button className="btn" style={{fontSize:11.5,padding:"5px 12px",background:`linear-gradient(135deg,${T.ok},#00E676)`}}>Postuler</button>
+            </div>
+          ))}
+        </div>
+      )}
+      {matches.length===0?(
         <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
           Aucun match programmé
         </div>
@@ -901,12 +937,13 @@ function MatchesView({profile,creators}){
               <span className="tag" style={{background:`${statusColor[m.status]||T.go}18`,color:statusColor[m.status]||T.go}}>
                 {statusLabel[m.status]||"En attente"}
               </span>
-              <button className="btng" style={{fontSize:10.5}}>Affiche</button>
+              <button className="btng" style={{fontSize:10.5}} onClick={()=>setPoster(m)}>Affiche 🖼</button>
             </div>
           ))}
         </div>
       )}
     </div>
+    {poster&&<MatchPoster matchData={poster} creators={creators} onClose={()=>setPoster(null)}/>}
   );
 }
 
@@ -1118,6 +1155,11 @@ function SettingsView({profile,reload}){
           </div>
         ))}
       </div>
+      <div className="card" style={{padding:18,marginBottom:14}}>
+        <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:4}}>Agences bloquées pour les matchs</div>
+        <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Ces agences ne pourront pas proposer de matchs à vos créateurs.</div>
+        <BlockedAgenciesPanel profile={profile}/>
+      </div>
       <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10}}>
         {saved&&<span style={{fontSize:12,color:T.ok}}>✓ Enregistré</span>}
         <button className="btn" onClick={save} disabled={saving}>{saving?<Spin/>:"✓"} Enregistrer</button>
@@ -1138,7 +1180,8 @@ function DashView({profile,creators,agents,managers,directors}){
     const hp=Math.min(100,Math.round((c.hours_live||0)/(ag?.min_hours||40)*100));
     return(
       <div className="fup">
-        <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Bonjour, {c.pseudo} 👋</h1>
+        <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:10}}>Bonjour, {c.pseudo} 👋</h1>
+        <RemindersPanel matches={[]} schedules={[]}/>
         <div className="glow" style={{padding:24,textAlign:"center",marginBottom:12}}>
           <div style={{fontSize:11,fontWeight:600,color:T.sec,textTransform:"uppercase",letterSpacing:".08em",marginBottom:10}}>Tes diamants ce mois</div>
           <div style={{fontSize:52,fontWeight:900,color:T.cy,lineHeight:1,marginBottom:4}}>💎 {(c.diamonds||0).toLocaleString()}</div>
@@ -1224,6 +1267,121 @@ function TeamView({agents,managers,directors}){
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+
+/* ─── MATCH POSTER ──────────────────────── */
+function MatchPoster({matchData,creators,onClose}){
+  const cA=creators.find(c=>(c.id===matchData.creator_a||c.profile_id===matchData.creator_a));
+  const cB=creators.find(c=>(c.id===matchData.creator_b||c.profile_id===matchData.creator_b));
+  const date=matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR","DD/MM/YYYY"):"Date TBD";
+  const time=matchData.match_time||"20:00";
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(10,5,25,.9)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(6px)"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"linear-gradient(135deg,#0F0A1E,#1A1035)",border:"1px solid rgba(127,0,255,.4)",borderRadius:20,padding:28,width:360,boxShadow:"0 0 60px rgba(127,0,255,.3)"}}>
+        <div style={{textAlign:"center",marginBottom:20}}>
+          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:11,color:T.cy,letterSpacing:".15em",textTransform:"uppercase",marginBottom:6}}>Diamond's · TikTok Live Match</div>
+          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:28,color:T.tx,letterSpacing:"-0.02em"}}>BATTLE LIVE</div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:20}}>
+          {/* Creator A */}
+          <div style={{textAlign:"center",flex:1}}>
+            <div style={{width:72,height:72,borderRadius:"50%",background:`linear-gradient(135deg,${T.acc}40,${T.acc}20)`,border:`2px solid ${T.acc}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:22,fontWeight:800,color:T.acc}}>
+              {cA?String(cA.pseudo||"?").slice(0,2).toUpperCase():"?"}
+            </div>
+            <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:2}}>{cA?.pseudo||"Créateur A"}</div>
+            <div style={{fontSize:11,color:T.cy}}>💎 {(cA?.diamonds||0).toLocaleString()}</div>
+          </div>
+          {/* VS */}
+          <div style={{textAlign:"center"}}>
+            <div style={{fontSize:24,fontWeight:900,color:T.go,lineHeight:1}}>VS</div>
+          </div>
+          {/* Creator B */}
+          <div style={{textAlign:"center",flex:1}}>
+            <div style={{width:72,height:72,borderRadius:"50%",background:`linear-gradient(135deg,${T.cy}40,${T.cy}20)`,border:`2px solid ${T.cy}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:22,fontWeight:800,color:T.cy}}>
+              {cB?String(cB.pseudo||"?").slice(0,2).toUpperCase():"?"}
+            </div>
+            <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:2}}>{cB?.pseudo||"À définir"}</div>
+            <div style={{fontSize:11,color:T.cy}}>💎 {(cB?.diamonds||0).toLocaleString()}</div>
+          </div>
+        </div>
+        {/* Date & time */}
+        <div style={{textAlign:"center",padding:"12px 16px",borderRadius:12,background:"rgba(127,0,255,.1)",border:"1px solid rgba(127,0,255,.25)",marginBottom:16}}>
+          <div style={{fontSize:18,fontWeight:900,color:T.tx,letterSpacing:".04em"}}>{matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR"):date}</div>
+          <div style={{fontSize:14,color:T.acc,fontWeight:700,marginTop:3}}>⏰ {time}</div>
+          <div style={{fontSize:11,color:T.sec,marginTop:4}}>{matchData.is_inter_agency?"Match Inter-Agences":"Match Intra-Agence"}</div>
+        </div>
+        <div style={{textAlign:"center",fontSize:10,color:T.sec}}>Diamond's by Belive Academy · {CONTACT}</div>
+        <button className="btn" style={{width:"100%",justifyContent:"center",marginTop:14,fontSize:12}} onClick={onClose}>Fermer</button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── REMINDERS PANEL ───────────────────── */
+function RemindersPanel({matches,schedules}){
+  const today=new Date();
+  const upcoming=matches.filter(m=>{
+    if(!m.match_date||m.status==="done"||m.status==="cancelled") return false;
+    const d=new Date(m.match_date);
+    const diff=(d-today)/(1000*60*60*24);
+    return diff>=0&&diff<=7;
+  });
+  if(upcoming.length===0&&schedules.length===0) return null;
+  return(
+    <div style={{padding:"10px 14px",borderRadius:11,background:"rgba(255,179,0,.08)",border:"1px solid rgba(255,179,0,.2)",marginBottom:14}}>
+      <div style={{fontWeight:700,fontSize:12.5,color:T.go,marginBottom:8}}>🔔 Rappels</div>
+      {upcoming.map(m=>(
+        <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,fontSize:12,color:T.tx}}>
+          <span style={{fontSize:14}}>⚔️</span>
+          <span>Match le <strong>{new Date(m.match_date).toLocaleDateString("fr-FR")}</strong> à <strong>{m.match_time||"?"}</strong></span>
+          <span className="tag" style={{background:`${T.go}18`,color:T.go,fontSize:10}}>Dans {Math.ceil((new Date(m.match_date)-today)/(1000*60*60*24))}j</span>
+        </div>
+      ))}
+      {schedules.length>0&&(
+        <div style={{fontSize:11.5,color:T.sec,marginTop:4}}>📅 Tu as {schedules.length} créneaux de live programmés cette semaine</div>
+      )}
+    </div>
+  );
+}
+
+/* ─── BLOCKED AGENCIES SETTINGS ─────────── */
+function BlockedAgenciesPanel({profile}){
+  const [allAgencies,setAllAgencies]=useState([]);
+  const [blocked,setBlocked]=useState([]);
+  const [saving,setSaving]=useState(false);
+  const ag=profile?.agencies;
+
+  useEffect(()=>{
+    fetchAllAgencies().then(d=>setAllAgencies(d.filter(a=>a.id!==ag?.id)));
+    if(ag?.blocked_agency_ids) setBlocked(ag.blocked_agency_ids);
+  },[ag?.id]);
+
+  const toggle=(id)=>setBlocked(b=>b.includes(id)?b.filter(x=>x!==id):[...b,id]);
+  const save=async()=>{
+    if(!sb||!ag?.id) return;setSaving(true);
+    await sb.from("agencies").update({blocked_agency_ids:blocked}).eq("id",ag.id);
+    setSaving(false);
+  };
+
+  if(allAgencies.length===0) return(
+    <div style={{fontSize:12,color:T.sec}}>Aucune autre agence inscrite sur Diamond's pour le moment.</div>
+  );
+  return(
+    <div>
+      <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Agences avec lesquelles vous <strong style={{color:T.ng}}>refusez</strong> les matchs :</div>
+      <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:12}}>
+        {allAgencies.map(a=>(
+          <div key={a.id} onClick={()=>toggle(a.id)} style={{display:"flex",alignItems:"center",gap:11,padding:"9px 12px",borderRadius:9,background:blocked.includes(a.id)?`${T.ng}08`:"rgba(255,255,255,.02)",border:`1px solid ${blocked.includes(a.id)?T.ng+"30":T.b}`,cursor:"pointer",transition:"all .18s"}}>
+            <div style={{width:30,height:30,borderRadius:8,background:(a.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:a.color||T.acc,fontWeight:800,fontSize:13,flexShrink:0}}>{a.name[0]}</div>
+            <div style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{a.name}</div>
+            <Tog on={blocked.includes(a.id)} onChange={()=>toggle(a.id)} color={T.ng}/>
+          </div>
+        ))}
+      </div>
+      <button className="btn" style={{fontSize:12}} onClick={save} disabled={saving}>{saving?<Spin/>:"Enregistrer les blocages"}</button>
     </div>
   );
 }
