@@ -115,6 +115,80 @@ const importBackstage = async (agencyId,importerId,rows) => {
   return error?{error:error.message}:data;
 };
 
+// Nouvelles fonctions pour les fonctionnalités demandées
+const checkAgencyAccess = async (agencyId) => {
+  if(!sb) return false;
+  const {data,error} = await sb.from("agencies").select("billing_status").eq("id",agencyId).single();
+  if(error || !data) return false;
+  return data.billing_status === "actif" || data.billing_status === "offert";
+};
+
+// Fonctions pour les rappels
+const getUpcomingReminders = async (userId, userRole) => {
+  if(!sb) return [];
+  let reminders = [];
+  
+  if(userRole === "creator"){
+    // Rappels pour les créateurs (matchs à venir)
+    const {data:matches} = await sb.from("matches").select("*").eq("creator1_id",userId).or(`creator2_id.eq.${userId}`).eq("status","pending").gte("scheduled_at",new Date().toISOString()).order("scheduled_at").limit(5);
+    reminders = matches?.map(m=>({type:"match",data:m,reminder:`Match prévu le ${new Date(m.scheduled_at).toLocaleDateString("fr-FR")} à ${new Date(m.scheduled_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`}))||[];
+  } else {
+    // Rappels pour le staff (plannings et matchs de l'agence)
+    const {data:matches} = await sb.from("matches").select("*").eq("agency_id",userId).eq("status","pending").gte("scheduled_at",new Date().toISOString()).order("scheduled_at").limit(5);
+    reminders = matches?.map(m=>({type:"match",data:m,reminder:`Match: ${m.creator1_id} vs ${m.creator2_id} le ${new Date(m.scheduled_at).toLocaleDateString("fr-FR")}`}))||[];
+  }
+  
+  return reminders;
+};
+
+const createReminder = async (reminderData) => {
+  if(!sb) return {error:"Supabase non configuré"};
+  const {data,error} = await sb.from("reminders").insert(reminderData).select().single();
+  return error?{error:error.message}:data;
+};
+
+const createCreatorPlanning = async (creatorId,planningData) => {
+  if(!sb) return {error:"Supabase non configuré"};
+  const {data,error} = await sb.from("creator_planning").insert({
+    creator_id:creatorId,
+    ...planningData
+  }).select().single();
+  return error?{error:error.message}:data;
+};
+
+const getCreatorPlanning = async (creatorId) => {
+  if(!sb) return [];
+  const {data} = await sb.from("creator_planning").select("*").eq("creator_id",creatorId).order("day_of_week");
+  return data||[];
+};
+
+const createMatch = async (matchData) => {
+  if(!sb) return {error:"Supabase non configuré"};
+  const {data,error} = await sb.from("matches").insert(matchData).select().single();
+  return error?{error:error.message}:data;
+};
+
+const getAvailableMatches = async (creatorId) => {
+  if(!sb) return [];
+  const {data} = await sb.from("matches").select("*").or(`creator1_id.eq.${creatorId},creator2_id.eq.${creatorId}`).eq("status","pending").order("scheduled_at");
+  return data||[];
+};
+
+const updateCreatorTikTok = async (creatorId,tiktokData) => {
+  if(!sb) return {error:"Supabase non configuré"};
+  const {data,error} = await sb.from("creators").update(tiktokData).eq("id",creatorId).select().single();
+  return error?{error:error.message}:data;
+};
+
+const addLiveSession = async (creatorId,sessionData) => {
+  if(!sb) return {error:"Supabase non configuré"};
+  const {data,error} = await sb.from("live_sessions").insert({
+    creator_id:creatorId,
+    ...sessionData
+  }).select().single();
+  return error?{error:error.message}:data;
+};
+
 /* ─── SHARED UI ──────────────────────────────────── */
 const DiamondSVG = ({size=40}) => (
   <svg width={size} height={size} viewBox="0 0 40 40">
@@ -172,12 +246,12 @@ const SC = ({label,val,sub,accent}) => (
 const Spin = () => <div style={{width:14,height:14,borderRadius:"50%",border:"2px solid rgba(255,255,255,.3)",borderTop:"2px solid white",animation:"sp2 .7s linear infinite"}}/>;
 
 const NAVS = {
-  admin:    [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"}],
-  agency:   [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Liens d'invitation"},{id:"settings",l:"Paramètres"}],
-  director: [{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"links",l:"Mes liens"}],
-  manager:  [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"links",l:"Mes liens"}],
-  agent:    [{id:"dash",l:"Dashboard"},{id:"creators",l:"Mes créateurs"},{id:"links",l:"Mon lien"}],
-  creator:  [{id:"dash",l:"Mon espace"}],
+  admin:    [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"planning",l:"Planning"},{id:"matchs",l:"Matchs"}],
+  agency:   [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Liens d'invitation"},{id:"settings",l:"Paramètres"},{id:"planning",l:"Planning"},{id:"matchs",l:"Matchs"}],
+  director: [{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"links",l:"Mes liens"},{id:"planning",l:"Planning"},{id:"matchs",l:"Matchs"}],
+  manager:  [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"links",l:"Mes liens"},{id:"planning",l:"Planning"},{id:"matchs",l:"Matchs"}],
+  agent:    [{id:"dash",l:"Dashboard"},{id:"creators",l:"Mes créateurs"},{id:"links",l:"Mon lien"},{id:"planning",l:"Planning"},{id:"matchs",l:"Matchs"}],
+  creator:  [{id:"dash",l:"Mon espace"},{id:"planning",l:"Mon planning"},{id:"matchs",l:"Matchs"},{id:"tiktok",l:"Connexion TikTok"}],
 };
 
 /* ─── AUTH ───────────────────────────────────────── */
@@ -185,11 +259,20 @@ function useAuth(){
   const [user,setUser]       = useState(null);
   const [profile,setProfile] = useState(null);
   const [loading,setLoading] = useState(true);
+  const [accessDenied,setAccessDenied] = useState(false);
 
   const load = async (uid) => {
     try {
       const p = await getProfile(uid);
       setProfile(p);
+      
+      // Vérifier l'accès pour les agences non-admin
+      if(p && p.role!=="admin" && p.agency_id){
+        const hasAccess = await checkAgencyAccess(p.agency_id);
+        if(!hasAccess){
+          setAccessDenied(true);
+        }
+      }
     } catch(e){ console.error(e); }
     setLoading(false);
   };
@@ -210,11 +293,77 @@ function useAuth(){
   },[]);
 
   return {
-    user, profile, loading,
+    user, profile, loading, accessDenied,
     signIn:  (e,p) => sb?.auth.signInWithPassword({email:e,password:p}),
     signOut: ()    => sb?.auth.signOut(),
     reload:  ()    => user && load(user.id),
   };
+}
+
+/* ─── NOTIFICATIONS PANEL ────────────────────────── */
+function NotificationsPanel({profile,reminders}){
+  const [show,setShow] = useState(false);
+  
+  if(!reminders || reminders.length===0) return null;
+  
+  return(
+    <div style={{position:"relative"}}>
+      <button 
+        onClick={()=>setShow(!show)} 
+        style={{
+          position:"relative",
+          width:32,height:32,borderRadius:"50%",background:show?T.acc:"rgba(255,255,255,.1)",
+          border:"none",color:"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+          transition:"all .2s"
+        }}
+      >
+        🔔
+        <span style={{position:"absolute",top:-2,right:-2,background:T.ng,width:8,height:8,borderRadius:"50%"}}/>
+      </button>
+      
+      {show && (
+        <div style={{
+          position:"absolute",top:40,right:0,width:280,background:T.card,border:`1px solid ${T.b}`,
+          borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,.3)",zIndex:1000,overflow:"hidden"
+        }}>
+          <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:12,color:T.tx}}>
+            Rappels ({reminders.length})
+          </div>
+          <div style={{maxHeight:300,overflowY:"auto"}}>
+            {reminders.map((r,i)=>(
+              <div key={i} style={{padding:"10px 14px",borderBottom:i<reminders.length-1?`1px solid ${T.b}`:"none",fontSize:11.5}}>
+                <div style={{fontWeight:600,color:T.tx,marginBottom:2}}>{r.type==="match"?"🏆 Match":"📅 Planning"}</div>
+                <div style={{color:T.sec,lineHeight:1.4}}>{r.reminder}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── ACCESS DENIED PAGE ─────────────────────────── */
+function AccessDeniedPage({profile}){
+  return(
+    <div style={{minHeight:"100vh",background:`radial-gradient(ellipse at 50% 0%,rgba(244,67,54,.15) 0%,transparent 55%),${T.bg}`,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{maxWidth:400,textAlign:"center"}} className="fup">
+        <div style={{fontSize:40,marginBottom:14}}>🔒</div>
+        <h1 style={{fontSize:22,fontWeight:800,color:T.tx,marginBottom:8}}>Accès temporairement suspendu</h1>
+        <p style={{fontSize:13,color:T.sec,marginBottom:20,lineHeight:1.6}}>
+          Votre agence doit régler sa cotisation pour continuer à utiliser Diamond's.
+          Contactez votre administrateur ou effectuez le paiement pour réactiver votre accès.
+        </p>
+        <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:16,marginBottom:20}}>
+          <div style={{fontSize:11,fontWeight:600,color:T.sec,marginBottom:4}}>Contactez-nous</div>
+          <div style={{fontSize:13,color:T.acc,fontWeight:600}}>diamonds.saas@gmail.com</div>
+        </div>
+        <button className="btng" onClick={()=>window.location.reload()}>
+          Rafraîchir la page
+        </button>
+      </div>
+    </div>
+  );
 }
 
 /* ─── LOGIN ──────────────────────────────────────── */
@@ -562,7 +711,7 @@ function AdminBilling(){
         <SC label="ARR estimé" val={mrr*12+"€"} sub="Projection"/>
         <SC label="Impayés" val={agencies.filter(a=>a.billing_status==="impayé").length} sub="" accent={T.ng}/>
         <SC label="En essai" val={agencies.filter(a=>a.billing_status==="essai").length} sub="À convertir" accent={T.go}/>
-        <SC label="Offerts ♥" val={offertCount} sub="Hors MRR" accent={T.cy}/>
+        <SC label="Offerts ♥" val={offert} sub="Hors MRR" accent={T.cy}/>
       </div>
       <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,overflow:"hidden"}}>
         <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Toutes les agences</div>
@@ -1039,6 +1188,463 @@ function DashView({profile,creators,agents,managers,directors}){
   );
 }
 
+/* ─── PLANNING VIEW ─────────────────────────────── */
+function PlanningView({profile,creators,reload}){
+  const role = profile?.role;
+  const ag = profile?.agencies;
+  const [selectedCreator,setSelectedCreator] = useState(null);
+  const [planning,setPlanning] = useState([]);
+  const [loading,setLoading] = useState(false);
+  const [editing,setEditing] = useState(false);
+  const [formData,setFormData] = useState({});
+  
+  const DAYS = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+  const HOURS = Array.from({length:24},(_,i)=>`${i.toString().padStart(2,"0")}:00`);
+  
+  useEffect(()=>{
+    if(selectedCreator){
+      setLoading(true);
+      getCreatorPlanning(selectedCreator).then(d=>{
+        setPlanning(d);
+        setLoading(false);
+      });
+    }
+  },[selectedCreator]);
+  
+  const savePlanning = async () => {
+    if(!selectedCreator || Object.keys(formData).length===0) return;
+    setLoading(true);
+    await createCreatorPlanning(selectedCreator,formData);
+    setEditing(false);
+    setFormData({});
+    const fresh = await getCreatorPlanning(selectedCreator);
+    setPlanning(fresh);
+    setLoading(false);
+  };
+  
+  if(role==="creator"){
+    const creator = creators[0];
+    if(!creator) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucune donnée</div>;
+    
+    return(
+      <div className="fup">
+        <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Mon planning</h1>
+        <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:18,marginBottom:14}}>
+          <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:12}}>Disponibilités hebdomadaires</div>
+          <div style={{fontSize:12,color:T.sec,marginBottom:16}}>Modifiez votre planning pour permettre à votre agence de vous programmer des matchs TikTok</div>
+          {DAYS.map((day,i)=>{
+            const dayPlan = planning.find(p=>p.day_of_week===i);
+            return(
+              <div key={day} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<6?`1px solid ${T.b}`:"none"}}>
+                <div style={{width:80,fontSize:12,fontWeight:600,color:T.tx}}>{day}</div>
+                <div style={{flex:1,display:"flex",gap:8,alignItems:"center"}}>
+                  <select className="inp" value={dayPlan?.start_hour||""} onChange={e=>setFormData(f=>({...f,[`day_${i}_start`]:e.target.value}))} style={{width:100,fontSize:11}}>
+                    <option value="">Début</option>
+                    {HOURS.map(h=>(<option key={h} value={h}>{h}</option>))}
+                  </select>
+                  <span style={{color:T.sec,fontSize:11}}>→</span>
+                  <select className="inp" value={dayPlan?.end_hour||""} onChange={e=>setFormData(f=>({...f,[`day_${i}_end`]:e.target.value}))} style={{width:100,fontSize:11}}>
+                    <option value="">Fin</option>
+                    {HOURS.map(h=>(<option key={h} value={h}>{h}</option>))}
+                  </select>
+                </div>
+                <span className="tag" style={{background:dayPlan?`${T.ok}18`:`${T.go}18`,color:dayPlan?T.ok:T.go}}>
+                  {dayPlan?"Disponible":"Indisponible"}
+                </span>
+              </div>
+            );
+          })}
+          <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:12}}>
+            <button className="btn" onClick={savePlanning} disabled={loading || Object.keys(formData).length===0}>
+              {loading?<Spin/>:"Enregistrer"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  return(
+    <div className="fup">
+      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Planning des créateurs</h1>
+      <div style={{marginBottom:14}}>
+        <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Sélectionner un créateur</label>
+        <select className="inp" value={selectedCreator||""} onChange={e=>setSelectedCreator(e.target.value)} style={{width:300}}>
+          <option value="">Choisir...</option>
+          {creators.map(c=>(<option key={c.id} value={c.id}>{c.pseudo}</option>))}
+        </select>
+      </div>
+      {selectedCreator && (
+        <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:18}}>
+          <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:12}}>
+            Planning de {creators.find(c=>c.id===selectedCreator)?.pseudo}
+          </div>
+          {loading?<div style={{textAlign:"center",padding:20,color:T.sec}}>Chargement...</div>:
+          planning.length===0?<div style={{textAlign:"center",padding:20,color:T.sec}}>Aucun planning défini</div>:
+          DAYS.map((day,i)=>{
+            const dayPlan = planning.find(p=>p.day_of_week===i);
+            return(
+              <div key={day} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<6?`1px solid ${T.b}`:"none"}}>
+                <div style={{width:80,fontSize:12,fontWeight:600,color:T.tx}}>{day}</div>
+                {dayPlan?(
+                  <div style={{flex:1,display:"flex",gap:8,alignItems:"center"}}>
+                    <span style={{fontSize:11,color:T.ok,fontWeight:600}}>{dayPlan.start_hour}</span>
+                    <span style={{color:T.sec,fontSize:11}}>→</span>
+                    <span style={{fontSize:11,color:T.ok,fontWeight:600}}>{dayPlan.end_hour}</span>
+                    <span className="tag" style={{background:`${T.ok}18`,color:T.ok}}>Disponible</span>
+                  </div>
+                ):(
+                  <div style={{flex:1,color:T.sec,fontSize:11}}>Indisponible</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── MATCHS VIEW ─────────────────────────────────── */
+function MatchsView({profile,creators,reload}){
+  const role = profile?.role;
+  const ag = profile?.agencies;
+  const [matches,setMatches] = useState([]);
+  const [loading,setLoading] = useState(false);
+  const [creating,setCreating] = useState(false);
+  const [formData,setFormData] = useState({});
+  const [matchType,setMatchType] = useState("inter"); // inter ou intra
+  
+  useEffect(()=>{
+    loadMatches();
+  },[]);
+  
+  const loadMatches = async () => {
+    setLoading(true);
+    // Charger les matchs selon le rôle
+    let allMatches = [];
+    if(role==="creator"){
+      const creator = creators[0];
+      if(creator) allMatches = await getAvailableMatches(creator.id);
+    } else {
+      // Pour les autres rôles, charger tous les matchs de l'agence
+      if(!sb) return;
+      const {data} = await sb.from("matches").select("*").eq("agency_id",ag?.id).order("scheduled_at");
+      allMatches = data||[];
+    }
+    setMatches(allMatches);
+    setLoading(false);
+  };
+  
+  const createNewMatch = async () => {
+    if(!formData.creator1_id || !formData.creator2_id) return;
+    setCreating(true);
+    await createMatch({
+      agency_id:ag?.id,
+      creator1_id:formData.creator1_id,
+      creator2_id:formData.creator2_id,
+      scheduled_at:formData.scheduled_at,
+      match_type:matchType,
+      status:"pending",
+      prize_pool:formData.prize_pool||100
+    });
+    setCreating(false);
+    setFormData({});
+    loadMatches();
+  };
+  
+  const generateMatchPoster = (match) => {
+    const creator1 = creators.find(c=>c.id===match.creator1_id);
+    const creator2 = creators.find(c=>c.id===match.creator2_id);
+    if(!creator1 || !creator2) return null;
+    
+    return(
+      <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:16,textAlign:"center"}}>
+        <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:12}}>AFFICHE DE MATCH</div>
+        <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:20,marginBottom:16}}>
+          <div style={{textAlign:"center"}}>
+            <div style={{width:60,height:60,borderRadius:"50%",background:`${T.acc}18`,display:"flex",alignItems:"center",justifyContent:"center",color:T.acc,fontWeight:800,fontSize:18,margin:"0 auto 8px"}}>
+              {creator1.pseudo?.replace("@","").slice(0,2).toUpperCase()}
+            </div>
+            <div style={{fontSize:12,fontWeight:600,color:T.tx}}>{creator1.pseudo}</div>
+          </div>
+          <div style={{fontSize:20,fontWeight:900,color:T.cy}}>VS</div>
+          <div style={{textAlign:"center"}}>
+            <div style={{width:60,height:60,borderRadius:"50%",background:`${T.ok}18`,display:"flex",alignItems:"center",justifyContent:"center",color:T.ok,fontWeight:800,fontSize:18,margin:"0 auto 8px"}}>
+              {creator2.pseudo?.replace("@","").slice(0,2).toUpperCase()}
+            </div>
+            <div style={{fontSize:12,fontWeight:600,color:T.tx}}>{creator2.pseudo}</div>
+          </div>
+        </div>
+        <div style={{fontSize:11,color:T.sec,marginBottom:8}}>{new Date(match.scheduled_at).toLocaleDateString("fr-FR")}</div>
+        <div style={{fontSize:12,fontWeight:600,color:T.acc}}>{new Date(match.scheduled_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</div>
+        <div style={{marginTop:12,padding:8,background:`${T.cy}10`,borderRadius:8,fontSize:11,color:T.cy}}>
+          🏆 Cagnotte : {match.prize_pool}€
+        </div>
+      </div>
+    );
+  };
+  
+  if(role==="creator"){
+    return(
+      <div className="fup">
+        <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Mes matchs</h1>
+        {loading?<div style={{textAlign:"center",padding:40,color:T.sec}}>Chargement...</div>:
+        matches.length===0?<div style={{textAlign:"center",padding:40,color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
+          <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:8}}>Aucun match programmé</div>
+          <div style={{fontSize:12,color:T.sec}}>Votre agence vous programmera des matchs prochainement</div>
+        </div>:
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          {matches.map(match=>{
+            const creator1 = creators.find(c=>c.id===match.creator1_id);
+            const creator2 = creators.find(c=>c.id===match.creator2_id);
+            const opponent = creator1?.id===creators[0]?.id?creator2:creator1;
+            
+            return(
+              <div key={match.id} style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:16}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:4}}>
+                      Match contre {opponent?.pseudo}
+                    </div>
+                    <div style={{fontSize:11,color:T.sec}}>
+                      {new Date(match.scheduled_at).toLocaleDateString("fr-FR")} à {new Date(match.scheduled_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+                    </div>
+                  </div>
+                  <span className="tag" style={{background:match.status==="pending"?`${T.go}18`:`${T.ok}18`,color:match.status==="pending"?T.go:T.ok}}>
+                    {match.status==="pending"?"À venir":"Terminé"}
+                  </span>
+                </div>
+                {generateMatchPoster(match)}
+              </div>
+            );
+          })}
+        </div>}
+      </div>
+    );
+  }
+  
+  return(
+    <div className="fup">
+      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Gestion des matchs</h1>
+      
+      {/* Création de match */}
+      {role!=="admin" && (
+        <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:18,marginBottom:14}}>
+          <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:12}}>Créer un nouveau match</div>
+          <div style={{display:"flex",gap:8,marginBottom:12}}>
+            <button className={matchType==="inter"?"btn":"btng"} onClick={()=>setMatchType("inter")}>Inter-agences</button>
+            <button className={matchType==="intra"?"btn":"btng"} onClick={()=>setMatchType("intra")}>Intra-agence</button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Créateur 1</label>
+              <select className="inp" value={formData.creator1_id||""} onChange={e=>setFormData(f=>({...f,creator1_id:e.target.value}))}>
+                <option value="">Choisir...</option>
+                {creators.map(c=>(<option key={c.id} value={c.id}>{c.pseudo}</option>))}
+              </select>
+            </div>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Créateur 2</label>
+              <select className="inp" value={formData.creator2_id||""} onChange={e=>setFormData(f=>({...f,creator2_id:e.target.value}))}>
+                <option value="">Choisir...</option>
+                {creators.filter(c=>c.id!==formData.creator1_id).map(c=>(<option key={c.id} value={c.id}>{c.pseudo}</option>))}
+              </select>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Date et heure</label>
+              <input className="inp" type="datetime-local" value={formData.scheduled_at||""} onChange={e=>setFormData(f=>({...f,scheduled_at:e.target.value}))}/>
+            </div>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Cagnotte (€)</label>
+              <input className="inp" type="number" value={formData.prize_pool||""} onChange={e=>setFormData(f=>({...f,prize_pool:+e.target.value}))} placeholder="100"/>
+            </div>
+          </div>
+          <button className="btn" onClick={createNewMatch} disabled={creating || !formData.creator1_id || !formData.creator2_id}>
+            {creating?<Spin/>:"Créer le match"}
+          </button>
+        </div>
+      )}
+      
+      {/* Liste des matchs */}
+      <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,overflow:"hidden"}}>
+        <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Matchs programmés</div>
+        {loading?<div style={{padding:28,textAlign:"center",color:T.sec}}>Chargement...</div>:
+        matches.length===0?<div style={{padding:28,textAlign:"center",color:T.sec}}>Aucun match programmé</div>:
+        matches.map(match=>(
+          <div key={match.id} className="cr" style={{gridTemplateColumns:"1fr auto"}}>
+            <div>
+              <div style={{fontWeight:600,fontSize:12.5,color:T.tx,marginBottom:4}}>
+                {creators.find(c=>c.id===match.creator1_id)?.pseudo} vs {creators.find(c=>c.id===match.creator2_id)?.pseudo}
+              </div>
+              <div style={{fontSize:11,color:T.sec}}>
+                {new Date(match.scheduled_at).toLocaleDateString("fr-FR")} à {new Date(match.scheduled_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+              </div>
+            </div>
+            <span className="tag" style={{background:match.status==="pending"?`${T.go}18`:`${T.ok}18`,color:match.status==="pending"?T.go:T.ok}}>
+              {match.status==="pending"?"À venir":"Terminé"}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── TIKTOK CONNECTION VIEW ────────────────────────── */
+function TikTokConnectionView({profile,creators,reload}){
+  const role = profile?.role;
+  const [connecting,setConnecting] = useState(false);
+  const [tiktokData,setTiktokData] = useState({});
+  const [liveSessions,setLiveSessions] = useState([]);
+  const [addingSession,setAddingSession] = useState(false);
+  const [sessionForm,setSessionForm] = useState({});
+  
+  useEffect(()=>{
+    if(role==="creator" && creators.length>0){
+      const creator = creators[0];
+      setTiktokData({
+        tiktok_username:creator.tiktok_username||"",
+        tiktok_profile_image:creator.tiktok_profile_image||""
+      });
+      loadLiveSessions(creator.id);
+    }
+  },[creators,role]);
+  
+  const loadLiveSessions = async (creatorId) => {
+    if(!sb) return;
+    const {data} = await sb.from("live_sessions").select("*").eq("creator_id",creatorId).order("date",{ascending:false});
+    setLiveSessions(data||[]);
+  };
+  
+  const saveTikTokData = async () => {
+    if(role!=="creator" || creators.length===0) return;
+    setConnecting(true);
+    const creator = creators[0];
+    await updateCreatorTikTok(creator.id,tiktokData);
+    setConnecting(false);
+    reload?.();
+  };
+  
+  const addLiveSession = async () => {
+    if(role!=="creator" || creators.length===0) return;
+    setAddingSession(true);
+    const creator = creators[0];
+    await addLiveSession(creator.id,{
+      date:sessionForm.date,
+      duration_minutes:sessionForm.duration_minutes,
+      viewers_count:sessionForm.viewers_count,
+      diamonds_received:sessionForm.diamonds_received
+    });
+    setAddingSession(false);
+    setSessionForm({});
+    loadLiveSessions(creator.id);
+  };
+  
+  if(role!=="creator"){
+    return(
+      <div style={{textAlign:"center",padding:40,color:T.sec}}>
+        <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:8}}>Accès réservé aux créateurs</div>
+        <div style={{fontSize:12,color:T.sec}}>Cette section est uniquement accessible aux créateurs</div>
+      </div>
+    );
+  }
+  
+  const creator = creators[0];
+  if(!creator) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucune donnée</div>;
+  
+  return(
+    <div className="fup">
+      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Connexion TikTok</h1>
+      
+      {/* Connexion du compte TikTok */}
+      <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:18,marginBottom:14}}>
+        <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:12}}>Paramètres TikTok</div>
+        <div style={{fontSize:12,color:T.sec,marginBottom:16}}>
+          Configurez votre compte TikTok pour synchroniser vos données
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div>
+            <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>@ TikTok</label>
+            <input className="inp" value={tiktokData.tiktok_username||""} onChange={e=>setTiktokData(d=>({...d,tiktok_username:e.target.value}))} placeholder="@votrecompte"/>
+            <div style={{fontSize:11,color:T.sec,marginTop:3}}>Doit être identique à votre pseudo TikTok</div>
+          </div>
+          <div>
+            <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>URL photo de profil</label>
+            <input className="inp" value={tiktokData.tiktok_profile_image||""} onChange={e=>setTiktokData(d=>({...d,tiktok_profile_image:e.target.value}))} placeholder="https://..."/>
+            <div style={{fontSize:11,color:T.sec,marginTop:3}}>Utilisez la même photo que sur TikTok</div>
+          </div>
+          <button className="btn" onClick={saveTikTokData} disabled={connecting}>
+            {connecting?<Spin/>:"Enregistrer"}
+          </button>
+        </div>
+      </div>
+      
+      {/* Sessions live récentes */}
+      <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:18,marginBottom:14}}>
+        <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:12}}>Mes lives TikTok</div>
+        <div style={{fontSize:12,color:T.sec,marginBottom:16}}>
+          Ajoutez manuellement vos sessions live pour suivre vos performances
+        </div>
+        
+        {/* Formulaire d'ajout */}
+        <div style={{background:"rgba(127,0,255,.06)",borderRadius:10,padding:14,marginBottom:16}}>
+          <div style={{fontWeight:600,fontSize:12,color:T.tx,marginBottom:10}}>Ajouter une session</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+            <div>
+              <label style={{fontSize:10,fontWeight:600,color:T.sec,display:"block",marginBottom:2}}>Date</label>
+              <input className="inp" type="datetime-local" value={sessionForm.date||""} onChange={e=>setSessionForm(f=>({...f,date:e.target.value}))} style={{fontSize:11}}/>
+            </div>
+            <div>
+              <label style={{fontSize:10,fontWeight:600,color:T.sec,display:"block",marginBottom:2}}>Durée (minutes)</label>
+              <input className="inp" type="number" value={sessionForm.duration_minutes||""} onChange={e=>setSessionForm(f=>({...f,duration_minutes:+e.target.value}))} placeholder="60" style={{fontSize:11}}/>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+            <div>
+              <label style={{fontSize:10,fontWeight:600,color:T.sec,display:"block",marginBottom:2}}>Spectateurs</label>
+              <input className="inp" type="number" value={sessionForm.viewers_count||""} onChange={e=>setSessionForm(f=>({...f,viewers_count:+e.target.value}))} placeholder="1500" style={{fontSize:11}}/>
+            </div>
+            <div>
+              <label style={{fontSize:10,fontWeight:600,color:T.sec,display:"block",marginBottom:2}}>Diamants reçus</label>
+              <input className="inp" type="number" value={sessionForm.diamonds_received||""} onChange={e=>setSessionForm(f=>({...f,diamonds_received:+e.target.value}))} placeholder="5000" style={{fontSize:11}}/>
+            </div>
+          </div>
+          <button className="btn" onClick={addLiveSession} disabled={addingSession} style={{fontSize:11.5}}>
+            {addingSession?<Spin/>:"Ajouter la session"}
+          </button>
+        </div>
+        
+        {/* Liste des sessions */}
+        {liveSessions.length===0?(
+          <div style={{textAlign:"center",padding:20,color:T.sec,border:`2px dashed ${T.b}`,borderRadius:10}}>
+            Aucune session enregistrée
+          </div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {liveSessions.map(session=>(
+              <div key={session.id} style={{background:"rgba(255,255,255,.02)",borderRadius:8,padding:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{fontWeight:600,fontSize:12,color:T.tx,marginBottom:4}}>
+                    {new Date(session.date).toLocaleDateString("fr-FR")} à {new Date(session.date).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+                  </div>
+                  <div style={{display:"flex",gap:12,fontSize:11,color:T.sec}}>
+                    <span>⏱ {session.duration_minutes}min</span>
+                    <span>👥 {session.viewers_count?.toLocaleString()} spectateurs</span>
+                    <span>💎 {session.diamonds_received?.toLocaleString()} diamants</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ─── TEAM VIEW ──────────────────────────────────── */
 function TeamView({agents,managers,directors}){
   const [tab,setTab] = useState("agents");
@@ -1080,6 +1686,7 @@ export default function App(){
   const [tab,setTab]   = useState("dash");
   const [team,setTeam] = useState({creators:[],agents:[],managers:[],directors:[]});
   const [loadT,setLT]  = useState(false);
+  const [reminders,setReminders] = useState([]);
 
   const role     = auth.profile?.role;
   const agencyId = auth.profile?.agency_id;
@@ -1090,6 +1697,16 @@ export default function App(){
       fetchTeam(agencyId).then(d=>{setTeam(d);setLT(false);});
     }
   },[agencyId]);
+
+  useEffect(()=>{
+    if(auth.profile?.id && role){
+      // Charger les rappels
+      const userId = role==="creator" ? team.creators[0]?.id : agencyId;
+      if(userId){
+        getUpcomingReminders(userId, role).then(setReminders);
+      }
+    }
+  },[auth.profile?.id, role, agencyId, team.creators]);
 
   useEffect(()=>{setTab("dash");},[role]);
 
@@ -1112,6 +1729,8 @@ export default function App(){
 
   if(!auth.user) return <><style>{css}</style><LoginPage/></>;
 
+  if(auth.accessDenied) return <><style>{css}</style><AccessDeniedPage profile={auth.profile}/></>;
+
   const nav = NAVS[role]||NAVS["admin"];
 
   const views = {
@@ -1123,6 +1742,9 @@ export default function App(){
     import:  ()=> <ImportView profile={auth.profile} reload={reload}/>,
     links:   ()=> <CodesPanel profile={auth.profile} agents={team.agents}/>,
     settings:()=> <SettingsView profile={auth.profile} reload={reload}/>,
+    planning:()=> <PlanningView profile={auth.profile} creators={team.creators} reload={reload}/>,
+    matchs:  ()=> <MatchsView profile={auth.profile} creators={team.creators} reload={reload}/>,
+    tiktok:  ()=> <TikTokConnectionView profile={auth.profile} creators={team.creators} reload={reload}/>,
   };
 
   const View = views[tab]||views.dash;
@@ -1140,10 +1762,11 @@ export default function App(){
           </div>
           <div style={{padding:"9px 10px",borderTop:`1px solid ${T.b}`,display:"flex",alignItems:"center",gap:8}}>
             <AV name={(auth.profile?.email||"?")[0].toUpperCase()} color={T.acc} size={28}/>
-            <div style={{overflow:"hidden",minWidth:0}}>
+            <div style={{overflow:"hidden",minWidth:0,flex:1}}>
               <div style={{fontSize:11.5,fontWeight:600,color:T.tx,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{auth.profile?.email}</div>
               <div style={{fontSize:9.5,color:T.sec}}>{role}</div>
             </div>
+            <NotificationsPanel profile={auth.profile} reminders={reminders}/>
           </div>
           <button onClick={auth.signOut} style={{margin:"0 8px 10px",padding:"7px 10px",borderRadius:9,border:`1px solid ${T.b}`,background:"transparent",color:T.sec,fontSize:12,cursor:"pointer",fontFamily:"Inter,sans-serif",transition:"color .18s"}}
             onMouseEnter={e=>e.currentTarget.style.color=T.ng} onMouseLeave={e=>e.currentTarget.style.color=T.sec}>
