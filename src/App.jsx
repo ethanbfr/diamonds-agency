@@ -5,7 +5,7 @@ const SB_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 
-const T={bg:"#0F0A1E",card:"#1A1035",b:"#2D1F5E",acc:"#7F00FF",cy:"#00E5FF",sec:"#7B6FA0",ok:"#00C853",ng:"#F44336",go:"#FFB300",pu:"#8E44AD",tx:"#F0EAFF",stripe:"#635BFF"};
+const T={bg:"#0A0418",card:"#1A1035",b:"#2D1F5E",acc:"#FF006E",cy:"#00F5FF",sec:"#7B6FA0",ok:"#00D9FF",ng:"#FF3366",go:"#FFAA00",pu:"#B366FF",tx:"#FFFFFF",stripe:"#8B5CF6"};
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
 const PRICE=149;
@@ -19,22 +19,22 @@ body{font-family:Inter,sans-serif;background:${T.bg};color:${T.tx};font-size:13p
 @keyframes sp2{to{transform:rotate(360deg)}}
 .fup{animation:fup .3s ease both}.fup1{animation:fup .3s .06s ease both}.fup2{animation:fup .3s .12s ease both}.fup3{animation:fup .3s .18s ease both}
 .nb{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:500;border:none;background:transparent;width:100%;color:${T.sec};transition:all .18s;text-align:left;font-family:Inter,sans-serif}
-.nb:hover{background:rgba(127,0,255,.1);color:${T.acc}}.nb.on{background:rgba(127,0,255,.15);color:${T.acc};position:relative}
+.nb:hover{background:rgba(255,0,110,.1);color:${T.acc}}.nb.on{background:rgba(255,0,110,.15);color:${T.acc};position:relative}
 .nb.on::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:2px;background:${T.acc};border-radius:0 2px 2px 0}
-.btn{background:linear-gradient(135deg,${T.acc},#B060FF);color:#fff;border:none;border-radius:9px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:Inter,sans-serif;transition:all .2s}
-.btn:hover{box-shadow:0 4px 18px rgba(127,0,255,.4);transform:translateY(-1px)}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn{background:linear-gradient(135deg,${T.acc},#FF4D9D);color:#fff;border:none;border-radius:9px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:Inter,sans-serif;transition:all .2s}
+.btn:hover{box-shadow:0 4px 18px rgba(255,0,110,.4);transform:translateY(-1px)}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 .btng{background:transparent;color:${T.sec};border:1px solid ${T.b};border-radius:8px;padding:4px 10px;font-size:11px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:Inter,sans-serif;transition:all .18s}
-.btng:hover{background:rgba(127,0,255,.1);color:${T.acc};border-color:rgba(127,0,255,.3)}
+.btng:hover{background:rgba(255,0,110,.1);color:${T.acc};border-color:rgba(255,0,110,.3)}
 .tag{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}
 .cr{display:grid;align-items:center;padding:9px 14px;border-bottom:1px solid ${T.b};transition:background .15s}
-.cr:last-child{border-bottom:none}.cr:hover{background:rgba(127,0,255,.04)}
+.cr:last-child{border-bottom:none}.cr:hover{background:rgba(255,0,110,.04)}
 input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:20px;background:rgba(255,255,255,.1);outline:none}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:${T.acc};cursor:pointer}
 .inp{width:100%;padding:8px 11px;border-radius:8px;border:1px solid ${T.b};background:rgba(255,255,255,.04);color:${T.tx};font-size:12.5px;outline:none;font-family:Inter,sans-serif;transition:border .18s}
-.inp:focus{border-color:${T.acc};box-shadow:0 0 0 3px rgba(127,0,255,.1)}.inp::placeholder{color:${T.sec}}
+.inp:focus{border-color:${T.acc};box-shadow:0 0 0 3px rgba(255,0,110,.1)}.inp::placeholder{color:${T.sec}}
 select.inp option{background:#1A1035;color:#F0EAFF}
 .card{background:${T.card};border-radius:12px;border:1px solid ${T.b}}
-.glow{background:${T.card};border-radius:12px;border:1px solid rgba(127,0,255,.3)}
+.glow{background:${T.card};border-radius:12px;border:1px solid rgba(255,0,110,.3)}
 .tog{width:38px;height:20px;border-radius:10px;cursor:pointer;border:none;position:relative;flex-shrink:0;transition:background .2s}
 .tog .kn{position:absolute;top:3px;width:14px;height:14px;border-radius:50%;background:white;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 `;
@@ -129,13 +129,8 @@ const Brand=({big=false})=>(
     </div>
     <div>
       <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:big?32:14,color:T.tx,letterSpacing:"-0.025em",lineHeight:1}}>Diamond<span style={{color:T.cy}}>'</span>s</div>
-      <div style={{fontSize:big?10:8.5,color:T.sec,fontWeight:500,marginTop:1,letterSpacing:".06em"}}>by Belive Academy</div>
+      <div style={{fontSize:big?10:8.5,color:T.sec,marginTop:1,letterSpacing:".06em"}}>by Belive Academy</div>
     </div>
-  </div>
-);
-const AV=({name="?",color=T.acc,size=30})=>(
-  <div style={{width:size,height:size,borderRadius:"50%",background:`linear-gradient(135deg,${color}28,${color}15)`,border:`1px solid ${color}30`,display:"flex",alignItems:"center",justifyContent:"center",color,fontWeight:700,fontSize:size*.36,flexShrink:0}}>
-    {String(name).slice(0,2).toUpperCase()}
   </div>
 );
 const SC=({label,val,sub,accent})=>(
