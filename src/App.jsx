@@ -1365,8 +1365,9 @@ export default function App(){
   const reload=()=>{auth.reload();if(agencyId) fetchTeam(agencyId).then(setTeam);};
 
   if(auth.loading) return(
-    <><style>{css}</style>
-    <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <>
+      <style>{css}</style>
+      <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{textAlign:"center"}}><div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Brand big={true}/></div>
         <div style={{width:28,height:28,borderRadius:"50%",border:`3px solid rgba(127,0,255,.2)`,borderTop:`3px solid ${T.acc}`,animation:"sp2 .8s linear infinite",margin:"0 auto"}}/></div>
     </div></>
@@ -1395,9 +1396,10 @@ export default function App(){
   const View=views[tab]||views.dash;
 
   return(
-    <><style>{css}</>
-    {isBlocked&&<BlockedScreen agencyName={ag?.name}/>}
-    <div style={{minHeight:"100vh",background:T.bg,display:"flex",fontFamily:"Inter,sans-serif"}}>
+    <>
+      <style>{css}</style>
+      {isBlocked&&<BlockedScreen agencyName={ag?.name}/>}
+      <div style={{minHeight:"100vh",background:T.bg,display:"flex",fontFamily:"Inter,sans-serif"}}>
       <div style={{width:195,flexShrink:0,background:T.card,borderRight:`1px solid ${T.b}`,display:"flex",flexDirection:"column"}}>
         <div style={{padding:"14px 10px 16px",cursor:"pointer"}} onClick={()=>setTab("dash")}><Brand/></div>
         <div style={{padding:"0 8px",flex:1,overflowY:"auto"}}>
