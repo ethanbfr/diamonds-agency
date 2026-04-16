@@ -895,6 +895,297 @@ function AdminAllStaffView(){
   );
 }
 
+/* ---- ADMIN ALL MATCHES ---- */
+function AdminAllMatchesView(){
+  const [matches,setMatches]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState("");
+  const [filter,setFilter]="all";
+  
+  useEffect(()=>{
+    const load=async()=>{
+      const data=await fetchAllMatches();
+      setMatches(data);
+      setLoading(false);
+    };
+    load();
+  },[]);
+  
+  const filtered=matches.filter(m=>{
+    const matchesSearch=!search || 
+      m.match_date?.toLowerCase().includes(search.toLowerCase()) ||
+      m.match_time?.toLowerCase().includes(search.toLowerCase()) ||
+      m.status?.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter=filter==="all" || m.status===filter;
+    return matchesSearch && matchesFilter;
+  });
+  
+  const statusColor={pending:T.go,confirmed:T.ok,done:T.cy,cancelled:T.ng};
+  const statusLabel={pending:"En attente",confirmed:"Confirmé",done:"Terminé",cancelled:"Annulé"};
+  const stats={
+    total:matches.length,
+    pending:matches.filter(m=>m.status==="pending").length,
+    confirmed:matches.filter(m=>m.status==="confirmed").length,
+    done:matches.filter(m=>m.status==="done").length,
+    cancelled:matches.filter(m=>m.status==="cancelled").length,
+    inter:matches.filter(m=>m.is_inter_agency).length,
+  };
+  
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:24,fontWeight:800,color:T.tx,marginBottom:8}}>Tous les matchs</h1>
+        <div style={{fontSize:13,color:T.sec}}>Vue globale de tous les matchs TikTok</div>
+      </div>
+      
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+        <SC label="Total matchs" val={stats.total} sub="Programmés" accent={T.acc}/>
+        <SC label="En attente" val={stats.pending} sub={`${Math.round(stats.pending/stats.total*100)}%`} accent={T.go}/>
+        <SC label="Confirmés" val={stats.confirmed} sub="Prêts" accent={T.ok}/>
+        <SC label="Inter-agences" val={stats.inter} sub={`${Math.round(stats.inter/stats.total*100)}%`} accent={T.cy}/>
+      </div>
+      
+      <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+        <input 
+          className="inp" 
+          placeholder="Rechercher par date, heure, statut..." 
+          value={search}
+          onChange={e=>setSearch(e.target.value)}
+          style={{flex:1,minWidth:300,maxWidth:500}}
+        />
+        <select className="inp" value={filter} onChange={e=>setFilter(e.target.value)} style={{width:150}}>
+          <option value="all">Tous les statuts</option>
+          <option value="pending">En attente</option>
+          <option value="confirmed">Confirmé</option>
+          <option value="done">Terminé</option>
+          <option value="cancelled">Annulé</option>
+        </select>
+      </div>
+      
+      {loading?<div style={{textAlign:"center",padding:40,color:T.sec}}><Spin/> Chargement...</div>:
+      <div className="card" style={{overflow:"hidden"}}>
+        <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>
+          {filtered.length} match{filtered.length>1?"s":""} {search && `(recherche: "${search}")`}
+        </div>
+        <div style={{overflowX:"auto"}}>
+          <div style={{minWidth:900}}>
+            <div className="cr" style={{gridTemplateColumns:"100px 1fr 80px 90px 80px 120px",background:"rgba(255,255,255,.02)",borderBottom:`1px solid ${T.b}`,fontSize:11,fontWeight:600,color:T.sec,textTransform:"uppercase"}}>
+              <div>Date</div><div>Match</div><div>Heure</div><div>Type</div><div>Statut</div><div>Créateurs</div>
+            </div>
+            {filtered.map(m=>(
+              <div key={m.id} className="cr" style={{gridTemplateColumns:"100px 1fr 80px 90px 80px 120px"}}>
+                <div style={{fontSize:12,fontWeight:700,color:T.tx}}>{m.match_date?new Date(m.match_date).toLocaleDateString("fr-FR"):"-"}</div>
+                <div>
+                  <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>Match {m.is_inter_agency?"inter":"intra"}-agence</div>
+                  <div style={{fontSize:10.5,color:T.sec}}>{m.match_time||"?"}</div>
+                </div>
+                <div style={{fontSize:12,color:T.sec}}>{m.match_time||"-"}</div>
+                <span className="tag" style={{background:m.is_inter_agency?`${T.cy}18`:`${T.pu}18`,color:m.is_inter_agency?T.cy:T.pu}}>
+                  {m.is_inter_agency?"Inter":"Intra"}
+                </span>
+                <span className="tag" style={{background:`${statusColor[m.status]||T.go}18`,color:statusColor[m.status]||T.go}}>
+                  {statusLabel[m.status]||"En attente"}
+                </span>
+                <div style={{fontSize:11,color:T.sec}}>
+                  {/* TODO: Creator names */}
+                  Creator A vs Creator B
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>}
+    </div>
+  );
+}
+
+/* ---- ADMIN ALL SCHEDULES ---- */
+function AdminAllSchedulesView(){
+  const [schedules,setSchedules]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]="";
+  const [filter,setFilter]="all";
+  
+  useEffect(()=>{
+    const load=async()=>{
+      const data=await fetchAllSchedules();
+      setSchedules(data);
+      setLoading(false);
+    };
+    load();
+  },[]);
+  
+  const filtered=schedules.filter(s=>{
+    const matchesSearch=!search || 
+      s.notes?.toLowerCase().includes(search.toLowerCase()) ||
+      s.start_time?.toLowerCase().includes(search.toLowerCase()) ||
+      s.end_time?.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter=filter==="all" || s.day_of_week===filter;
+    return matchesSearch && matchesFilter;
+  });
+  
+  const stats={
+    total:schedules.length,
+    inter:schedules.filter(s=>s.accept_inter_agency).length,
+    byDay:DAYS.map((_,i)=>schedules.filter(s=>s.day_of_week===i).length),
+  };
+  
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:24,fontWeight:800,color:T.tx,marginBottom:8}}>Tous les plannings</h1>
+        <div style={{fontSize:13,color:T.sec}}>Vue globale de tous les plannings créateurs</div>
+      </div>
+      
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+        <SC label="Total créneaux" val={stats.total} sub="Programmés" accent={T.acc}/>
+        <SC label="Inter-agences" val={stats.inter} sub="Ouverts" accent={T.cy}/>
+        <SC label="Lundi" val={stats.byDay[0]} sub="Créneaux" accent={T.ok}/>
+        <SC label="Samedi" val={stats.byDay[5]} sub="Créneaux" accent={T.go}/>
+      </div>
+      
+      <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+        <input 
+          className="inp" 
+          placeholder="Rechercher par notes, horaires..." 
+          value={search}
+          onChange={e=>setSearch(e.target.value)}
+          style={{flex:1,minWidth:300,maxWidth:500}}
+        />
+        <select className="inp" value={filter} onChange={e=>setFilter(e.target.value)} style={{width:150}}>
+          <option value="all">Tous les jours</option>
+          {DAYS.map((day,i)=><option key={i} value={i}>{day}</option>)}
+        </select>
+      </div>
+      
+      {loading?<div style={{textAlign:"center",padding:40,color:T.sec}}><Spin/> Chargement...</div>:
+      <div className="card" style={{overflow:"hidden"}}>
+        <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>
+          {filtered.length} créneau{filtered.length>1?"x":""} {search && `(recherche: "${search}")`}
+        </div>
+        <div style={{overflowX:"auto"}}>
+          <div style={{minWidth:800}}>
+            <div className="cr" style={{gridTemplateColumns:"80px 120px 1fr 100px 100px 80px",background:"rgba(255,255,255,.02)",borderBottom:`1px solid ${T.b}`,fontSize:11,fontWeight:600,color:T.sec,textTransform:"uppercase"}}>
+              <div>Jour</div><div>Horaires</div><div>Notes</div><div>Créateur</div><div>Agence</div><div>Type</div>
+            </div>
+            {filtered.map(s=>(
+              <div key={s.id} className="cr" style={{gridTemplateColumns:"80px 120px 1fr 100px 100px 80px"}}>
+                <div style={{fontSize:12,fontWeight:600,color:T.tx}}>{DAYS[s.day_of_week]||"-"}</div>
+                <div style={{fontSize:12,color:T.sec}}>{s.start_time||"-"} - {s.end_time||"-"}</div>
+                <div style={{fontSize:12,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.notes||"-"}</div>
+                <div style={{fontSize:11,color:T.sec}}>
+                  {/* TODO: Creator name */}
+                  Creator
+                </div>
+                <div style={{fontSize:11,color:T.sec}}>
+                  {/* TODO: Agency name */}
+                  Agency
+                </div>
+                <span className="tag" style={{background:s.accept_inter_agency?`${T.cy}18`:`${T.pu}18`,color:s.accept_inter_agency?T.cy:T.pu}}>
+                  {s.accept_inter_agency?"Inter":"Intra"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>}
+    </div>
+  );
+}
+
+/* ---- ADMIN ALL LIVES ---- */
+function AdminAllLivesView(){
+  const [lives,setLives]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]="";
+  const [sortBy,setSortBy]="live_date";
+  
+  useEffect(()=>{
+    const load=async()=>{
+      const data=await fetchAllLiveEntries();
+      setLives(data);
+      setLoading(false);
+    };
+    load();
+  },[]);
+  
+  const filtered=lives.filter(l=>{
+    const matchesSearch=!search || 
+      l.notes?.toLowerCase().includes(search.toLowerCase()) ||
+      (l.diamonds||0).toString().includes(search) ||
+      (l.viewers||0).toString().includes(search);
+    return matchesSearch;
+  }).sort((a,b)=>{
+    if(sortBy==="diamonds") return (b.diamonds||0)-(a.diamonds||0);
+    if(sortBy==="viewers") return (b.viewers||0)-(a.viewers||0);
+    if(sortBy==="duration") return (b.duration_minutes||0)-(a.duration_minutes||0);
+    return new Date(b.live_date)-new Date(a.live_date);
+  });
+  
+  const stats={
+    total:lives.length,
+    totalDiamonds:lives.reduce((sum,l)=>sum+(l.diamonds||0),0),
+    totalViewers:lives.reduce((sum,l)=>sum+(l.viewers||0),0),
+    avgDuration:lives.length>0?Math.round(lives.reduce((sum,l)=>sum+(l.duration_minutes||0),0)/lives.length):0,
+  };
+  
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:24,fontWeight:800,color:T.tx,marginBottom:8}}>Tous les lives</h1>
+        <div style={{fontSize:13,color:T.sec}}>Vue globale de tous les lives enregistrés</div>
+      </div>
+      
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+        <SC label="Total lives" val={stats.total} sub="Enregistrés" accent={T.acc}/>
+        <SC label="Total diamants" val={stats.totalDiamonds.toLocaleString()} sub="Cumulés" accent={T.cy}/>
+        <SC label="Total spectateurs" val={stats.totalViewers.toLocaleString()} sub="Cumulés" accent={T.ok}/>
+        <SC label="Durée moyenne" val={`${stats.avgDuration}min`} sub="Par live" accent={T.go}/>
+      </div>
+      
+      <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+        <input 
+          className="inp" 
+          placeholder="Rechercher par notes, diamants, spectateurs..." 
+          value={search}
+          onChange={e=>setSearch(e.target.value)}
+          style={{flex:1,minWidth:300,maxWidth:500}}
+        />
+        <select className="inp" value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{width:150}}>
+          <option value="live_date">Date</option>
+          <option value="diamonds">Diamants</option>
+          <option value="viewers">Spectateurs</option>
+          <option value="duration">Durée</option>
+        </select>
+      </div>
+      
+      {loading?<div style={{textAlign:"center",padding:40,color:T.sec}}><Spin/> Chargement...</div>:
+      <div className="card" style={{overflow:"hidden"}}>
+        <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>
+          {filtered.length} live{filtered.length>1?"s":""} {search && `(recherche: "${search}")`}
+        </div>
+        <div style={{overflowX:"auto"}}>
+          <div style={{minWidth:900}}>
+            <div className="cr" style={{gridTemplateColumns:"90px 90px 80px 80px 80px 1fr",background:"rgba(255,255,255,.02)",borderBottom:`1px solid ${T.b}`,fontSize:11,fontWeight:600,color:T.sec,textTransform:"uppercase"}}>
+              <div>Date</div><div>Diamants</div><div>Durée</div><div>Spectateurs</div><div>Revenus</div><div>Notes</div>
+            </div>
+            {filtered.map(l=>(
+              <div key={l.id} className="cr" style={{gridTemplateColumns:"90px 90px 80px 80px 80px 1fr"}}>
+                <div style={{fontWeight:700,fontSize:12,color:T.tx}}>{new Date(l.live_date).toLocaleDateString("fr-FR")}</div>
+                <div style={{fontWeight:700,color:T.cy,fontSize:12}}>{"\ud83d\udc8e"} {(l.diamonds||0).toLocaleString()}</div>
+                <div style={{fontSize:12,color:T.sec}}>{Math.round((l.duration_minutes||0)/60*10)/10}h</div>
+                <div style={{fontSize:12,color:T.sec}}>{"\ud83d\udc41"} {(l.viewers||0).toLocaleString()}</div>
+                <div style={{fontWeight:700,fontSize:12.5,color:T.acc}}>{((l.diamonds||0)*0.017*0.55).toFixed(0)}{"\u20ac"}</div>
+                <div style={{fontSize:11.5,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.notes||"-"}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>}
+    </div>
+  );
+}
+
 /* ---- ADMIN BILLING ---- */
 function AdminBilling(){
   const [agencies,setAgencies]=useState([]);
@@ -1795,6 +2086,9 @@ export default function App(){
     matches: ()=><MatchesView profile={auth.profile} creators={team.creators} agents={team.agents}/>,
     planning:()=><PlanningView profile={auth.profile}/>,
     my_lives:()=><MyLivesView profile={auth.profile}/>,
+    all_matches:()=><AdminAllMatchesView/>,
+    all_schedules:()=><AdminAllSchedulesView/>,
+    all_lives:()=><AdminAllLivesView/>,
   };
   const View=views[tab]||views.dash;
 
