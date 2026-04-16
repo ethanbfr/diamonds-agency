@@ -266,215 +266,10 @@ const Tog=({on,onChange,color=T.acc})=>(
   </button>
 );
 const billingTag=(s,isOffered)=>{
-  if(isOffered) return <span className="tag" style={{background:`${T.cy}18`,color:T.cy}}>Offert &#9829;</span>;
+  if(isOffered) return <span className="tag" style={{background:`${T.cy}18`,color:T.cy}}>Offert ♥</span>;
   const m={actif:{bg:`${T.ok}18`,c:T.ok,l:"Abonné"},impayé:{bg:`${T.ng}18`,c:T.ng,l:"Impayé"},essai:{bg:`${T.go}18`,c:T.go,l:"Essai"}};
   const v=m[s]||m.essai;
   return <span className="tag" style={{background:v.bg,color:v.c}}>{v.l}</span>;
-};
-
-const MatchPoster = ({ match, creatorA, creatorB, size = "medium", design = "futuristic" }) => {
-  const sizes = {
-    small: { width: 280, height: 160, fontSize: 10, titleSize: 16 },
-    medium: { width: 400, height: 240, fontSize: 12, titleSize: 20 },
-    large: { width: 600, height: 360, fontSize: 16, titleSize: 28 }
-  };
-  
-  const { width, height, fontSize, titleSize } = sizes[size] || sizes.medium;
-  const matchDate = new Date(match.match_date);
-  const formattedDate = matchDate.toLocaleDateString('fr-FR', { 
-    day: 'numeric', 
-    month: 'long', 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  });
-
-  // Design 1: Futuristique (par défaut)
-  const futuristicDesign = () => (
-    <div style={{
-      width: `${width}px`,
-      height: `${height}px`,
-      background: `linear-gradient(135deg, ${T.bg} 0%, ${T.cardGlass} 50%, ${T.bg} 100%)`,
-      borderRadius: '16px',
-      border: `2px solid ${T.acc}`,
-      position: 'relative',
-      overflow: 'hidden',
-      boxShadow: `0 8px 32px ${T.accGlow}, 0 0 20px ${T.neonPurple}`,
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      padding: '20px',
-      backdropFilter: 'blur(20px)'
-    }}>
-      <div style={{position:'absolute',top:0,left:0,right:0,bottom:0,background:`linear-gradient(135deg, ${T.accGlow}18, transparent 50%, ${T.cyGlow}18)`,pointerEvents:'none'}} />
-      
-      <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%, -50%)',width:'60px',height:'60px',background:`linear-gradient(135deg, ${T.acc}, ${T.accLight})`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:`${titleSize}px`,fontWeight:900,color:'#fff',boxShadow:`0 4px 20px ${T.accGlow}`,zIndex:10,border:`3px solid ${T.neon}`}}>VS</div>
-      
-      <div style={{textAlign:'center',position:'relative',zIndex:5}}>
-        <div style={{fontSize:`${fontSize}px`,color:T.txDim,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:'8px',fontWeight:600}}>Match Battle</div>
-        <div style={{fontSize:`${fontSize}px`,color:T.cy,fontWeight:500}}>{formattedDate}</div>
-      </div>
-      
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',position:'relative',zIndex:5}}>
-        <div style={{textAlign:'center',flex:1,paddingRight:'40px'}}>
-          <div style={{width:'80px',height:'80px',background:`linear-gradient(135deg, ${T.accGlow}, ${T.acc})`,borderRadius:'50%',margin:'0 auto 12px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:`${titleSize}px`,fontWeight:800,color:'#fff',boxShadow:`0 4px 16px ${T.accGlow}`}}>
-            {creatorA?.pseudo?.replace('@', '').slice(0, 2).toUpperCase() || '??'}
-          </div>
-          <div style={{fontSize:`${fontSize}px`,fontWeight:700,color:T.tx,marginBottom:'4px'}}>{creatorA?.pseudo || 'Unknown'}</div>
-          <div style={{fontSize:`${fontSize - 2}px`,color:T.txDim}}>{creatorA?.diamonds || 0} &#9829;</div>
-        </div>
-        <div style={{textAlign:'center',flex:1,paddingLeft:'40px'}}>
-          <div style={{width:'80px',height:'80px',background:`linear-gradient(135deg, ${T.cyGlow}, ${T.cy})`,borderRadius:'50%',margin:'0 auto 12px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:`${titleSize}px`,fontWeight:800,color:'#fff',boxShadow:`0 4px 16px ${T.cyGlow}`}}>
-            {creatorB?.pseudo?.replace('@', '').slice(0, 2).toUpperCase() || '??'}
-          </div>
-          <div style={{fontSize:`${fontSize}px`,fontWeight:700,color:T.tx,marginBottom:'4px'}}>{creatorB?.pseudo || 'Unknown'}</div>
-          <div style={{fontSize:`${fontSize - 2}px`,color:T.txDim}}>{creatorB?.diamonds || 0} &#9829;</div>
-        </div>
-      </div>
-      
-      <div style={{textAlign:'center',position:'relative',zIndex:5}}>
-        <div style={{fontSize:`${fontSize - 2}px`,color:T.txDim,fontWeight:600}}>Diamonds Agency</div>
-      </div>
-    </div>
-  );
-
-  // Design 2: Neon Cyberpunk
-  const cyberpunkDesign = () => (
-    <div style={{
-      width: `${width}px`,
-      height: `${height}px`,
-      background: `linear-gradient(45deg, #0F0F23 0%, #1A0033 50%, #0F0F23 100%)`,
-      borderRadius: '8px',
-      border: `3px solid ${T.neon}`,
-      position: 'relative',
-      overflow: 'hidden',
-      boxShadow: `0 0 40px ${T.neonGlow}, inset 0 0 20px ${T.accGlow}`,
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      padding: '25px'
-    }}>
-      <div style={{position:'absolute',top:0,left:0,right:0,bottom:0,background:'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,255,255,0.03) 10px, rgba(0,255,255,0.03) 20px)',pointerEvents:'none'}} />
-      <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%, -50%)',width:'70px',height:'70px',background:`linear-gradient(45deg, ${T.neon}, ${T.accLight})`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:`${titleSize + 4}px`,fontWeight:900,color:'#000',textShadow:`0 0 10px ${T.neon}`,zIndex:10,clipPath:'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)'}}>VS</div>
-      <div style={{textAlign:'center',position:'relative',zIndex:5}}>
-        <div style={{fontSize:`${fontSize + 2}px`,color:T.neon,textTransform:'uppercase',letterSpacing:'0.2em',marginBottom:'8px',fontWeight:900,fontFamily:'monospace',textShadow:`0 0 10px ${T.neonGlow}`}}>BATTLE</div>
-        <div style={{fontSize:`${fontSize}px`,color:T.acc,fontWeight:600,fontFamily:'monospace'}}>{formattedDate}</div>
-      </div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',position:'relative',zIndex:5}}>
-        <div style={{textAlign:'center',flex:1,paddingRight:'40px'}}>
-          <div style={{width:'70px',height:'70px',background:`linear-gradient(45deg, ${T.neon}, ${T.cy})`,borderRadius:'8px',margin:'0 auto 12px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:`${titleSize}px`,fontWeight:900,color:'#000',textShadow:`0 0 8px ${T.neon}`,transform:'rotate(-5deg)'}}>
-            {creatorA?.pseudo?.replace('@', '').slice(0, 2).toUpperCase() || '??'}
-          </div>
-          <div style={{fontSize:`${fontSize}px`,fontWeight:700,color:T.neon,marginBottom:'4px',textShadow:`0 0 5px ${T.neonGlow}`}}>{creatorA?.pseudo || 'Unknown'}</div>
-          <div style={{fontSize:`${fontSize - 2}px`,color:T.acc}}>{creatorA?.diamonds || 0} &#9829;</div>
-        </div>
-        <div style={{textAlign:'center',flex:1,paddingLeft:'40px'}}>
-          <div style={{width:'70px',height:'70px',background:`linear-gradient(45deg, ${T.acc}, ${T.pu})`,borderRadius:'8px',margin:'0 auto 12px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:`${titleSize}px`,fontWeight:900,color:'#000',textShadow:`0 0 8px ${T.accGlow}`,transform:'rotate(5deg)'}}>
-            {creatorB?.pseudo?.replace('@', '').slice(0, 2).toUpperCase() || '??'}
-          </div>
-          <div style={{fontSize:`${fontSize}px`,fontWeight:700,color:T.acc,marginBottom:'4px',textShadow:`0 0 5px ${T.accGlow}`}}>{creatorB?.pseudo || 'Unknown'}</div>
-          <div style={{fontSize:`${fontSize - 2}px`,color:T.pu}}>{creatorB?.diamonds || 0} &#9829;</div>
-        </div>
-      </div>
-      <div style={{textAlign:'center',position:'relative',zIndex:5}}>
-        <div style={{fontSize:`${fontSize - 2}px`,color:T.neon,fontWeight:800,fontFamily:'monospace',letterSpacing:'0.1em',textShadow:`0 0 8px ${T.neonGlow}`}}>DIAMONDS.TK</div>
-      </div>
-    </div>
-  );
-
-  // Design 3: Minimal Élégant
-  const minimalDesign = () => (
-    <div style={{
-      width: `${width}px`,
-      height: `${height}px`,
-      background: '#FFFFFF',
-      borderRadius: '24px',
-      border: '1px solid #E5E7EB',
-      position: 'relative',
-      overflow: 'hidden',
-      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      padding: '30px'
-    }}>
-      <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%, -50%)',width:'80px',height:'80px',background:'#F3F4F6',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:`${titleSize + 2}px`,fontWeight:900,color:'#6B7280',zIndex:10}}>VS</div>
-      <div style={{textAlign:'center',position:'relative',zIndex:5}}>
-        <div style={{fontSize:`${fontSize + 4}px`,color:'#111827',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:'8px',fontWeight:700}}>Match</div>
-        <div style={{fontSize:`${fontSize}px`,color:'#6B7280',fontWeight:500}}>{formattedDate}</div>
-      </div>
-      <div style9999999977777777777777={{display:'flex',justifyContent:'space-between',alignItems:'center',position:'relative',zIndex:5}}>
-        <div style={{textAlign:'center',flex:1,paddingRight:'40px'}}>
-          <div style={{width:'70px',height:'70px',background:'#F9FAFB',borderRadius:'50%',margin:'0 auto 12px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:`${titleSize}px`,fontWeight:800,color:'#374151',border:'2px solid #E5E7EB'}}>
-            {creatorA?.pseudo?.replace('@', '').slice(0, 2).toUpperCase() || '??'}
-          </div>
-          <div style={{fontSize:`${fontSize}px`,fontWeight:600,color:'#111827',marginBottom:'4px'}}>{creatorA?.pseudo || 'Unknown'}</div>
-          <div style={{fontSize:`${fontSize - 2}px`,color:'#6B7280'}}>{creatorA?.diamonds || 0} &#9829;</div>
-        </div>
-        <div style={{textAlign:'center',flex:1,paddingLeft:'40px'}}>
-          <div style={{width:'70px',height:'70px',background:'#F9FAFB',borderRadius:'50%',margin:'0 auto 12px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:`${titleSize}px`,fontWeight:800,color:'#374151',border:'2px solid #E5E7EB'}}>
-            {creatorB?.pseudo?.replace('@', '').slice(0, 2).toUpperCase() || '??'}
-          </div>
-          <div style={{fontSize:`${fontSize}px`,fontWeight:600,color:'#111827',marginBottom:'4px'}}>{creatorB?.pseudo || 'Unknown'}</div>
-          <div style={{fontSize:`${fontSize - 2}px`,color:'#6B7280'}}>{creatorB?.diamonds || 0} &#9829;</div>
-        </div>
-      </div>
-      <div style={{textAlign:'center',position:'relative',zIndex:5}}>
-        <div style={{fontSize:`${fontSize - 2}px`,color:"#9CA3AF",fontWeight:500}}>diamonds.agency</div>
-      </div>
-    </div>
-  );
-
-  // Design 4: Dark Premium
-  const premiumDesign = () => (
-    <div style={{
-      width: `${width}px`,
-      height: `${height}px`,
-      background: `linear-gradient(135deg, #000000 0%, #1A1A1A 50%, #000000 100%)`,
-      borderRadius: '20px',
-      border: `1px solid ${T.acc}`,
-      position: 'relative',
-      overflow: 'hidden',
-      boxShadow: `0 20px 40px rgba(0,0,0,0.5), 0 0 60px ${T.accGlow}`,
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      padding: '25px'
-    }}>
-      <div style={{position:'absolute',top:0,left:0,right:0,bottom:0,background:`radial-gradient(circle at center, ${T.accGlow}10, transparent 70%)`,pointerEvents:'none'}} />
-      <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%, -50%)',width:'90px',height:'90px',background:`linear-gradient(135deg, ${T.acc}, ${T.accLight})`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:`${titleSize + 6}px`,fontWeight:900,color:'#fff',textShadow:`0 0 20px ${T.accGlow}`,zIndex:10,boxShadow:`0 0 40px ${T.accGlow}`}}>VS</div>
-      <div style={{textAlign:'center',position:'relative',zIndex:5}}>
-        <div style={{fontSize:`${fontSize + 4}px`,color:'#FFFFFF',textTransform:'uppercase',letterSpacing:'0.15em',marginBottom:'8px',fontWeight:800}}>ELITE MATCH</div>
-        <div style={{fontSize:`${fontSize}px`,color:T.acc,fontWeight:600}}>{formattedDate}</div>
-      </div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',position:'relative',zIndex:5}}>
-        <div style={{textAlign:'center',flex:1,paddingRight:'40px'}}>
-          <div style={{width:'85px',height:'85px',background:`linear-gradient(135deg, ${T.acc}, ${T.pu})`,borderRadius:'50%',margin:'0 auto 12px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:`${titleSize + 2}px`,fontWeight:900,color:'#fff',textShadow:`0 0 15px ${T.accGlow}`,boxShadow:`0 0 30px ${T.accGlow}`}}>
-            {creatorA?.pseudo?.replace('@', '').slice(0, 2).toUpperCase() || '??'}
-          </div>
-          <div style={{fontSize:`${fontSize + 2}px`,fontWeight:700,color:'#FFFFFF',marginBottom:'4px'}}>{creatorA?.pseudo || 'Unknown'}</div>
-          <div style={{fontSize:`${fontSize}px`,color:T.acc}}>{creatorA?.diamonds || 0} &#9829;</div>
-        </div>
-        <div style={{textAlign:'center',flex:1,paddingLeft:'40px'}}>
-          <div style={{width:'85px',height:'85px',background:`linear-gradient(135deg, ${T.cy}, ${T.neon})`,borderRadius:'50%',margin:'0 auto 12px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:`${titleSize + 2}px`,fontWeight:900,color:'#fff',textShadow:`0 0 15px ${T.cyGlow}`,boxShadow:`0 0 30px ${T.cyGlow}`}}>
-            {creatorB?.pseudo?.replace('@', '').slice(0, 2).toUpperCase() || '??'}
-          </div>
-          <div style={{fontSize:`${fontSize + 2}px`,fontWeight:700,color:'#FFFFFF',marginBottom:'4px'}}>{creatorB?.pseudo || 'Unknown'}</div>
-          <div style={{fontSize:`${fontSize}px`,color:T.cy}}>{creatorB?.diamonds || 0} &#9829;</div>
-        </div>
-      </div>
-      <div style={{textAlign:'center',position:'relative',zIndex:5}}>
-        <div style={{fontSize:`${fontSize}px`,color:T.acc,fontWeight:700,letterSpacing:'0.1em'}}>DIAMONDS ELITE</div>
-      </div>
-    </div>
-  );
-
-  // Renvoyer le design approprié
-  switch(design) {
-    case 'cyberpunk': return cyberpunkDesign();
-    case 'minimal': return minimalDesign();
-    case 'premium': return premiumDesign();
-    default: return futuristicDesign();
-  }
 };
 
 /* ─── NAV ───────────────────────────────── */
@@ -2251,56 +2046,52 @@ function TeamView({agents,managers,directors}){
       )}
     </div>
   );
-}
-
-
-/* ─── MATCH POSTER ──────────────────────── */
-function MatchPoster({matchData,creators,onClose}){
-  const cA=creators.find(c=>(c.id===matchData.creator_a||c.profile_id===matchData.creator_a));
-  const cB=creators.find(c=>(c.id===matchData.creator_b||c.profile_id===matchData.creator_b));
-  const date=matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR","DD/MM/YYYY"):"Date TBD";
-  const time=matchData.match_time||"20:00";
-  return(
-    <div style={{position:"fixed",inset:0,background:"rgba(10,5,25,.9)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(6px)"}} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{background:"linear-gradient(135deg,#0F0A1E,#1A1035)",border:"1px solid rgba(127,0,255,.4)",borderRadius:20,padding:28,width:360,boxShadow:"0 0 60px rgba(127,0,255,.3)"}}>
-        <div style={{textAlign:"center",marginBottom:20}}>
-          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:11,color:T.cy,letterSpacing:".15em",textTransform:"uppercase",marginBottom:6}}>Diamond's · TikTok Live Match</div>
-          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:28,color:T.tx,letterSpacing:"-0.02em"}}>BATTLE LIVE</div>
-        </div>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:20}}>
-          {/* Creator A */}
-          <div style={{textAlign:"center",flex:1}}>
-            <div style={{width:72,height:72,borderRadius:"50%",background:`linear-gradient(135deg,${T.acc}40,${T.acc}20)`,border:`2px solid ${T.acc}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:22,fontWeight:800,color:T.acc}}>
-              {cA?String(cA.pseudo||"?").slice(0,2).toUpperCase():"?"}
-            </div>
-            <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:2}}>{cA?.pseudo||"Créateur A"}</div>
-            <div style={{fontSize:11,color:T.cy}}>💎 {(cA?.diamonds||0).toLocaleString()}</div>
-          </div>
-          {/* VS */}
-          <div style={{textAlign:"center"}}>
-            <div style={{fontSize:24,fontWeight:900,color:T.go,lineHeight:1}}>VS</div>
-          </div>
-          {/* Creator B */}
-          <div style={{textAlign:"center",flex:1}}>
-            <div style={{width:72,height:72,borderRadius:"50%",background:`linear-gradient(135deg,${T.cy}40,${T.cy}20)`,border:`2px solid ${T.cy}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:22,fontWeight:800,color:T.cy}}>
-              {cB?String(cB.pseudo||"?").slice(0,2).toUpperCase():"?"}
-            </div>
-            <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:2}}>{cB?.pseudo||"À définir"}</div>
-            <div style={{fontSize:11,color:T.cy}}>💎 {(cB?.diamonds||0).toLocaleString()}</div>
-          </div>
-        </div>
-        {/* Date & time */}
-        <div style={{textAlign:"center",padding:"12px 16px",borderRadius:12,background:"rgba(127,0,255,.1)",border:"1px solid rgba(127,0,255,.25)",marginBottom:16}}>
-          <div style={{fontSize:18,fontWeight:900,color:T.tx,letterSpacing:".04em"}}>{matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR"):date}</div>
-          <div style={{fontSize:14,color:T.acc,fontWeight:700,marginTop:3}}>⏰ {time}</div>
-          <div style={{fontSize:11,color:T.sec,marginTop:4}}>{matchData.is_inter_agency?"Match Inter-Agences":"Match Intra-Agence"}</div>
-        </div>
-        <div style={{textAlign:"center",fontSize:10,color:T.sec}}>Diamond's by Belive Academy · {CONTACT}</div>
-        <button className="btn" style={{width:"100%",justifyContent:"center",marginTop:14,fontSize:12}} onClick={onClose}>Fermer</button>
-      </div>
-    </div>
-  );
-}
+// function MatchPoster({matchData,creators,onClose}){
+//   // const cA=creators.find(c=>(c.id===matchData.creator_a||c.profile_id===matchData.creator_a));
+//   // const cB=creators.find(c=>(c.id===matchData.creator_b||c.profile_id===matchData.creator_b));
+//   // const date=matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR","DD/MM/YYYY"):"Date TBD";
+//   // const time=matchData.match_time||"20:00";
+//   // return(
+//   //   <div style={{position:"fixed",inset:0,background:"rgba(10,5,25,.9)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(6px)"}} onClick={onClose}>
+//   //     <div onClick={e=>e.stopPropagation()} style={{background:"linear-gradient(135deg,#0F0A1E,#1A1035)",border:"1px solid rgba(127,0,255,.4)",borderRadius:20,padding:28,width:360,boxShadow:"0 0 60px rgba(127,0,255,.3)"}}>
+//   //       <div style={{textAlign:"center",marginBottom:20}}>
+//   //         <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:11,color:T.cy,letterSpacing:".15em",textTransform:"uppercase",marginBottom:6}}>Diamond's · TikTok Live Match</div>
+//   //         <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:28,color:T.tx,letterSpacing:"-0.02em"}}>BATTLE LIVE</div>
+//   //       </div>
+//   //       <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:20}}>
+//   //         {/* Creator A */}
+//   //         <div style={{textAlign:"center",flex:1}}>
+//   //           <div style={{width:72,height:72,borderRadius:"50%",background:`linear-gradient(135deg,${T.acc}40,${T.acc}20)`,border:`2px solid ${T.acc}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:22,fontWeight:800,color:T.acc}}>
+//   //             {cA?String(cA.pseudo||"?").slice(0,2).toUpperCase():"?"}
+//   //           </div>
+//   //           <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:2}}>{cA?.pseudo||"Créateur A"}</div>
+//   //           <div style={{fontSize:11,color:T.cy}}>&#128142; {(cA?.diamonds||0).toLocaleString()}</div>
+//   //         </div>
+//   //         {/* VS */}
+//   //         <div style={{textAlign:"center"}}>
+//   //           <div style={{fontSize:24,fontWeight:900,color:T.go,lineHeight:1}}>VS</div>
+//   //         </div>
+//   //         {/* Creator B */}
+//   //         <div style={{textAlign:"center",flex:1}}>
+//   //           <div style={{width:72,height:72,borderRadius:"50%",background:`linear-gradient(135deg,${T.cy}40,${T.cy}20)`,border:`2px solid ${T.cy}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:22,fontWeight:800,color:T.cy}}>
+//   //             {cB?String(cB.pseudo||"?").slice(0,2).toUpperCase():"?"}
+//   //           </div>
+//   //           <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:2}}>{cB?.pseudo||"À définir"}</div>
+//   //           <div style={{fontSize:11,color:T.cy}}>&#128142; {(cB?.diamonds||0).toLocaleString()}</div>
+//   //         </div>
+//   //       </div>
+//   //       {/* Date & time */}
+//   //       <div style={{textAlign:"center",padding:"12px 16px",borderRadius:12,background:"rgba(127,0,255,.1)",border:"1px solid rgba(127,0,255,.25)",marginBottom:16}}>
+//   //         <div style={{fontSize:18,fontWeight:900,color:T.tx,letterSpacing:".04em"}}>{matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR"):date}</div>
+//   //         <div style={{fontSize:14,color:T.acc,fontWeight:700,marginTop:3}}>&#9200; {time}</div>
+//   //         <div style={{fontSize:11,color:T.sec,marginTop:4}}>{matchData.is_inter_agency?"Match Inter-Agences":"Match Intra-Agence"}</div>
+//   //       </div>
+//   //       <div style={{textAlign:"center",fontSize:10,color:T.sec}}>Diamond's by Belive Academy · {CONTACT}</div>
+//   //       <button className="btn" style={{width:"100%",justifyContent:"center",marginTop:14,fontSize:12}} onClick={onClose}>Fermer</button>
+//   //     </div>
+//   //   </div>
+//   // );
+// }
 
 /* ─── REMINDERS PANEL ───────────────────── */
 function RemindersPanel({matches,schedules}){
