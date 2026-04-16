@@ -6,34 +6,36 @@ const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 
 const T={
-  bg:"#0A0015",
-  bgGradient:"linear-gradient(135deg, #0A0015 0%, #1A0033 25%, #2D0052 50%, #1A0033 75%, #0A0015 100%)",
-  card:"rgba(139, 92, 246, 0.08)",
-  cardGlass:"rgba(139, 92, 246, 0.12)",
-  cardGlassHover:"rgba(139, 92, 246, 0.18)",
-  b:"rgba(139, 92, 246, 0.2)",
-  acc:"#8B5CF6",
-  accLight:"#A78BFA",
-  accGlow:"rgba(139, 92, 246, 0.6)",
-  cy:"#00D4FF",
-  cyLight:"#5EEADF",
-  cyGlow:"rgba(0, 212, 255, 0.5)",
-  sec:"#A78BFA",
-  ok:"#00D4FF",
-  okGlow:"rgba(0, 212, 255, 0.4)",
-  ng:"#FF4757",
-  ngGlow:"rgba(255, 71, 87, 0.4)",
-  go:"#FFA502",
-  goGlow:"rgba(255, 165, 2, 0.4)",
-  pu:"#C4B5FD",
-  puGlow:"rgba(196, 181, 253, 0.5)",
+  bg:"#0D001A",
+  bgGradient:"linear-gradient(135deg, #0D001A 0%, #1A0033 25%, #2D0052 50%, #4A0080 75%, #0D001A 100%)",
+  card:"rgba(138, 43, 226, 0.08)",
+  cardGlass:"rgba(255, 255, 255, 0.08)",
+  cardGlassHover:"rgba(138, 43, 226, 0.15)",
+  b:"rgba(255, 255, 255, 0.12)",
+  acc:"#9B59B6",
+  accLight:"#BB8FCE",
+  accGlow:"rgba(155, 89, 182, 0.4)",
+  cy:"#00CED1",
+  cyLight:"#48D1CC",
+  cyGlow:"rgba(0, 206, 209, 0.3)",
+  sec:"#B19CD9",
+  ok:"#32CD32",
+  okGlow:"rgba(50, 205, 50, 0.3)",
+  ng:"#E74C3C",
+  ngGlow:"rgba(231, 76, 60, 0.3)",
+  go:"#F39C12",
+  goGlow:"rgba(243, 156, 18, 0.3)",
+  pu:"#DDA0DD",
+  puGlow:"rgba(221, 160, 221, 0.3)",
   tx:"#FFFFFF",
-  txDim:"#C4B5FD",
-  stripe:"#8B5CF6",
+  txDim:"#E8E8E8",
+  stripe:"#9B59B6",
   neon:"#00FFFF",
-  neonPink:"#FF00FF",
-  neonGreen:"#00FF88",
-  neonPurple:"#8B5CF6"
+  neonPink:"#FF1493",
+  neonGreen:"#00FF00",
+  neonPurple:"#FFD700",
+  diamond:"rgba(185, 242, 255, 0.6)",
+  diamondGlow:"rgba(185, 242, 255, 0.8)"
 };
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
@@ -522,13 +524,15 @@ function AdminAgencies(){
   const [showForm,setShowForm]=useState(false);
   const [name,setName]=useState("");
   const [slug,setSlug]=useState("");
-  const [color,setColor]=useState("#7F00FF");
+  const [email,setEmail]=useState("");
+  const [password,setPassword]=useState("");
+  const [color,setColor]=useState("#6366F1");
   const [creating,setCreating]=useState(false);
   const [err,setErr]=useState("");
   const [codes,setCodes]=useState({});
   const [genning,setGenning]=useState(null);
   const [copied,setCopied]=useState(null);
-  const BASE="https://agency.beliveacademy.com/join";
+  const BASE="https://diamonds.agency/join";
   const COLORS={director:T.acc,manager:T.pu,agent:T.cy,creator:T.ok};
 
   const load=()=>fetchAllAgencies().then(setAgencies);
@@ -536,15 +540,55 @@ function AdminAgencies(){
   const loadCodes=async(agId)=>{const data=await getAgencyCodes(agId);setCodes(c=>({...c,[agId]:data}));};
 
   const doCreate=async()=>{
-    if(!name.trim()||!slug.trim()){setErr("Nom et slug obligatoires");return;}
+    if(!name.trim()||!slug.trim()||!email.trim()){setErr("Nom, slug et email obligatoires");return;}
     setCreating(true);setErr("");
-    const res=await doCreateAgency(name,slug,color);
-    if(res.error){setErr(res.error);setCreating(false);return;}
-    await load();setName("");setSlug("");setColor("#7F00FF");setShowForm(false);setCreating(false);
+    
+    // Créer l'agence
+    const agencyData = {
+      name: name.trim(),
+      slug: slug.trim().toLowerCase(),
+      color: color,
+      email: email.trim(),
+      billing_status: "essai",
+      is_offered: false,
+      created_by: sb.auth.getUser().then(u => u.data.user?.id)
+    };
+    
+    const {data, error} = await sb.from("agencies").insert([agencyData]).select();
+    if(error){setErr(error.message);setCreating(false);return;}
+    
+    // Créer un compte admin pour l'agence
+    const tempPassword = Math.random().toString(36).slice(-8);
+    const {data: authData, error: authError} = await sb.auth.signUp({
+      email: email.trim(),
+      password: tempPassword
+    });
+    
+    if(authError){setErr(authError.message);setCreating(false);return;}
+    
+    // Associer le compte à l'agence
+    await sb.from("profiles").update({
+      agency_id: data[0].id,
+      role: "admin"
+    }).eq("id", authData.user.id);
+    
+    // Générer un code d'invitation admin
+    const code = `ADMIN-${slug.trim().toUpperCase()}-${Math.random().toString(36).slice(-6).toUpperCase()}`;
+    await sb.from("invite_codes").insert([{
+      code: code,
+      target_role: "admin",
+      agency_id: data[0].id,
+      created_by: authData.user.id,
+      uses: 0,
+      max_uses: 1
+    }]);
+    
+    await load();
+    setName("");setSlug("");setEmail("");setPassword("");setColor("#6366F1");setShowForm(false);setCreating(false);
+    
+    // Afficher les identifiants
+    alert(`Agence créée avec succès!\n\nEmail: ${email}\nMot de passe temporaire: ${tempPassword}\nCode d'invitation: ${code}`);
   };
-  const doGenCode=async(ag,targetRole)=>{
-    const key=ag.id+"-"+targetRole;setGenning(key);
-    const {data:{user}}=await sb.auth.getUser();
     await genCode(ag.id,user.id,"admin",targetRole);
     await loadCodes(ag.id);setGenning(null);
   };
@@ -616,23 +660,30 @@ function AdminAgencies(){
         <button className="btn" style={{fontSize:12}} onClick={()=>setShowForm(!showForm)}>+ Nouvelle agence</button>
       </div>
       {showForm&&(
-        <div className="glow" style={{padding:18,marginBottom:14}}>
-          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:14}}>Crer une agence</div>
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Nom *</label>
-              <input className="inp" value={name} onChange={e=>setName(e.target.value)} placeholder="Nova TikTok"/></div>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Slug *  les codes seront SLUG-ROLE-XXXXXX</label>
-              <input className="inp" value={slug} onChange={e=>setSlug(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,""))} placeholder="NOVA" style={{fontFamily:"monospace",letterSpacing:".08em"}}/></div>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Couleur</label>
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <input type="color" value={color} onChange={e=>setColor(e.target.value)} style={{width:38,height:34,borderRadius:8,border:`1px solid ${T.b}`,background:"transparent",cursor:"pointer",padding:2}}/>
-                <div style={{width:34,height:34,borderRadius:10,background:color+"18",border:`1px solid ${color}40`,display:"flex",alignItems:"center",justifyContent:"center",color,fontWeight:800,fontSize:14}}>{name?name[0]:"?"}</div>
+        <div className="glow" style={{padding:24,marginBottom:16}}>
+          <div style={{fontWeight:700,fontSize:15,color:T.tx,marginBottom:20,textAlign:"center"}}>Créer une nouvelle agence</div>
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            <div><label style={{fontSize:12,fontWeight:600,color:T.tx,display:"block",marginBottom:6}}>Nom de l'agence *</label>
+              <input className="inp" value={name} onChange={e=>setName(e.target.value)} placeholder="Nova TikTok Agency" style={{fontSize:14}}/></div>
+            <div><label style={{fontSize:12,fontWeight:600,color:T.tx,display:"block",marginBottom:6}}>Email de l'admin *</label>
+              <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="admin@nova-agency.com" style={{fontSize:14}}/></div>
+            <div><label style={{fontSize:12,fontWeight:600,color:T.tx,display:"block",marginBottom:6}}>Slug unique * (les codes seront SLUG-ROLE-XXXXXX)</label>
+              <input className="inp" value={slug} onChange={e=>setSlug(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,""))} placeholder="NOVA" style={{fontFamily:"monospace",letterSpacing:".08em",fontSize:14}}/></div>
+            <div><label style={{fontSize:12,fontWeight:600,color:T.tx,display:"block",marginBottom:6}}>Couleur principale</label>
+              <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                <input type="color" value={color} onChange={e=>setColor(e.target.value)} style={{width:44,height:40,borderRadius:10,border:`1px solid ${T.b}`,background:"transparent",cursor:"pointer",padding:2}}/>
+                <div style={{width:40,height:40,borderRadius:12,background:color+"18",border:`1px solid ${color}40`,display:"flex",alignItems:"center",justifyContent:"center",color,fontWeight:800,fontSize:16}}>{name?name[0]:"?"}</div>
+                <div style={{fontSize:11,color:T.sec}}>{color}</div>
               </div>
             </div>
-            {err&&<div style={{padding:"7px 10px",borderRadius:8,background:"rgba(244,67,54,.1)",border:"1px solid rgba(244,67,54,.2)",fontSize:11.5,color:T.ng}}>{err}</div>}
-            <div style={{display:"flex",gap:8}}>
-              <button className="btn" onClick={doCreate} disabled={creating}>{creating?<><Spin/>Cration</>:"Crer"}</button>
-              <button className="btng" onClick={()=>{setShowForm(false);setErr("");}}>Annuler</button>
+            {err&&<div style={{padding:"10px 14px",borderRadius:10,background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.2)",fontSize:12,color:T.ng,fontWeight:500}}>{err}</div>}
+            <div style={{display:"flex",gap:10}}>
+              <button className="btn" onClick={doCreate} disabled={creating} style={{flex:1,fontSize:13}}>
+                {creating?<><Spin/> Création...</>:"Créer l'agence"}
+              </button>
+              <button className="btng" onClick={()=>{setShowForm(false);setErr("");setName("");setSlug("");setEmail("");}} style={{padding:"10px 20px"}}>
+                Annuler
+              </button>
             </div>
           </div>
         </div>
