@@ -1307,8 +1307,8 @@ function MatchesView({profile,creators}){
           ))}
         </div>
       )}
+      {poster&&<MatchPoster matchData={poster} creators={creators} onClose={()=>setPoster(null)}/>}
     </div>
-    {poster&&<MatchPoster matchData={poster} creators={creators} onClose={()=>setPoster(null)}/>}
   );
 }
 
