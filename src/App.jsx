@@ -240,7 +240,7 @@ const Brand=({big=false})=>(
     <div>
       <div style={{fontFamily:"Space Grotesk,sans-serif",fontWeight:900,fontSize:big?40:18,letterSpacing:"-0.03em",lineHeight:1}}>
         <span style={{color:T.tx,background:`linear-gradient(135deg, ${T.tx}, ${T.accLight}, ${T.cy})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",textShadow:`0 0 30px ${T.accGlow}`}}>Diamond</span>
-        <span style={{color:T.cy,filter:`drop-shadow(0 0 15px ${T.cyGlow})`}}'s</span>
+        <span style={{color:T.cy,filter:`drop-shadow(0 0 15px ${T.cyGlow})`}}>&apos;s</span>
       </div>
       <div style={{fontSize:big?12:9,color:T.txDim,marginTop:2,letterSpacing:".08em",fontWeight:600,textTransform:"uppercase"}}>by Belive Academy</div>
     </div>
