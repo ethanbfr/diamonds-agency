@@ -2159,7 +2159,7 @@ function BlockedAgenciesPanel({profile}){
   );
 }
 
-/* ─── APP ROOT ──────────────────────────── */
+/* ---- APP ROOT ---- */
 export default function App(){
   const auth=useAuth();
   const [tab,setTab]=useState("dash");
@@ -2238,3 +2238,4 @@ export default function App(){
 }
 
 // Fixed syntax error for deployment - GitHub change detection v2
+}
