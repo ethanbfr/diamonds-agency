@@ -55,6 +55,9 @@ body{font-family:Inter,sans-serif;background:${T.bgGradient};color:${T.tx};font-
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 @keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
 @keyframes cyberLine{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 20px ${T.accGlow}}50%{box-shadow:0 0 40px ${T.accGlow},0 0 60px ${T.neon}}}
 
 .fup{animation:fupScale .4s cubic-bezier(0.4, 0, 0.2, 1) both}.fup1{animation:fupScale .4s .1s cubic-bezier(0.4, 0, 0.2, 1) both}.fup2{animation:fupScale .4s .2s cubic-bezier(0.4, 0, 0.2, 1) both}.fup3{animation:fupScale .4s .3s cubic-bezier(0.4, 0, 0.2, 1) both}
 
@@ -94,9 +97,10 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);box-shadow:0 
 select.inp option{background:${T.bg};color:${T.tx}}
 
 /* Futuristic cards with glassmorphism */
-.card{background:${T.cardGlass};border-radius:16px;border:1px solid ${T.b};backdrop-filter:blur(20px);position:relative;overflow:hidden}
+.card{background:${T.cardGlass};border-radius:16px;border:1px solid ${T.b};backdrop-filter:blur(20px);position:relative;overflow:hidden;transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);animation:fadeIn .5s ease-out}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg, rgba(139,92,246,0.1), transparent);opacity:0.5;pointer-events:none}
-.glow{background:${T.cardGlassHover};border-radius:16px;border:1px solid ${T.acc};backdrop-filter:blur(20px);box-shadow:0 8px 32px ${T.accGlow},0 0 20px ${T.neonPurple};position:relative;overflow:hidden}
+.card:hover{transform:translateY(-4px);box-shadow:0 12px 40px ${T.accGlow},0 0 30px ${T.neonPurple};border-color:${T.acc}40}
+.glow{background:${T.cardGlassHover};border-radius:16px;border:1px solid ${T.acc};backdrop-filter:blur(20px);box-shadow:0 8px 32px ${T.accGlow},0 0 20px ${T.neonPurple};position:relative;overflow:hidden;animation:glowPulse 3s ease-in-out infinite}
 .glow::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg, ${T.accGlow}, transparent);opacity:0.3;pointer-events:none}
 
 /* Futuristic toggle */
@@ -2048,52 +2052,6 @@ function TeamView({agents,managers,directors}){
   );
 }
 
-// function MatchPoster({matchData,creators,onClose}){
-//   // const cA=creators.find(c=>(c.id===matchData.creator_a||c.profile_id===matchData.creator_a));
-//   // const cB=creators.find(c=>(c.id===matchData.creator_b||c.profile_id===matchData.creator_b));
-//   // const date=matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR","DD/MM/YYYY"):"Date TBD";
-//   // const time=matchData.match_time||"20:00";
-//   // return(
-//   //   <div style={{position:"fixed",inset:0,background:"rgba(10,5,25,.9)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(6px)"}} onClick={onClose}>
-//   //     <div onClick={e=>e.stopPropagation()} style={{background:"linear-gradient(135deg,#0F0A1E,#1A1035)",border:"1px solid rgba(127,0,255,.4)",borderRadius:20,padding:28,width:360,boxShadow:"0 0 60px rgba(127,0,255,.3)"}}>
-//   //       <div style={{textAlign:"center",marginBottom:20}}>
-//   //         <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:11,color:T.cy,letterSpacing:".15em",textTransform:"uppercase",marginBottom:6}}>Diamond's  TikTok Live Match</div>
-//   //         <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:28,color:T.tx,letterSpacing:"-0.02em"}}>BATTLE LIVE</div>
-//   //       </div>
-//   //       <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:20}}>
-//   //         {/* Creator A */}
-//   //         <div style={{textAlign:"center",flex:1}}>
-//   //           <div style={{width:72,height:72,borderRadius:"50%",background:`linear-gradient(135deg,${T.acc}40,${T.acc}20)`,border:`2px solid ${T.acc}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:22,fontWeight:800,color:T.acc}}>
-//   //             {cA?String(cA.pseudo||"?").slice(0,2).toUpperCase():"?"}
-//   //           </div>
-//   //           <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:2}}>{cA?.pseudo||"Crateur A"}</div>
-//   //           <div style={{fontSize:11,color:T.cy}}>&#128142; {(cA?.diamonds||0).toLocaleString()}</div>
-//   //         </div>
-//   //         {/* VS */}
-//   //         <div style={{textAlign:"center"}}>
-//   //           <div style={{fontSize:24,fontWeight:900,color:T.go,lineHeight:1}}>VS</div>
-//   //         </div>
-//   //         {/* Creator B */}
-//   //         <div style={{textAlign:"center",flex:1}}>
-//   //           <div style={{width:72,height:72,borderRadius:"50%",background:`linear-gradient(135deg,${T.cy}40,${T.cy}20)`,border:`2px solid ${T.cy}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:22,fontWeight:800,color:T.cy}}>
-//   //             {cB?String(cB.pseudo||"?").slice(0,2).toUpperCase():"?"}
-//   //           </div>
-//   //           <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:2}}>{cB?.pseudo||" dfinir"}</div>
-//   //           <div style={{fontSize:11,color:T.cy}}>&#128142; {(cB?.diamonds||0).toLocaleString()}</div>
-//   //         </div>
-//   //       </div>
-//   //       {/* Date & time */}
-//   //       <div style={{textAlign:"center",padding:"12px 16px",borderRadius:12,background:"rgba(127,0,255,.1)",border:"1px solid rgba(127,0,255,.25)",marginBottom:16}}>
-//   //         <div style={{fontSize:18,fontWeight:900,color:T.tx,letterSpacing:".04em"}}>{matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR"):date}</div>
-//   //         <div style={{fontSize:14,color:T.acc,fontWeight:700,marginTop:3}}>&#9200; {time}</div>
-//   //         <div style={{fontSize:11,color:T.sec,marginTop:4}}>{matchData.is_inter_agency?"Match Inter-Agences":"Match Intra-Agence"}</div>
-//   //       </div>
-//   //       <div style={{textAlign:"center",fontSize:10,color:T.sec}}>Diamond's by Belive Academy  {CONTACT}</div>
-//   //       <button className="btn" style={{width:"100%",justifyContent:"center",marginTop:14,fontSize:12}} onClick={onClose}>Fermer</button>
-//   //     </div>
-//   //   </div>
-//   // );
-// }
 
 /*  REMINDERS PANEL  */
 function RemindersPanel({matches,schedules}){
