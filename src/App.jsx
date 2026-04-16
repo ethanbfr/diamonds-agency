@@ -47,7 +47,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 /* ─── SUPABASE HELPERS ───────────────────────────── */
 const getProfile = async (uid) => {
   if (!sb) return null;
-  const { data } = await sb.from("profiles").select("*, agencies(*)").eq("id", uid).single();
+  const { data, error } = await sb.from("profiles").select("*").eq("id", uid).single();
+  if (error || !data) return null;
+  // Fetch agency data separately if user has agency_id
+  if (data.agency_id) {
+    const { data: ag } = await sb.from("agencies").select("*").eq("id", data.agency_id).single();
+    data.agencies = ag || null;
+  }
   return data;
 };
 
@@ -206,8 +212,12 @@ function useAuth() {
   }, []);
 
   const load = async (uid) => {
-    const p = await getProfile(uid);
-    setProfile(p);
+    try {
+      const p = await getProfile(uid);
+      setProfile(p);
+    } catch(e) {
+      console.error("Profile load error:", e);
+    }
     setLoading(false);
   };
 
@@ -801,6 +811,201 @@ function LoginPage({ onLogin }) {
   );
 }
 
+
+/* ─── ADMIN VIEWS ────────────────────────────────── */
+function AdminDash() {
+  const [agencies, setAgencies] = useState([]);
+  const [loading, setLoading]   = useState(true);
+
+  useEffect(() => {
+    if (!sb) { setLoading(false); return; }
+    sb.from("agencies").select("*").then(({ data }) => {
+      setAgencies(data || []);
+      setLoading(false);
+    });
+  }, []);
+
+  const mrr = agencies.filter(a => a.billing_status === "actif").length * 99;
+
+  return (
+    <div className="fup">
+      <div style={{marginBottom:14}}>
+        <div style={{fontSize:10,fontWeight:700,color:T.acc,textTransform:"uppercase",letterSpacing:".1em",marginBottom:3}}>Super Admin · Belive Academy</div>
+        <h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Vue globale</h1>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+        <SC label="MRR Plateforme" val={mrr+"€"} sub="99€/agence" accent={T.acc}/>
+        <SC label="Agences" val={agencies.length} sub="Total"/>
+        <SC label="ARR estimé" val={mrr*12+"€"} sub="Projection"/>
+        <SC label="Abonnées" val={agencies.filter(a=>a.billing_status==="actif").length} sub="Actives" accent={T.ok}/>
+      </div>
+      {loading ? (
+        <div style={{textAlign:"center",padding:30,color:T.sec}}>Chargement…</div>
+      ) : agencies.length === 0 ? (
+        <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
+          Aucune agence · Les fondateurs s'inscrivent via leur lien d'invitation
+        </div>
+      ) : (
+        <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,overflow:"hidden"}}>
+          <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Agences</div>
+          {agencies.map((ag,i) => (
+            <div key={ag.id} className="cr" style={{gridTemplateColumns:"40px 1fr 80px 80px",borderBottom:i<agencies.length-1?`1px solid ${T.b}`:"none"}}>
+              <div style={{width:34,height:34,borderRadius:10,background:(ag.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:800,fontSize:14}}>{(ag.name||"?")[0]}</div>
+              <div>
+                <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.name}</div>
+                <div style={{fontSize:11,color:T.sec}}>Crea {ag.pct_creator||55}% · Agent {ag.pct_agent||10}%</div>
+              </div>
+              <span className="tag" style={{background:ag.billing_status==="actif"?`${T.ok}18`:ag.billing_status==="impayé"?`${T.ng}18`:`${T.go}18`,color:ag.billing_status==="actif"?T.ok:ag.billing_status==="impayé"?T.ng:T.go}}>
+                {ag.billing_status==="actif"?"Abonné":ag.billing_status==="impayé"?"Impayé":"Essai"}
+              </span>
+              <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.billing_status==="actif"?"99€/mois":"—"}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminAgencies() {
+  const [agencies, setAgencies] = useState([]);
+  const [sel, setSel]           = useState(null);
+  const [copied, setCopied]     = useState(null);
+  const [name, setName]         = useState("");
+  const [slug, setSlug]         = useState("");
+  const [creating, setCreating] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    if (!sb) return;
+    sb.from("agencies").select("*").then(({ data }) => setAgencies(data || []));
+  }, []);
+
+  const createAgency = async () => {
+    if (!name.trim() || !slug.trim()) return;
+    setCreating(true);
+    const { data } = await sb.from("agencies").insert({ name: name.trim(), slug: slug.trim().toUpperCase(), billing_status: "essai" }).select().single();
+    if (data) setAgencies(a => [...a, data]);
+    setName(""); setSlug(""); setShowForm(false); setCreating(false);
+  };
+
+  const cp = (k) => { setCopied(k); setTimeout(() => setCopied(null), 2000); };
+  const base = "https://agency.beliveacademy.com/join";
+
+  if (sel) return (
+    <div className="fup">
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+        <button className="btng" onClick={() => setSel(null)}>← Retour</button>
+        <h1 style={{fontSize:18,fontWeight:800,color:T.tx}}>{sel.name}</h1>
+      </div>
+      <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Codes d'invitation uniques</div>
+      {["director","manager","agent","creator"].map(r => {
+        const colors = {director:T.acc,manager:T.pu,agent:T.cy,creator:T.ok};
+        const fakeCode = `${sel.slug}-${r.toUpperCase().slice(0,3)}-XXXXXX`;
+        return (
+          <div key={r} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 13px",borderRadius:10,background:T.card,border:`1px solid ${colors[r]}22`,marginBottom:8}}>
+            <AV name={r[0].toUpperCase()} color={colors[r]} size={32}/>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,fontWeight:700,color:T.tx,textTransform:"capitalize"}}>{r}</div>
+              <code style={{fontSize:12.5,fontWeight:900,fontFamily:"monospace",letterSpacing:".08em",color:colors[r]}}>{fakeCode}</code>
+            </div>
+            <button className="btng" style={{fontSize:10.5,borderColor:colors[r]+"30",color:colors[r]}} onClick={() => cp(r)}>
+              {copied===r ? "✓ Copié" : "Copier"}
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <div className="fup">
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+        <h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Agences</h1>
+        <button className="btn" style={{fontSize:12}} onClick={() => setShowForm(!showForm)}>+ Nouvelle agence</button>
+      </div>
+
+      {showForm && (
+        <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:16,marginBottom:14}} className="fup">
+          <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:12}}>Créer une agence</div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Nom de l'agence</label>
+              <input className="inp" value={name} onChange={e=>setName(e.target.value)} placeholder="Nova TikTok"/>
+            </div>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Slug (code court unique)</label>
+              <input className="inp" value={slug} onChange={e=>setSlug(e.target.value.toUpperCase())} placeholder="NOVA" style={{fontFamily:"monospace",letterSpacing:".08em"}}/>
+              <div style={{fontSize:11,color:T.sec,marginTop:3}}>Ex: NOVA, APEX, STRM — utilisé dans les codes d'invitation</div>
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button className="btn" style={{fontSize:12}} onClick={createAgency} disabled={creating}>{creating?<Spin/>:"Créer"}</button>
+              <button className="btng" onClick={() => setShowForm(false)}>Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {agencies.length === 0 ? (
+        <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>Aucune agence</div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {agencies.map(ag => (
+            <div key={ag.id} onClick={() => setSel(ag)} style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:16,cursor:"pointer",transition:"border-color .2s",display:"flex",alignItems:"center",gap:12}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(127,0,255,.3)"} onMouseLeave={e=>e.currentTarget.style.borderColor=T.b}>
+              <div style={{width:42,height:42,borderRadius:12,background:(ag.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:800,fontSize:16,flexShrink:0}}>{(ag.name||"?")[0]}</div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:800,fontSize:14,color:T.tx}}>{ag.name}</div>
+                <div style={{fontSize:11.5,color:T.sec}}>Slug: {ag.slug} · Crea {ag.pct_creator||55}% · Agent {ag.pct_agent||10}%</div>
+              </div>
+              <div style={{fontSize:10.5,color:T.acc}}>Voir les codes →</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminBilling() {
+  const [agencies, setAgencies] = useState([]);
+  useEffect(() => {
+    if (!sb) return;
+    sb.from("agencies").select("*").then(({ data }) => setAgencies(data || []));
+  }, []);
+  const mrr = agencies.filter(a => a.billing_status === "actif").length * 99;
+  return (
+    <div className="fup">
+      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Facturation · Stripe</h1>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+        <SC label="MRR" val={mrr+"€"} sub="Actifs" accent="#635BFF"/>
+        <SC label="ARR" val={mrr*12+"€"} sub="Estimé"/>
+        <SC label="Impayés" val={agencies.filter(a=>a.billing_status==="impayé").length} sub="" accent={T.ng}/>
+        <SC label="Essai" val={agencies.filter(a=>a.billing_status==="essai").length} sub="À convertir" accent={T.go}/>
+      </div>
+      <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,overflow:"hidden"}}>
+        <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Toutes les agences</div>
+        {agencies.length === 0 && <div style={{padding:"28px 20px",textAlign:"center",color:T.sec}}>Aucune agence</div>}
+        {agencies.map((ag,i) => (
+          <div key={ag.id} className="cr" style={{gridTemplateColumns:"38px 1fr 80px 80px 120px",borderBottom:i<agencies.length-1?`1px solid ${T.b}`:"none"}}>
+            <div style={{width:32,height:32,borderRadius:9,background:(ag.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:800,fontSize:13}}>{(ag.name||"?")[0]}</div>
+            <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.name}</div>
+            <span className="tag" style={{background:ag.billing_status==="actif"?`${T.ok}18`:ag.billing_status==="impayé"?`${T.ng}18`:`${T.go}18`,color:ag.billing_status==="actif"?T.ok:ag.billing_status==="impayé"?T.ng:T.go}}>
+              {ag.billing_status==="actif"?"Abonné":ag.billing_status==="impayé"?"Impayé":"Essai"}
+            </span>
+            <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.billing_status==="actif"?"99€":"0€"}</div>
+            <div style={{display:"flex",gap:6}}>
+              {ag.billing_status==="impayé" && <button className="btn" style={{fontSize:10.5,padding:"3px 9px",background:`linear-gradient(135deg,${T.ok},#00E676)`}}>Relancer</button>}
+              {ag.billing_status==="essai"   && <button className="btn" style={{fontSize:10.5,padding:"3px 9px"}}>Activer</button>}
+              {ag.billing_status==="actif"   && <button style={{padding:"3px 9px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.ng}30`,background:`${T.ng}10`,color:T.ng,cursor:"pointer",fontFamily:"Inter,sans-serif"}}>Résilier</button>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── APP ROOT ───────────────────────────────────── */
 export default function App() {
   const auth = useAuth();
@@ -845,7 +1050,9 @@ export default function App() {
   const nav = NAVS[role] || [];
 
   const views = {
-    dash:    () => <DashView profile={auth.profile} creators={team.creators} agents={team.agents} managers={team.managers} directors={team.directors}/>,
+    dash:    () => role === "admin" ? <AdminDash /> : <DashView profile={auth.profile} creators={team.creators} agents={team.agents} managers={team.managers} directors={team.directors}/>,
+    agencies:() => <AdminAgencies />,
+    billing: () => <AdminBilling />,
     team:    () => <TeamView agents={team.agents} managers={team.managers} directors={team.directors}/>,
     creators:() => <CreatorsView profile={auth.profile} creators={team.creators} agents={team.agents} reload={reload}/>,
     import:  () => <ImportView profile={auth.profile} reload={reload}/>,
