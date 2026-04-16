@@ -142,6 +142,11 @@ const SC=({label,val,sub,accent})=>(
   </div>
 );
 const Spin=()=><div style={{width:14,height:14,borderRadius:"50%",border:"2px solid rgba(255,255,255,.3)",borderTop:"2px solid white",animation:"sp2 .7s linear infinite"}}/>;
+const AV=({name,color=T.acc,size=32})=>(
+  <div style={{width:size,height:size,borderRadius:"50%",background:color+"18",display:"flex",alignItems:"center",justifyContent:"center",color:color,fontWeight:800,fontSize:size/2.5,flexShrink:0}}>
+    {String(name).slice(0,2).toUpperCase()}
+  </div>
+);
 const Tog=({on,onChange,color=T.acc})=>(
   <button className="tog" style={{background:on?color:"rgba(255,255,255,.1)"}} onClick={()=>onChange(!on)}>
     <div className="kn" style={{left:on?"21px":"3px"}}/>
