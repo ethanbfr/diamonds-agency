@@ -6,36 +6,36 @@ const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 
 const T={
-  bg:"#0F1419",
-  bgGradient:"linear-gradient(135deg, #0F1419 0%, #1E293B 25%, #334155 50%, #1E293B 75%, #0F1419 100%)",
-  card:"rgba(148, 163, 184, 0.06)",
-  cardGlass:"rgba(255, 255, 255, 0.04)",
-  cardGlassHover:"rgba(148, 163, 184, 0.1)",
-  b:"rgba(255, 255, 255, 0.08)",
-  acc:"#3B82F6",
-  accLight:"#60A5FA",
-  accGlow:"rgba(59, 130, 246, 0.25)",
-  cy:"#06B6D4",
-  cyLight:"#22D3EE",
-  cyGlow:"rgba(6, 182, 212, 0.2)",
-  sec:"#94A3B8",
-  ok:"#10B981",
-  okGlow:"rgba(16, 185, 129, 0.2)",
-  ng:"#EF4444",
-  ngGlow:"rgba(239, 68, 68, 0.2)",
-  go:"#F59E0B",
-  goGlow:"rgba(245, 158, 11, 0.2)",
-  pu:"#8B5CF6",
-  puGlow:"rgba(139, 92, 246, 0.2)",
-  tx:"#F8FAFC",
-  txDim:"#CBD5E1",
-  stripe:"#3B82F6",
-  neon:"#22D3EE",
-  neonPink:"#EC4899",
-  neonGreen:"#10B981",
-  neonPurple:"#8B5CF6",
-  diamond:"rgba(255, 255, 255, 0.4)",
-  diamondGlow:"rgba(255, 255, 255, 0.6)"
+  bg:"#1A0033",
+  bgGradient:"linear-gradient(135deg, #1A0033 0%, #2D1B4D 25%, #402466 50%, #2D1B4D 75%, #1A0033 100%)",
+  card:"rgba(147, 51, 234, 0.08)",
+  cardGlass:"rgba(255, 255, 255, 0.05)",
+  cardGlassHover:"rgba(147, 51, 234, 0.12)",
+  b:"rgba(255, 255, 255, 0.1)",
+  acc:"#9333EA",
+  accLight:"#B366F8",
+  accGlow:"rgba(147, 51, 234, 0.4)",
+  cy:"#00CED1",
+  cyLight:"#40E0D0",
+  cyGlow:"rgba(0, 206, 209, 0.3)",
+  sec:"#B19CD9",
+  ok:"#32CD32",
+  okGlow:"rgba(50, 205, 50, 0.3)",
+  ng:"#E74C3C",
+  ngGlow:"rgba(231, 76, 60, 0.3)",
+  go:"#F39C12",
+  goGlow:"rgba(243, 156, 18, 0.3)",
+  pu:"#DDA0DD",
+  puGlow:"rgba(221, 160, 221, 0.3)",
+  tx:"#FFFFFF",
+  txDim:"#E0E0E0",
+  stripe:"#9333EA",
+  neon:"#E0E0E0",
+  neonPink:"#FFB6C1",
+  neonGreen:"#90EE90",
+  neonPurple:"#DDA0DD",
+  diamond:"rgba(218, 165, 255, 0.7)",
+  diamondGlow:"rgba(218, 165, 255, 0.9)"
 };
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
@@ -193,39 +193,66 @@ const DiamondSVG=({size=40})=>(
   <svg width={size} height={size} viewBox="0 0 40 40">
     <defs>
       <linearGradient id="dg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor={T.neon}/>
-        <stop offset="25%" stopColor={T.acc}/>
-        <stop offset="50%" stopColor={T.accLight}/>
-        <stop offset="75%" stopColor={T.cy}/>
+        <stop offset="0%" stopColor={T.diamond}/>
+        <stop offset="30%" stopColor={T.acc}/>
+        <stop offset="60%" stopColor={T.accLight}/>
         <stop offset="100%" stopColor={T.neonPurple}/>
       </linearGradient>
       <linearGradient id="dg2" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="rgba(255,255,255,.8)"/>
-        <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
+        <stop offset="0%" stopColor={T.diamondGlow}/>
+        <stop offset="50%" stopColor={T.diamond}/>
+        <stop offset="100%" stopColor="rgba(255,255,255,0.1)"/>
       </linearGradient>
-      <filter id="neonGlow">
-        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <filter id="diamondGlow">
+        <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+      <filter id="sparkle">
+        <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
         <feMerge>
           <feMergeNode in="coloredBlur"/>
           <feMergeNode in="SourceGraphic"/>
         </feMerge>
       </filter>
     </defs>
-    <polygon 
-      points="20,2 37,15 20,38 3,15" 
-      fill="url(#dg)" 
-      filter="url(#neonGlow)"
-      style={{filter:"drop-shadow(0 0 12px rgba(139,92,246,0.8))"}}
-    />
-    <polygon 
-      points="20,2 37,15 20,15 3,15" 
-      fill="url(#dg2)" 
-      opacity=".8"
-    />
-    <line x1="3" y1="15" x2="37" y2="15" stroke={T.neon} strokeWidth="1" opacity="0.6"/>
-    <line x1="20" y1="2" x2="20" y2="15" stroke={T.cy} strokeWidth="0.8" opacity="0.7"/>
-    <circle cx="20" cy="20" r="2" fill={T.neon} opacity="0.8">
-      <animate attributeName="opacity" values="0.8;0.3;0.8" dur="2s" repeatCount="indefinite"/>
+    <g transform="rotate(45 20 20)">
+      <polygon 
+        points="0,-14 14,0 0,14 -14,0" 
+        fill="url(#dg)" 
+        filter="url(#diamondGlow)"
+        style={{filter:"drop-shadow(0 0 20px rgba(218,165,255,0.8))"}}
+      />
+      <polygon 
+        points="0,-14 14,0 0,0 -14,0" 
+        fill="url(#dg2)" 
+        opacity=".9"
+      />
+    </g>
+    <g transform="rotate(0 20 20)">
+      <polygon 
+        points="0,-14 14,0 0,14 -14,0" 
+        fill="url(#dg)" 
+        filter="url(#diamondGlow)"
+        opacity=".7"
+        style={{filter:"drop-shadow(0 0 15px rgba(218,165,255,0.6))"}}
+      />
+      <polygon 
+        points="0,-14 14,0 0,0 -14,0" 
+        fill="url(#dg2)" 
+        opacity=".8"
+      />
+    </g>
+    <circle cx="10" cy="10" r="1.5" fill={T.diamond} filter="url(#sparkle)">
+      <animate attributeName="opacity" values="1;0.4;1" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="30" cy="10" r="1" fill={T.diamond} filter="url(#sparkle)">
+      <animate attributeName="opacity" values="1;0.3;1" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="20" cy="30" r="0.8" fill={T.diamond} filter="url(#sparkle)">
+      <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" repeatCount="indefinite"/>
     </circle>
   </svg>
 );
@@ -335,38 +362,19 @@ function LoginPage(){
   const login=async()=>{
     setErr("");setLoad(true);
     if(!sb){setErr("Supabase non configur");setLoad(false);return;}
-    const {error}=await sb.auth.signInWithPassword({email,password:pw});
-    if(error){setErr(error.message);setLoad(false);}
-  };
-  const register=async()=>{
-    if(!code.trim()){setErr("Code d'invitation requis");return;}
-    // Vrifier le rle depuis le code d'invitation
-    const codeData = await sb.from("invite_codes").select("*").eq("code",code.trim().toUpperCase()).single();
-    const targetRole = codeData?.data?.target_role;
-    
-    // @ TikTok obligatoire pour tout le monde SAUF admin et agences
-    if(targetRole !== "admin" && targetRole !== "agency" && (!handle.trim() || !handle.startsWith("@"))){setErr("@ TikTok obligatoire - doit commencer par @");return;}
-    if(targetRole !== "admin" && targetRole !== "agency" && handle.length < 3){setErr("@ TikTok trop court (minimum 3 caractres)");return;}
-    
-    setErr("");setLoad(true);
-    if(!sb){setErr("Supabase non configur");setLoad(false);return;}
-    const {data,error}=await sb.auth.signUp({email,password:pw});
+    const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
     if(error){setErr(error.message);setLoad(false);return;}
-    const {error:cErr}=await sb.rpc("use_invite_code",{p_code:code.trim().toUpperCase(),p_user_id:data.user?.id});
-    if(cErr){setErr("Code invalide ou expir");setLoad(false);return;}
-    // Save TikTok handle (POUR tout le monde SAUF admin et agences)
-    if(targetRole !== "admin" && targetRole !== "agency" && handle.trim()) {
-      await sb.from("profiles").update({tiktok_handle:handle.trim()}).eq("id",data.user?.id);
+    
+    // Vérifier si l'utilisateur a un @ TikTok dans son profil
+    const {data:profile} = await sb.from("profiles").select("tiktok_handle, role").eq("id",data.user.id).single();
+    if(profile && profile.role !== "admin" && profile.role !== "agency" && !profile.tiktok_handle) {
+      setErr("Veuillez compléter votre profil avec votre @ TikTok pour accéder à l'application");
+      await sb.auth.signOut();
+      setLoad(false);
+      return;
     }
-    // Upload avatar if provided
-    if(avatar&&sb){
-      const ext=avatar.name.split(".").pop();
-      const path=`avatars/${data.user?.id}.${ext}`;
-      await sb.storage.from("avatars").upload(path,avatar,{upsert:true});
-      const {data:urlData}=sb.storage.from("avatars").getPublicUrl(path);
-      if(urlData?.publicUrl) await sb.from("profiles").update({tiktok_avatar_url:urlData.publicUrl}).eq("id",data.user?.id);
-    }
-    setMode("confirm");setLoad(false);
+    
+    setLoad(false);
   };
 
   if(mode==="confirm") return(
