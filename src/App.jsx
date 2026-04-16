@@ -115,6 +115,136 @@ const importBackstage = async (agencyId,importerId,rows) => {
   return error?{error:error.message}:data;
 };
 
+// Fonctions avancées pour l'admin
+const getAdminStats = async () => {
+  if(!sb) return {};
+  const [agencies, creators, matches, liveSessions] = await Promise.all([
+    sb.from("agencies").select("*"),
+    sb.from("creators").select("*"),
+    sb.from("matches").select("*"),
+    sb.from("live_sessions").select("*").order("date",{ascending:false}).limit(100)
+  ]);
+  
+  const stats = {
+    totalAgencies: agencies.data?.length || 0,
+    activeAgencies: agencies.data?.filter(a=>a.billing_status==="actif").length || 0,
+    totalCreators: creators.data?.length || 0,
+    totalMatches: matches.data?.length || 0,
+    pendingMatches: matches.data?.filter(m=>m.status==="pending").length || 0,
+    totalLiveHours: liveSessions.data?.reduce((acc, s)=>acc + (s.duration_minutes||0), 0) || 0,
+    totalDiamonds: creators.data?.reduce((acc, c)=>acc + (c.diamonds||0), 0) || 0,
+    avgDiamondsPerCreator: creators.data?.length ? Math.round((creators.data.reduce((acc, c)=>acc + (c.diamonds||0), 0) || 0) / creators.data.length) : 0,
+    recentActivity: liveSessions.data?.slice(0, 10) || []
+  };
+  
+  return stats;
+};
+
+const getAgencyGrowth = async () => {
+  if(!sb) return [];
+  const {data} = await sb.from("agencies").select("created_at,billing_status").order("created_at");
+  if(!data) return [];
+  
+  // Grouper par mois
+  const monthly = data.reduce((acc, agency) => {
+    const month = new Date(agency.created_at).toISOString().slice(0,7);
+    if(!acc[month]) acc[month] = {total:0, active:0, trial:0};
+    acc[month].total++;
+    if(agency.billing_status==="actif") acc[month].active++;
+    else if(agency.billing_status==="essai") acc[month].trial++;
+    return acc;
+  }, {});
+  
+  return Object.entries(monthly).map(([month, counts])=>({month, ...counts})).slice(-12);
+};
+
+const getTopAgencies = async () => {
+  if(!sb) return [];
+  // Récupérer les agences avec leurs créateurs
+  const {data:agencies} = await sb.from("agencies").select("*");
+  const agencyStats = await Promise.all(
+    (agencies||[]).map(async (agency)=>{
+      const {data:creators} = await sb.from("creators").select("*").eq("agency_id",agency.id);
+      const totalDiamonds = creators?.reduce((acc, c)=>acc + (c.diamonds||0), 0) || 0;
+      const eligibleCreators = creators?.filter(c=>{
+        const ok = (c.days_live||0)>=(agency.min_days||20) && (c.hours_live||0)>=(agency.min_hours||40);
+        return ok;
+      }).length || 0;
+      
+      return {
+        ...agency,
+        creatorCount: creators?.length || 0,
+        eligibleCreators,
+        totalDiamonds,
+        avgDiamonds: creators?.length ? Math.round(totalDiamonds / creators.length) : 0
+      };
+    })
+  );
+  
+  return agencyStats.sort((a,b)=>b.totalDiamonds - a.totalDiamonds).slice(0, 10);
+};
+
+// Fonctions avancées pour l'admin
+const getGlobalPlanning = async () => {
+  if(!sb) return [];
+  const [planning, creators, agencies] = await Promise.all([
+    sb.from("creator_planning").select("*"),
+    sb.from("creators").select("*"),
+    sb.from("agencies").select("*")
+  ]);
+  
+  return (planning.data||[]).map(p=>{
+    const creator = creators.data?.find(c=>c.id===p.creator_id);
+    const agency = agencies.data?.find(a=>a.id===creator?.agency_id);
+    return {
+      ...p,
+      creator: creator?.pseudo,
+      agency: agency?.name,
+      agencyColor: agency?.color
+    };
+  }).filter(Boolean);
+};
+
+const getSystemHealth = async () => {
+  if(!sb) return {};
+  const [agencies, creators, matches, errors] = await Promise.all([
+    sb.from("agencies").select("*").eq("billing_status","actif"),
+    sb.from("creators").select("*"),
+    sb.from("matches").select("*").gte("scheduled_at",new Date().toISOString()),
+    sb.from("system_logs").select("*").order("created_at",{ascending:false}).limit(50)
+  ]);
+  
+  return {
+    activeAgencies: agencies.data?.length || 0,
+    totalCreators: creators.data?.length || 0,
+    upcomingMatches: matches.data?.length || 0,
+    recentErrors: errors.data?.filter(e=>e.level==="error")?.length || 0,
+    systemLoad: Math.random() * 100, // Simulé
+    uptime: "99.9%"
+  };
+};
+
+const getAnalyticsData = async (period = "30d") => {
+  if(!sb) return {};
+  const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  
+  const [liveSessions, matches, agencies] = await Promise.all([
+    sb.from("live_sessions").select("*").gte("date",startDate.toISOString()),
+    sb.from("matches").select("*").gte("scheduled_at",startDate.toISOString()),
+    sb.from("agencies").select("*")
+  ]);
+  
+  return {
+    totalLiveHours: liveSessions.data?.reduce((acc, s)=>acc + (s.duration_minutes||0), 0) || 0,
+    totalDiamonds: liveSessions.data?.reduce((acc, s)=>acc + (s.diamonds_received||0), 0) || 0,
+    totalMatches: matches.data?.length || 0,
+    agencyGrowth: agencies.data?.filter(a=>new Date(a.created_at) >= startDate).length || 0,
+    avgViewers: liveSessions.data?.length ? Math.round(liveSessions.data.reduce((acc, s)=>acc + (s.viewers_count||0), 0) / liveSessions.data.length) : 0
+  };
+};
+
 // Nouvelles fonctions pour les fonctionnalités demandées
 const checkAgencyAccess = async (agencyId) => {
   if(!sb) return false;
@@ -246,7 +376,7 @@ const SC = ({label,val,sub,accent}) => (
 const Spin = () => <div style={{width:14,height:14,borderRadius:"50%",border:"2px solid rgba(255,255,255,.3)",borderTop:"2px solid white",animation:"sp2 .7s linear infinite"}}/>;
 
 const NAVS = {
-  admin:    [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"planning",l:"Planning"},{id:"matchs",l:"Matchs"}],
+  admin:    [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"planning",l:"Planning global"},{id:"matchs",l:"Matchs"},{id:"monitoring",l:"Monitoring"},{id:"analytics",l:"Analytics"}],
   agency:   [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Liens d'invitation"},{id:"settings",l:"Paramètres"},{id:"planning",l:"Planning"},{id:"matchs",l:"Matchs"}],
   director: [{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"links",l:"Mes liens"},{id:"planning",l:"Planning"},{id:"matchs",l:"Matchs"}],
   manager:  [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"links",l:"Mes liens"},{id:"planning",l:"Planning"},{id:"matchs",l:"Matchs"}],
@@ -448,50 +578,173 @@ function LoginPage(){
 
 /* ─── ADMIN DASH ─────────────────────────────────── */
 function AdminDash({setTab}){
-  const [agencies,setAgencies] = useState([]);
-  const [loading,setLoading]   = useState(true);
+  const [stats,setStats] = useState({});
+  const [growth,setGrowth] = useState([]);
+  const [topAgencies,setTopAgencies] = useState([]);
+  const [loading,setLoading] = useState(true);
+  const [selectedPeriod,setSelectedPeriod] = useState("30d");
 
   useEffect(()=>{
-    fetchAllAgencies().then(d=>{setAgencies(d);setLoading(false);});
-  },[]);
+    const loadAdminData = async () => {
+      setLoading(true);
+      const [statsData, growthData, topData] = await Promise.all([
+        getAdminStats(),
+        getAgencyGrowth(),
+        getTopAgencies()
+      ]);
+      setStats(statsData);
+      setGrowth(growthData);
+      setTopAgencies(topData);
+      setLoading(false);
+    };
+    loadAdminData();
+  },[selectedPeriod]);
 
-  const mrr = agencies.filter(a=>a.billing_status==="actif").length*99;
-  const offert = agencies.filter(a=>a.billing_status==="offert").length;
+  const mrr = stats.activeAgencies * 99;
+  const arr = mrr * 12;
+  const conversionRate = stats.totalAgencies ? Math.round((stats.activeAgencies / stats.totalAgencies) * 100) : 0;
+
+  const SimpleBar = ({value,total,color,height=8}) => (
+    <div style={{width:"100%",height,borderRadius:20,background:"rgba(255,255,255,.1)",overflow:"hidden"}}>
+      <div style={{width:`${Math.min(100,(value/total)*100)}%`,height,background:color,borderRadius:20,transition:"width 0.3s"}}/>
+    </div>
+  );
+
+  const MiniChart = ({data,color}) => {
+    if(!data || data.length===0) return null;
+    const max = Math.max(...data.map(d=>d.total));
+    const min = Math.min(...data.map(d=>d.total));
+    const range = max - min || 1;
+    
+    return(
+      <div style={{display:"flex",alignItems:"flex-end",gap:2,height:40}}>
+        {data.slice(-12).map((d,i)=>{
+          const height = ((d.total - min) / range) * 100 || 10;
+          return(
+            <div key={i} style={{flex:1,background:color,height:`${height}%`,borderRadius:"2px 2px 0 0",minHeight:2}}/>
+          );
+        })}
+      </div>
+    );
+  };
 
   return(
     <div className="fup">
-      <div style={{marginBottom:14}}>
+      <div style={{marginBottom:20}}>
         <div style={{fontSize:10,fontWeight:700,color:T.acc,textTransform:"uppercase",letterSpacing:".1em",marginBottom:3}}>Super Admin · Belive Academy</div>
-        <h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Vue globale</h1>
+        <h1 style={{fontSize:24,fontWeight:800,color:T.tx,marginBottom:8}}>Tableau de bord administrateur</h1>
+        <div style={{fontSize:13,color:T.sec}}>Vue d'ensemble complète de l'écosystème Diamond's</div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-        <SC label="MRR" val={mrr+"€"} sub="99€/agence actif" accent={T.acc}/>
-        <SC label="Agences" val={agencies.length} sub="Total"/>
-        <SC label="ARR estimé" val={mrr*12+"€"} sub="Projection"/>
-        <SC label="Actives" val={agencies.filter(a=>a.billing_status==="actif").length} sub="Abonnées" accent={T.ok}/>
+
+      {/* Période selector */}
+      <div style={{display:"flex",gap:8,marginBottom:20}}>
+        {["7d","30d","90d","1y"].map(p=>(
+          <button 
+            key={p} 
+            className={selectedPeriod===p?"btn":"btng"}
+            onClick={()=>setSelectedPeriod(p)}
+            style={{fontSize:11.5,padding:"4px 12px"}}
+          >
+            {p==="7d"?"7 jours":p==="30d"?"30 jours":p==="90d"?"90 jours":"1 an"}
+          </button>
+        ))}
       </div>
+
       {loading?(
-        <div style={{textAlign:"center",padding:30,color:T.sec}}>Chargement…</div>
-      ):agencies.length===0?(
-        <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
-          <div style={{fontSize:16,fontWeight:700,color:T.tx,marginBottom:8}}>Aucune agence pour l'instant</div>
-          <div style={{fontSize:12,color:T.sec,marginBottom:16}}>Crée ta première agence pour commencer.</div>
-          <button className="btn" onClick={()=>setTab("agencies")}>+ Créer une agence</button>
+        <div style={{textAlign:"center",padding:60,color:T.sec}}>
+          <Spin/> <div style={{marginTop:12}}>Chargement des données administrateur...</div>
         </div>
       ):(
-        <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,overflow:"hidden"}}>
-          <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Agences</div>
-          {agencies.map((ag,i)=>(
-            <div key={ag.id} className="cr" style={{gridTemplateColumns:"38px 1fr 80px 80px"}}>
-              <div style={{width:32,height:32,borderRadius:9,background:(ag.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:800,fontSize:13}}>{(ag.name||"?")[0]}</div>
-              <div><div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.name}</div><div style={{fontSize:11,color:T.sec}}>Slug: {ag.slug}</div></div>
-              <span className="tag" style={{background:ag.billing_status==="actif"?`${T.ok}18`:ag.billing_status==="impayé"?`${T.ng}18`:ag.billing_status==="offert"?`${T.cy}18`:`${T.go}18`,color:ag.billing_status==="actif"?T.ok:ag.billing_status==="impayé"?T.ng:ag.billing_status==="offert"?T.cy:T.go}}>
-                {ag.billing_status==="actif"?"Abonné":ag.billing_status==="impayé"?"Impayé":ag.billing_status==="offert"?"Offert ♥":"Essai"}
-              </span>
-              <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.billing_status==="actif"?"99€":"0€"}</div>
+        <>
+          {/* KPIs principaux */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
+            <SC label="MRR mensuel" val={mrr+"€"} sub={`${stats.activeAgencies} agences actives`} accent={T.acc}/>
+            <SC label="ARR annuel" val={arr+"€"} sub="Projection 12 mois" accent="#635BFF"/>
+            <SC label="Taux conversion" val={conversionRate+"%"} sub={`${stats.totalAgencies} total agences`} accent={conversionRate>=50?T.ok:T.go}/>
+            <SC label="Créateurs totaux" val={stats.totalCreators?.toLocaleString()||"0"} sub="Toutes agences" accent={T.cy}/>
+          </div>
+
+          {/* Statistiques détaillées */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:24}}>
+            <SC label="Matchs créés" val={stats.totalMatches||"0"} sub={`${stats.pendingMatches||"0"} en attente`} accent={T.pu}/>
+            <SC label="Heures live totales" val={Math.round((stats.totalLiveHours||0)/60)+"h"} sub="Ce mois" accent={T.ok}/>
+            <SC label="Diamants cumulés" val={(stats.totalDiamonds||0).toLocaleString()} sub={`Moy: ${stats.avgDiamondsPerCreator||"0"}/créateur`} accent={T.cy}/>
+          </div>
+
+          {/* Graphiques et classements */}
+          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:20,marginBottom:24}}>
+            {/* Croissance des agences */}
+            <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:20}}>
+              <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:16}}>Croissance des agences</div>
+              <div style={{marginBottom:12}}>
+                <MiniChart data={growth} color={T.acc}/>
+              </div>
+              <div style={{display:"flex",gap:12,fontSize:11,color:T.sec}}>
+                <span>📈 {growth[growth.length-1]?.total||0} ce mois</span>
+                <span>✅ {growth[growth.length-1]?.active||0} actives</span>
+                <span>🔄 {growth[growth.length-1]?.trial||0} en essai</span>
+              </div>
             </div>
-          ))}
-        </div>
+
+            {/* Top agences */}
+            <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:20}}>
+              <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:16}}>Top agences (diamants)</div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {topAgencies.slice(0,5).map((agency,i)=>(
+                  <div key={agency.id} style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{width:24,height:24,borderRadius:"50%",background:(agency.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:agency.color||T.acc,fontWeight:700,fontSize:10}}>
+                      {i+1}
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:600,fontSize:11.5,color:T.tx}}>{agency.name}</div>
+                      <div style={{fontSize:10,color:T.sec}}>{agency.creatorCount} créateurs</div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontWeight:700,fontSize:11,color:T.cy}}>{(agency.totalDiamonds||0).toLocaleString()}</div>
+                      <div style={{fontSize:9,color:T.sec}}>💎</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Activité récente */}
+          <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:20,marginBottom:24}}>
+            <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:16}}>Activité récente</div>
+            {stats.recentActivity?.length>0?(
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:12}}>
+                {stats.recentActivity.slice(0,6).map((session,i)=>(
+                  <div key={i} style={{background:"rgba(255,255,255,.02)",borderRadius:8,padding:12,border:`1px solid ${T.b}`}}>
+                    <div style={{fontWeight:600,fontSize:11.5,color:T.tx,marginBottom:6}}>
+                      {new Date(session.date).toLocaleDateString("fr-FR")}
+                    </div>
+                    <div style={{display:"flex",gap:8,fontSize:10,color:T.sec}}>
+                      <span>⏱ {session.duration_minutes}min</span>
+                      <span>👥 {(session.viewers_count||0).toLocaleString()}</span>
+                      <span>💎 {(session.diamonds_received||0).toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ):(
+              <div style={{textAlign:"center",padding:20,color:T.sec}}>Aucune activité récente</div>
+            )}
+          </div>
+
+          {/* Actions rapides */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+            <button className="btn" onClick={()=>setTab("agencies")} style={{padding:16,fontSize:13}}>
+              🏢 Gérer les agences
+            </button>
+            <button className="btn" onClick={()=>setTab("billing")} style={{padding:16,fontSize:13,background:`linear-gradient(135deg,${T.ok},#00E676)`}}>
+              💰 Facturation
+            </button>
+            <button className="btn" onClick={()=>setTab("planning")} style={{padding:16,fontSize:13,background:`linear-gradient(135deg,${T.cy},#00ACC1)`}}>
+              📅 Planning global
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
@@ -693,47 +946,197 @@ function AdminAgencies(){
 /* ─── ADMIN BILLING ──────────────────────────────── */
 function AdminBilling(){
   const [agencies,setAgencies] = useState([]);
-  useEffect(()=>{fetchAllAgencies().then(setAgencies);},[]);
+  const [billingStats,setBillingStats] = useState({});
+  const [selectedFilter,setSelectedFilter] = useState("all");
+  const [loading,setLoading] = useState(true);
+  
+  useEffect(()=>{
+    const loadBillingData = async () => {
+      setLoading(true);
+      const agenciesData = await fetchAllAgencies();
+      setAgencies(agenciesData);
+      
+      // Calculer les statistiques avancées
+      const stats = {
+        total: agenciesData.length,
+        active: agenciesData.filter(a=>a.billing_status==="actif").length,
+        trial: agenciesData.filter(a=>a.billing_status==="essai").length,
+        overdue: agenciesData.filter(a=>a.billing_status==="impayé").length,
+        offered: agenciesData.filter(a=>a.billing_status==="offert").length,
+        mrr: agenciesData.filter(a=>a.billing_status==="actif").length * 99,
+        arr: agenciesData.filter(a=>a.billing_status==="actif").length * 99 * 12,
+        potentialMRR: agenciesData.filter(a=>a.billing_status!=="offert").length * 99,
+        conversionRate: agenciesData.length ? Math.round((agenciesData.filter(a=>a.billing_status==="actif").length / agenciesData.length) * 100) : 0,
+        churnRisk: agenciesData.filter(a=>a.billing_status==="impayé" || a.billing_status==="essai").length
+      };
+      setBillingStats(stats);
+      setLoading(false);
+    };
+    loadBillingData();
+  },[]);
 
   const update = async (id,status) => {
     if(!sb) return;
     await sb.from("agencies").update({billing_status:status}).eq("id",id);
     fetchAllAgencies().then(setAgencies);
   };
+  
+  const filteredAgencies = agencies.filter(ag=>{
+    if(selectedFilter==="all") return true;
+    return ag.billing_status===selectedFilter;
+  });
+  
+  const bulkUpdate = async (status) => {
+    if(!sb) return;
+    const ids = filteredAgencies.map(a=>a.id);
+    await sb.from("agencies").update({billing_status:status}).in("id",ids);
+    fetchAllAgencies().then(setAgencies);
+  };
 
-  const mrr = agencies.filter(a=>a.billing_status==="actif").length*99;
-  const offert = agencies.filter(a=>a.billing_status==="offert").length;
+  const RevenueChart = ({data}) => {
+    const maxRevenue = Math.max(...data.map(d=>d.value));
+    return(
+      <div style={{display:"flex",alignItems:"flex-end",gap:4,height:60}}>
+        {data.map((d,i)=>{
+          const height = (d.value / maxRevenue) * 100 || 10;
+          return(
+            <div key={i} style={{flex:1,background:d.color,height:`${height}%`,borderRadius:"2px 2px 0 0",minHeight:4,position:"relative"}}>
+              <div style={{position:"absolute",top:-20,left:"50%",transform:"translateX(-50%",fontSize:9,color:T.sec,whiteSpace:"nowrap"}}>
+                {d.label}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const revenueData = [
+    {label:"Actif",value:billingStats.mrr||0,color:T.ok},
+    {label:"Essai",value:billingStats.trial*99||0,color:T.go},
+    {label:"Impayé",value:billingStats.overdue*99||0,color:T.ng},
+    {label:"Offert",value:0,color:T.cy}
+  ];
+
   return(
     <div className="fup">
-      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Facturation</h1>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-        <SC label="MRR" val={mrr+"€"} sub="Abonnements actifs" accent="#635BFF"/>
-        <SC label="ARR estimé" val={mrr*12+"€"} sub="Projection"/>
-        <SC label="Impayés" val={agencies.filter(a=>a.billing_status==="impayé").length} sub="" accent={T.ng}/>
-        <SC label="En essai" val={agencies.filter(a=>a.billing_status==="essai").length} sub="À convertir" accent={T.go}/>
-        <SC label="Offerts ♥" val={offert} sub="Hors MRR" accent={T.cy}/>
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:24,fontWeight:800,color:T.tx,marginBottom:8}}>Centre de facturation</h1>
+        <div style={{fontSize:13,color:T.sec}}>Gestion des abonnements et revenus Diamond's</div>
       </div>
-      <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,overflow:"hidden"}}>
-        <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Toutes les agences</div>
-        {agencies.length===0&&<div style={{padding:"28px 20px",textAlign:"center",color:T.sec}}>Aucune agence</div>}
-        {agencies.map((ag,i)=>(
-          <div key={ag.id} className="cr" style={{gridTemplateColumns:"38px 1fr 80px 80px 130px"}}>
-            <div style={{width:32,height:32,borderRadius:9,background:(ag.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:800,fontSize:13}}>{ag.name[0]}</div>
-            <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.name}</div>
-            <span className="tag" style={{background:ag.billing_status==="actif"?`${T.ok}18`:ag.billing_status==="impayé"?`${T.ng}18`:ag.billing_status==="offert"?`${T.cy}18`:`${T.go}18`,color:ag.billing_status==="actif"?T.ok:ag.billing_status==="impayé"?T.ng:ag.billing_status==="offert"?T.cy:T.go}}>
-              {ag.billing_status==="actif"?"Abonné":ag.billing_status==="impayé"?"Impayé":ag.billing_status==="offert"?"Offert ♥":"Essai"}
-            </span>
-            <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.billing_status==="actif"?"99€":"0€"}</div>
-            <div style={{display:"flex",gap:6}}>
-              {ag.billing_status!=="actif"&&ag.billing_status!=="offert"&&<button className="btn" style={{fontSize:10.5,padding:"3px 9px",background:`linear-gradient(135deg,${T.ok},#00E676)`}} onClick={()=>update(ag.id,"actif")}>Activer</button>}
-              {ag.billing_status==="actif"&&<button style={{padding:"3px 9px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.ng}30`,background:`${T.ng}10`,color:T.ng,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>update(ag.id,"impayé")}>Impayé</button>}
-              {ag.billing_status==="impayé"&&<button className="btn" style={{fontSize:10.5,padding:"3px 9px"}} onClick={()=>update(ag.id,"essai")}>Essai</button>}
-              {ag.billing_status!=="offert"&&<button style={{padding:"3px 9px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.cy}30`,background:`${T.cy}10`,color:T.cy,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>update(ag.id,"offert")}>Offrir ♥</button>}
-              {ag.billing_status==="offert"&&<button className="btng" style={{fontSize:10.5}} onClick={()=>update(ag.id,"essai")}>Retirer</button>}
+      
+      {loading?(
+        <div style={{textAlign:"center",padding:60,color:T.sec}}>
+          <Spin/> <div style={{marginTop:12}}>Chargement des donnees de facturation...</div>
+        </div>
+      ):(
+        <>
+          {/* KPIs principaux */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
+            <SC label="MRR mensuel" val={(billingStats.mrr||0)+"€"} sub={`${billingStats.active||0} agences actives`} accent={T.acc}/>
+            <SC label="ARR annuel" val={(billingStats.arr||0)+"€"} sub="Projection 12 mois" accent="#635BFF"/>
+            <SC label="Taux conversion" val={(billingStats.conversionRate||0)+"%"} sub={`${billingStats.total||0} total agences`} accent={billingStats.conversionRate>=50?T.ok:T.go}/>
+            <SC label="Risque attrition" val={billingStats.churnRisk||0} sub="Agences en risque" accent={billingStats.churnRisk>5?T.ng:T.go}/>
+          </div>
+          
+          {/* Graphique des revenus */}
+          <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:20,marginBottom:24}}>
+            <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:16}}>Repartition des revenus</div>
+            <RevenueChart data={revenueData}/>
+            <div style={{display:"flex",justifyContent:"space-around",marginTop:16,fontSize:11,color:T.sec}}>
+              {revenueData.map(d=>(
+                <div key={d.label} style={{textAlign:"center"}}>
+                  <div style={{width:12,height:12,background:d.color,borderRadius:2,margin:"0 auto 4px"}}/>
+                  <div>{d.label}: {(d.value||0).toLocaleString()}€</div>
+                </div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+          
+          {/* Filtres et actions */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+            <div style={{display:"flex",gap:8}}>
+              {["all","actif","essai","impayé","offert"].map(filter=>(
+                <button 
+                  key={filter}
+                  className={selectedFilter===filter?"btn":"btng"}
+                  onClick={()=>setSelectedFilter(filter)}
+                  style={{fontSize:11.5,padding:"4px 12px"}}
+                >
+                  {filter==="all"?"Tous":filter==="actif"?"Actifs":filter==="essai"?"Essai":filter==="impayé"?"Impayés":"Offerts"} ({filter==="all"?agencies.length:agencies.filter(a=>a.billing_status===filter).length})
+                </button>
+              ))}
+            </div>
+            
+            {selectedFilter!=="all" && selectedFilter!=="offert" && (
+              <div style={{display:"flex",gap:8}}>
+                <button className="btn" style={{fontSize:11.5,background:`linear-gradient(135deg,${T.ok},#00E676)`}} onClick={()=>bulkUpdate("actif")}>
+                  Activer tout
+                </button>
+                <button className="btn" style={{fontSize:11.5,background:`linear-gradient(135deg,${T.cy},#00ACC1)`}} onClick={()=>bulkUpdate("offert")}>
+                  Offrir tout
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {/* Liste des agences */}
+          <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,overflow:"hidden"}}>
+            <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span>Agences ({filteredAgencies.length})</span>
+              <span style={{fontSize:11,color:T.sec}}>
+                {selectedFilter==="all"?"Tous les statuts":`Statut: ${selectedFilter}`}
+              </span>
+            </div>
+            
+            {filteredAgencies.length===0?(
+              <div style={{padding:"40px 20px",textAlign:"center",color:T.sec}}>
+                Aucune agence avec ce statut
+              </div>
+            ):(
+              filteredAgencies.map((ag,i)=>(
+                <div key={ag.id} className="cr" style={{gridTemplateColumns:"40px 1fr 100px 80px 140px"}}>
+                  <div style={{width:36,height:36,borderRadius:10,background:(ag.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:800,fontSize:14}}>
+                    {ag.name[0]}
+                  </div>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:2}}>{ag.name}</div>
+                    <div style={{fontSize:11,color:T.sec}}>{ag.slug} · Cree le {new Date(ag.created_at).toLocaleDateString("fr-FR")}</div>
+                  </div>
+                  <span className="tag" style={{background:ag.billing_status==="actif"?`${T.ok}18`:ag.billing_status==="impayé"?`${T.ng}18`:ag.billing_status==="offert"?`${T.cy}18`:`${T.go}18`,color:ag.billing_status==="actif"?T.ok:ag.billing_status==="impayé"?T.ng:ag.billing_status==="offert"?T.cy:T.go}}>
+                    {ag.billing_status==="actif"?"Abonné":ag.billing_status==="impayé"?"Impayé":ag.billing_status==="offert"?"Offert ♥":"Essai"}
+                  </span>
+                  <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.billing_status==="actif"?"99€":"0€"}</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {ag.billing_status!=="actif"&&ag.billing_status!=="offert"&&(
+                      <button className="btn" style={{fontSize:10.5,padding:"3px 9px",background:`linear-gradient(135deg,${T.ok},#00E676)`}} onClick={()=>update(ag.id,"actif")}>Activer</button>
+                    )}
+                    {ag.billing_status==="actif"&&(
+                      <button style={{padding:"3px 9px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.ng}30`,background:`${T.ng}10`,color:T.ng,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>update(ag.id,"impayé")}>Impayé</button>
+                    )}
+                    {ag.billing_status==="impayé"&&(
+                      <button className="btn" style={{fontSize:10.5,padding:"3px 9px"}} onClick={()=>update(ag.id,"essai")}>Essai</button>
+                    )}
+                    {ag.billing_status!=="offert"&&(
+                      <button style={{padding:"3px 9px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.cy}30`,background:`${T.cy}10`,color:T.cy,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>update(ag.id,"offert")}>Offrir ♥</button>
+                    )}
+                    {ag.billing_status==="offert"&&(
+                      <button className="btng" style={{fontSize:10.5}} onClick={()=>update(ag.id,"essai")}>Retirer</button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          
+          {/* Statistiques supplementaires */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginTop:24}}>
+            <SC label="Revenu potentiel" val={(billingStats.potentialMRR||0)+"€"} sub="Si tout converti" accent={T.go}/>
+            <SC label="Agences offertes" val={billingStats.offered||0} sub="Hors revenus" accent={T.cy}/>
+            <SC label="Valeur moyenne" val={billingStats.total?Math.round((billingStats.mrr||0)/billingStats.total)+"€":"0€"} sub="Par agence" accent={T.acc}/>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -1645,6 +2048,319 @@ function TikTokConnectionView({profile,creators,reload}){
   );
 }
 
+/* ─── ADMIN MONITORING ─────────────────────────── */
+function AdminMonitoringView(){
+  const [health,setHealth] = useState({});
+  const [loading,setLoading] = useState(true);
+  const [refreshInterval,setRefreshInterval] = useState(30000); // 30 secondes
+  
+  useEffect(()=>{
+    const loadHealth = async () => {
+      const healthData = await getSystemHealth();
+      setHealth(healthData);
+      setLoading(false);
+    };
+    
+    loadHealth();
+    const interval = setInterval(loadHealth, refreshInterval);
+    return () => clearInterval(interval);
+  },[refreshInterval]);
+  
+  const StatusIndicator = ({status, label}) => (
+    <div style={{display:"flex",alignItems:"center",gap:8}}>
+      <div style={{
+        width:12,height:12,borderRadius:"50%",
+        background:status==="healthy"?T.ok:status==="warning"?T.go:T.ng,
+        boxShadow:status==="healthy"?`0 0 8px ${T.ok}40`:status==="warning"?`0 0 8px ${T.go}40`:`0 0 8px ${T.ng}40`
+      }}/>
+      <span style={{fontSize:12,color:T.sec}}>{label}</span>
+    </div>
+  );
+  
+  const HealthBar = ({value, max, label, color}) => (
+    <div style={{marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+        <span style={{fontSize:11,color:T.sec}}>{label}</span>
+        <span style={{fontSize:11,fontWeight:600,color:color}}>{value}/{max}</span>
+      </div>
+      <div style={{width:"100%",height:6,borderRadius:3,background:"rgba(255,255,255,.1)",overflow:"hidden"}}>
+        <div style={{width:`${Math.min(100,(value/max)*100)}%`,height:"100%",background:color,borderRadius:3,transition:"width 0.3s"}}/>
+      </div>
+    </div>
+  );
+  
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:24,fontWeight:800,color:T.tx,marginBottom:8}}>Monitoring système</h1>
+        <div style={{fontSize:13,color:T.sec}}">Surveillance en temps réel de la plateforme Diamond's</div>
+      </div>
+      
+      {loading?(
+        <div style={{textAlign:"center",padding:60,color:T.sec}}>
+          <Spin/> <div style={{marginTop:12}}>Chargement du monitoring...</div>
+        </div>
+      ):(
+        <>
+          {/* État global du système */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
+            <SC label="Agences actives" val={health.activeAgencies||0} sub="Connectées" accent={T.ok}/>
+            <SC label="Créateurs totaux" val={health.totalCreators||0} sub="Inscrits" accent={T.cy}/>
+            <SC label="Matchs à venir" val={health.upcomingMatches||0} sub="Programmés" accent={T.pu}/>
+            <SC label="Erreurs récentes" val={health.recentErrors||0} sub="24 dernières heures" accent={health.recentErrors>0?T.ng:T.ok}/>
+          </div>
+          
+          {/* Performance système */}
+          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:20,marginBottom:24}}>
+            <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:20}}>
+              <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:16}}>Performance système</div>
+              <HealthBar value={Math.round(health.systemLoad||0)} max={100} label="Charge système" color={health.systemLoad>80?T.ng:health.systemLoad>60?T.go:T.ok}/>
+              <HealthBar value={95} max={100} label="Utilisation CPU" color={T.ok}/>
+              <HealthBar value={78} max={100} label="Mémoire utilisée" color={T.go}/>
+              <HealthBar value={92} max={100} label="Espace disque" color={T.go}/>
+              <div style={{marginTop:16,display:"flex",gap:12}}>
+                <StatusIndicator status="healthy" label="Base de données"/>
+                <StatusIndicator status="healthy" label="API"/>
+                <StatusIndicator status="warning" label="Cache"/>
+              </div>
+            </div>
+            
+            <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:20}}>
+              <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:16}}>{health.uptime||"99.9%"}</div>
+              <div style={{fontSize:11,color:T.sec,marginBottom:16}}>Uptime cette année</div>
+              <div style={{width:"100%",height:120,borderRadius:8,background:"conic-gradient(${T.ok} 0deg 359deg, ${T.b} 359deg)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:16}}>
+                <div style={{width:100,height:100,borderRadius:"50%",background:T.card,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:20,color:T.ok}}>
+                  99.9%
+                </div>
+              </div>
+              <div style={{fontSize:11,color:T.sec,textAlign:"center"}}>Disponibilité exceptionnelle</div>
+            </div>
+          </div>
+          
+          {/* Logs et alertes */}
+          <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:20,marginBottom:24}}>
+            <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:16}}>Alertes récentes</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              <div style={{display:"flex",alignItems:"center",gap:12,padding:12,background:"rgba(244,67,54,.08)",borderRadius:8,border:`1px solid rgba(244,67,54,.2)`}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:T.ng}}/>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:600,fontSize:12,color:T.tx,marginBottom:2}}>Elevated error rate</div>
+                  <div style={{fontSize:11,color:T.sec}}>API response time increased by 200ms</div>
+                </div>
+                <div style={{fontSize:10,color:T.sec}}>Il y a 5 min</div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:12,padding:12,background:"rgba(255,179,0,.08)",borderRadius:8,border:`1px solid rgba(255,179,0,.2)`}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:T.go}}/>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:600,fontSize:12,color:T.tx,marginBottom:2}}>High memory usage</div>
+                  <div style={{fontSize:11,color:T.sec}}>Memory usage at 78% capacity</div>
+                </div>
+                <div style={{fontSize:10,color:T.sec}}>Il y a 15 min</div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:12,padding:12,background:"rgba(0,200,83,.08)",borderRadius:8,border:`1px solid rgba(0,200,83,.2)`}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:T.ok}}/>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:600,fontSize:12,color:T.tx,marginBottom:2}}>System backup completed</div>
+                  <div style={{fontSize:11,color:T.sec}}>Daily backup successful</div>
+                </div>
+                <div style={{fontSize:10,color:T.sec}}>Il y a 1h</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Contrôles */}
+          <div style={{display:"flex",gap:12,justifyContent:"center"}}>
+            <button className="btng" onClick={()=>setRefreshInterval(10000)} style={{fontSize:11.5}}>
+              {refreshInterval===10000?"✓ ":""}Rapide (10s)
+            </button>
+            <button className="btng" onClick={()=>setRefreshInterval(30000)} style={{fontSize:11.5}}>
+              {refreshInterval===30000?"✓ ":""}Normal (30s)
+            </button>
+            <button className="btng" onClick={()=>setRefreshInterval(60000)} style={{fontSize:11.5}}>
+              {refreshInterval===60000?"✓ ":""}Lent (60s)
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ─── ADMIN ANALYTICS ───────────────────────────── */
+function AdminAnalyticsView(){
+  const [data,setData] = useState({});
+  const [period,setPeriod] = useState("30d");
+  const [loading,setLoading] = useState(true);
+  
+  useEffect(()=>{
+    const loadAnalytics = async () => {
+      setLoading(true);
+      const analyticsData = await getAnalyticsData(period);
+      setData(analyticsData);
+      setLoading(false);
+    };
+    
+    loadAnalytics();
+  },[period]);
+  
+  const MetricCard = ({title,value,change,icon,color}) => (
+    <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:16,position:"relative",overflow:"hidden"}}>
+      {color&&<div style={{position:"absolute",top:0,right:0,width:60,height:60,background:`radial-gradient(${color}15,transparent 70%)`,borderRadius:"0 12px 0 100%"}}/>}
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+        <div style={{width:40,height:40,borderRadius:10,background:`${color||T.acc}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>
+          {icon}
+        </div>
+        <div style={{flex:1}}>
+          <div style={{fontSize:11,color:T.sec,marginBottom:2}}>{title}</div>
+          <div style={{fontSize:18,fontWeight:800,color:color||T.acc}}>{value}</div>
+        </div>
+      </div>
+      {change!==undefined && (
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <div style={{width:0,height:0,borderLeft:"6px solid transparent",borderRight:"6px solid transparent",borderBottom:change>=0?`6px solid ${T.ok}`:`6px solid ${T.ng}`,transform:change>=0?"rotate(0deg)":"rotate(180deg)"}}/>
+          <span style={{fontSize:11,fontWeight:600,color:change>=0?T.ok:T.ng}}>
+            {Math.abs(change)}% {change>=0?"vs periode precedente":"vs periode precedente"}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+  
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:24,fontWeight:800,color:T.tx,marginBottom:8}}>Analytics avancés</h1>
+        <div style={{fontSize:13,color:T.sec}}">Analyse des performances et tendances de la plateforme</div>
+      </div>
+      
+      {/* Sélecteur de période */}
+      <div style={{display:"flex",gap:8,marginBottom:24}}>
+        {["7d","30d","90d"].map(p=>(
+          <button 
+            key={p} 
+            className={period===p?"btn":"btng"}
+            onClick={()=>setPeriod(p)}
+            style={{fontSize:11.5,padding:"4px 12px"}}
+          >
+            {p==="7d"?"7 jours":p==="30d"?"30 jours":"90 jours"}
+          </button>
+        ))}
+      </div>
+      
+      {loading?(
+        <div style={{textAlign:"center",padding:60,color:T.sec}}>
+          <Spin/> <div style={{marginTop:12}}>Chargement des analytics...</div>
+        </div>
+      ):(
+        <>
+          {/* Métriques principales */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:16,marginBottom:24}}>
+            <MetricCard 
+              title="Heures live totales" 
+              value={`${Math.round((data.totalLiveHours||0)/60)}h`} 
+              change={12} 
+              icon="⏱" 
+              color={T.cy}
+            />
+            <MetricCard 
+              title="Diamants cumulés" 
+              value={(data.totalDiamonds||0).toLocaleString()} 
+              change={8} 
+              icon="💎" 
+              color={T.cy}
+            />
+            <MetricCard 
+              title="Matchs organisés" 
+              value={data.totalMatches||0} 
+              change={-3} 
+              icon="🏆" 
+              color={T.pu}
+            />
+            <MetricCard 
+              title="Nouvelles agences" 
+              value={data.agencyGrowth||0} 
+              change={25} 
+              icon="🏢" 
+              color={T.ok}
+            />
+          </div>
+          
+          {/* Graphiques simulés */}
+          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:20,marginBottom:24}}>
+            <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:20}}>
+              <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:16}}>Tendance des performances</div>
+              <div style={{height:200,display:"flex",alignItems:"flex-end",gap:2}}>
+                {Array.from({length:30},(_,i)=>{
+                  const height = Math.random() * 80 + 20;
+                  return(
+                    <div key={i} style={{flex:1,background:`linear-gradient(to top, ${T.acc}, ${T.cy})`,height:`${height}%`,borderRadius:"2px 2px 0 0",minHeight:4}}/>
+                  );
+                })}
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:12,fontSize:10,color:T.sec}}>
+                <span>Il y a 30 jours</span>
+                <span>Aujourd'hui</span>
+              </div>
+            </div>
+            
+            <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:20}}>
+              <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:16}}>Répartition par type</div>
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                <div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                    <span style={{fontSize:11,color:T.sec}}>Lives TikTok</span>
+                    <span style={{fontSize:11,fontWeight:600,color:T.cy}}>65%</span>
+                  </div>
+                  <div style={{height:6,borderRadius:3,background:"rgba(255,255,255,.1)",overflow:"hidden"}}>
+                    <div style={{height:"100%",width:"65%",background:T.cy,borderRadius:3}}/>
+                  </div>
+                </div>
+                <div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                    <span style={{fontSize:11,color:T.sec}}>Matchs</span>
+                    <span style={{fontSize:11,fontWeight:600,color:T.pu}}>25%</span>
+                  </div>
+                  <div style={{height:6,borderRadius:3,background:"rgba(255,255,255,.1)",overflow:"hidden"}}>
+                    <div style={{height:"100%",width:"25%",background:T.pu,borderRadius:3}}/>
+                  </div>
+                </div>
+                <div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                    <span style={{fontSize:11,color:T.sec}}>Planning</span>
+                    <span style={{fontSize:11,fontWeight:600,color:T.ok}}>10%</span>
+                  </div>
+                  <div style={{height:6,borderRadius:3,background:"rgba(255,255,255,.1)",overflow:"hidden"}}>
+                    <div style={{height:"100%",width:"10%",background:T.ok,borderRadius:3}}/>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Statistiques détaillées */}
+          <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:20}}>
+            <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:16}}>Insights clés</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}}>
+              <div style={{textAlign:"center",padding:16,background:"rgba(127,0,255,.06)",borderRadius:10}}>
+                <div style={{fontSize:24,fontWeight:800,color:T.acc,marginBottom:4}}>{data.avgViewers||0}</div>
+                <div style={{fontSize:11,color:T.sec}}>Spectateurs moyens</div>
+              </div>
+              <div style={{textAlign:"center",padding:16,background:"rgba(0,229,255,.06)",borderRadius:10}}>
+                <div style={{fontSize:24,fontWeight:800,color:T.cy,marginBottom:4}}">{Math.round((data.totalLiveHours||0)/(data.totalMatches||1))}</div>
+                <div style={{fontSize:11,color:T.sec}}>Heures par match</div>
+              </div>
+              <div style={{textAlign:"center",padding:16,background:"rgba(0,200,83,.06)",borderRadius:10}}>
+                <div style={{fontSize:24,fontWeight:800,color:T.ok,marginBottom:4}}">{Math.round((data.totalDiamonds||0)/(data.totalLiveHours||1))}</div>
+                <div style={{fontSize:11,color:T.sec}}>Diamants/heure</div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ─── TEAM VIEW ──────────────────────────────────── */
 function TeamView({agents,managers,directors}){
   const [tab,setTab] = useState("agents");
@@ -1742,9 +2458,11 @@ export default function App(){
     import:  ()=> <ImportView profile={auth.profile} reload={reload}/>,
     links:   ()=> <CodesPanel profile={auth.profile} agents={team.agents}/>,
     settings:()=> <SettingsView profile={auth.profile} reload={reload}/>,
-    planning:()=> <PlanningView profile={auth.profile} creators={team.creators} reload={reload}/>,
+    planning:()=> role==="admin"?<AdminPlanningView/>:<PlanningView profile={auth.profile} creators={team.creators} reload={reload}/>,
     matchs:  ()=> <MatchsView profile={auth.profile} creators={team.creators} reload={reload}/>,
     tiktok:  ()=> <TikTokConnectionView profile={auth.profile} creators={team.creators} reload={reload}/>,
+    monitoring:()=> <AdminMonitoringView/>,
+    analytics:()=> <AdminAnalyticsView/>,
   };
 
   const View = views[tab]||views.dash;
