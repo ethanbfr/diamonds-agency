@@ -1,18 +1,10 @@
 import { useState, useEffect, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
 
-/* ─── SUPABASE ──────────────────────────────────────
-   npm install @supabase/supabase-js
-   .env : VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
-   ─────────────────────────────────────────────────── */
-const SB_URL  = import.meta.env?.VITE_SUPABASE_URL  || "";
-const SB_ANON = import.meta.env?.VITE_SUPABASE_ANON_KEY || "";
+const SB_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
+const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 
-let sb = null;
-if (SB_URL && !SB_URL.includes("YOUR")) {
-  import("@supabase/supabase-js").then(({ createClient }) => {
-    sb = createClient(SB_URL, SB_ANON);
-  });
-}
 
 /* ─── TOKENS ─────────────────────────────────────── */
 const T = {
