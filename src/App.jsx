@@ -1,24 +1,15 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const SB_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 
-/* ─── TOKENS ─────────────────────────────────────── */
 const T={bg:"#0F0A1E",card:"#1A1035",b:"#2D1F5E",acc:"#7F00FF",cy:"#00E5FF",sec:"#7B6FA0",ok:"#00C853",ng:"#F44336",go:"#FFB300",pu:"#8E44AD",tx:"#F0EAFF",stripe:"#635BFF"};
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
+const PRICE=149;
 
-/* ─── PRICING ────────────────────────────────────── */
-const PLANS=[
-  {id:"starter",label:"Starter",price:49,desc:"Jusqu'à 50 créateurs",max:50,color:T.ok,features:["Dashboard agence","Import Backstage","Codes d'invitation","Planning créateurs","Matchmaking basique"]},
-  {id:"growth",label:"Growth",price:99,desc:"Jusqu'à 200 créateurs",max:200,color:T.cy,features:["Tout Starter","Matchmaking avancé","Affiches de match","Stats détaillées","Support prioritaire"],popular:true},
-  {id:"pro",label:"Pro",price:199,desc:"Jusqu'à 1 000 créateurs",max:1000,color:T.acc,features:["Tout Growth","Match inter-agences","API access","Onboarding dédié","SLA 99.9%"]},
-  {id:"enterprise",label:"Enterprise",price:499,desc:"4 000+ créateurs",max:99999,color:T.go,features:["Tout Pro","Unlimited créateurs","White-label","Account manager","Facturation sur mesure"]},
-];
-
-/* ─── CSS ─────────────────────────────────────────── */
 const css=`
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;500;600;700;800;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -26,7 +17,6 @@ body{font-family:Inter,sans-serif;background:${T.bg};color:${T.tx};font-size:13p
 @keyframes spk{0%,100%{transform:translate(0,0) scale(1);opacity:.9}35%{transform:translate(4px,-6px) scale(1.3);opacity:.4}70%{transform:translate(-3px,-2px) scale(.8);opacity:.3}}
 @keyframes fup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes sp2{to{transform:rotate(360deg)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 .fup{animation:fup .3s ease both}.fup1{animation:fup .3s .06s ease both}.fup2{animation:fup .3s .12s ease both}.fup3{animation:fup .3s .18s ease both}
 .nb{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:500;border:none;background:transparent;width:100%;color:${T.sec};transition:all .18s;text-align:left;font-family:Inter,sans-serif}
 .nb:hover{background:rgba(127,0,255,.1);color:${T.acc}}.nb.on{background:rgba(127,0,255,.15);color:${T.acc};position:relative}
@@ -44,114 +34,66 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 .inp:focus{border-color:${T.acc};box-shadow:0 0 0 3px rgba(127,0,255,.1)}.inp::placeholder{color:${T.sec}}
 select.inp option{background:#1A1035;color:#F0EAFF}
 .card{background:${T.card};border-radius:12px;border:1px solid ${T.b}}
-.card-glow{background:${T.card};border-radius:12px;border:1px solid rgba(127,0,255,.3)}
+.glow{background:${T.card};border-radius:12px;border:1px solid rgba(127,0,255,.3)}
 .tog{width:38px;height:20px;border-radius:10px;cursor:pointer;border:none;position:relative;flex-shrink:0;transition:background .2s}
 .tog .kn{position:absolute;top:3px;width:14px;height:14px;border-radius:50%;background:white;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
-.blocked-overlay{position:fixed;inset:0;background:rgba(10,5,25,.9);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
 `;
 
-/* ─── UTILS ──────────────────────────────────────── */
+/* ─── UTILS ─────────────────────────────── */
 const calcPayout=(ag,c)=>{
-  if(c.disable_creator_payout) return {eligible:false,creator:0,agent:0,manager:0,director:0};
+  if(c&&c.disable_creator_payout) return {eligible:false,creator:0,agent:0,manager:0,director:0};
   const ok=(c.days_live||0)>=(ag?.min_days||20)&&(c.hours_live||0)>=(ag?.min_hours||40);
   if(!ok) return {eligible:false,creator:0,agent:0,manager:0,director:0};
   const b=(c.diamonds||0)*0.017;
   return {eligible:true,creator:Math.round(b*(ag?.pct_creator||55)/100),agent:Math.round(b*(ag?.pct_agent||10)/100),manager:Math.round(b*(ag?.pct_manager||5)/100),director:Math.round(b*(ag?.pct_director||3)/100)};
 };
+const billingOk=(ag)=>!ag||ag.is_offered||ag.billing_status==="actif";
 
-const billingOk=(ag)=>{
-  if(!ag) return false;
-  if(ag.is_offered) return true;
-  return ag.billing_status==="actif";
-};
-
-/* ─── SUPABASE CALLS ─────────────────────────────── */
+/* ─── SUPABASE ──────────────────────────── */
 const getProfile=async(uid)=>{
   if(!sb) return null;
   const {data,error}=await sb.from("profiles").select("*").eq("id",uid).single();
   if(error||!data) return null;
-  if(data.agency_id){
-    const {data:ag}=await sb.from("agencies").select("*").eq("id",data.agency_id).single();
-    data.agencies=ag||null;
-  }
+  if(data.agency_id){const {data:ag}=await sb.from("agencies").select("*").eq("id",data.agency_id).single();data.agencies=ag||null;}
   return data;
 };
-const fetchTeam=async(agencyId)=>{
-  if(!sb||!agencyId) return {creators:[],agents:[],managers:[],directors:[]};
+const fetchTeam=async(agId)=>{
+  if(!sb||!agId) return {creators:[],agents:[],managers:[],directors:[]};
   const [cr,ag,mg,dr]=await Promise.all([
-    sb.from("creators").select("*").eq("agency_id",agencyId),
-    sb.from("agents").select("*").eq("agency_id",agencyId),
-    sb.from("managers").select("*").eq("agency_id",agencyId),
-    sb.from("directors").select("*").eq("agency_id",agencyId),
+    sb.from("creators").select("*").eq("agency_id",agId),
+    sb.from("agents").select("*").eq("agency_id",agId),
+    sb.from("managers").select("*").eq("agency_id",agId),
+    sb.from("directors").select("*").eq("agency_id",agId),
   ]);
   return {creators:cr.data||[],agents:ag.data||[],managers:mg.data||[],directors:dr.data||[]};
 };
-const fetchAllAgencies=async()=>{
-  if(!sb) return [];
-  const {data}=await sb.from("agencies").select("*").order("created_at",{ascending:false});
-  return data||[];
-};
+const fetchAllAgencies=async()=>{if(!sb) return [];const {data}=await sb.from("agencies").select("*").order("created_at",{ascending:false});return data||[];};
 const doCreateAgency=async(name,slug,color)=>{
   if(!sb) return {error:"Supabase non configuré"};
-  const {data,error}=await sb.from("agencies").insert({
-    name:name.trim(),slug:slug.trim().toUpperCase(),color:color||"#7F00FF",
-    billing_status:"essai",is_offered:false,pct_director:3,pct_manager:5,pct_agent:10,pct_creator:55,
-    min_days:20,min_hours:40,director_can_import:false,manager_can_import:false,accept_inter_agency:true,price_tier:"growth"
-  }).select().single();
+  const {data,error}=await sb.from("agencies").insert({name:name.trim(),slug:slug.trim().toUpperCase(),color:color||"#7F00FF",billing_status:"essai",is_offered:false,pct_director:3,pct_manager:5,pct_agent:10,pct_creator:55,min_days:20,min_hours:40,director_can_import:false,manager_can_import:false,accept_inter_agency:true}).select().single();
   if(error) return {error:error.message};
   return {data};
 };
-const genCode=async(agencyId,issuerId,issuerRole,targetRole)=>{
+const genCode=async(agId,issuerId,issuerRole,targetRole)=>{
   if(!sb) return null;
-  const {data,error}=await sb.rpc("generate_invite_code",{p_agency_id:agencyId,p_issuer_id:issuerId,p_issuer_role:issuerRole,p_target_role:targetRole});
+  const {data,error}=await sb.rpc("generate_invite_code",{p_agency_id:agId,p_issuer_id:issuerId,p_issuer_role:issuerRole,p_target_role:targetRole});
   return error?null:data;
 };
-const getMyCodes=async(issuerId)=>{
-  if(!sb) return [];
-  const {data}=await sb.from("invite_codes").select("*").eq("issuer_id",issuerId).eq("used",false).order("created_at",{ascending:false});
-  return data||[];
-};
-const getAgencyCodes=async(agencyId)=>{
-  if(!sb) return [];
-  const {data}=await sb.from("invite_codes").select("*").eq("agency_id",agencyId).eq("used",false).order("created_at",{ascending:false});
-  return data||[];
-};
-const fetchSchedule=async(profileId)=>{
-  if(!sb) return [];
-  const {data}=await sb.from("schedules").select("*").eq("creator_profile_id",profileId);
-  return data||[];
-};
+const getMyCodes=async(issuerId)=>{if(!sb) return [];const {data}=await sb.from("invite_codes").select("*").eq("issuer_id",issuerId).eq("used",false).order("created_at",{ascending:false});return data||[];};
+const getAgencyCodes=async(agId)=>{if(!sb) return [];const {data}=await sb.from("invite_codes").select("*").eq("agency_id",agId).eq("used",false).order("created_at",{ascending:false});return data||[];};
+const fetchSchedule=async(profileId)=>{if(!sb) return [];const {data}=await sb.from("schedules").select("*").eq("creator_profile_id",profileId);return data||[];};
 const saveScheduleSlot=async(slot)=>{
   if(!sb) return;
-  if(slot.id){
-    await sb.from("schedules").update({start_time:slot.start_time,end_time:slot.end_time,accept_inter_agency:slot.accept_inter_agency,notes:slot.notes}).eq("id",slot.id);
-  } else {
-    await sb.from("schedules").insert({creator_profile_id:slot.creator_profile_id,agency_id:slot.agency_id,day_of_week:slot.day_of_week,start_time:slot.start_time,end_time:slot.end_time,accept_inter_agency:slot.accept_inter_agency||false,notes:slot.notes||""});
-  }
+  if(slot.id){await sb.from("schedules").update({start_time:slot.start_time,end_time:slot.end_time,accept_inter_agency:slot.accept_inter_agency,notes:slot.notes}).eq("id",slot.id);}
+  else{await sb.from("schedules").insert({creator_profile_id:slot.creator_profile_id,agency_id:slot.agency_id,day_of_week:slot.day_of_week,start_time:slot.start_time,end_time:slot.end_time,accept_inter_agency:slot.accept_inter_agency||false,notes:slot.notes||""});}
 };
-const deleteScheduleSlot=async(id)=>{if(!sb) return; await sb.from("schedules").delete().eq("id",id);};
-const fetchMatches=async(agencyId)=>{
-  if(!sb) return [];
-  const {data}=await sb.from("matches").select("*").or(`agency_a.eq.${agencyId},agency_b.eq.${agencyId}`).order("match_date",{ascending:true});
-  return data||[];
-};
-const fetchLiveEntries=async(profileId)=>{
-  if(!sb) return [];
-  const {data}=await sb.from("live_entries").select("*").eq("creator_profile_id",profileId).order("live_date",{ascending:false}).limit(20);
-  return data||[];
-};
-const addLiveEntry=async(entry)=>{
-  if(!sb) return {error:"no sb"};
-  const {data,error}=await sb.from("live_entries").insert(entry).select().single();
-  return error?{error:error.message}:{data};
-};
-const importBackstage=async(agencyId,importerId,rows)=>{
-  if(!sb) return {error:"Supabase non configuré"};
-  const {data,error}=await sb.rpc("import_backstage",{p_agency_id:agencyId,p_importer_id:importerId,p_data:rows});
-  return error?{error:error.message}:data;
-};
+const deleteScheduleSlot=async(id)=>{if(sb) await sb.from("schedules").delete().eq("id",id);};
+const fetchMatches=async(agId)=>{if(!sb) return [];const {data}=await sb.from("matches").select("*").or(`agency_a.eq.${agId},agency_b.eq.${agId}`).order("match_date",{ascending:true});return data||[];};
+const fetchLiveEntries=async(profileId)=>{if(!sb) return [];const {data}=await sb.from("live_entries").select("*").eq("creator_profile_id",profileId).order("live_date",{ascending:false}).limit(30);return data||[];};
+const addLiveEntry=async(entry)=>{if(!sb) return {error:"no sb"};const {data,error}=await sb.from("live_entries").insert(entry).select().single();return error?{error:error.message}:{data};};
+const importBackstage=async(agId,importerId,rows)=>{if(!sb) return {error:"Supabase non configuré"};const {data,error}=await sb.rpc("import_backstage",{p_agency_id:agId,p_importer_id:importerId,p_data:rows});return error?{error:error.message}:data;};
 
-/* ─── SHARED UI ──────────────────────────────────── */
+/* ─── SHARED UI ─────────────────────────── */
 const DiamondSVG=({size=40})=>(
   <svg width={size} height={size} viewBox="0 0 40 40">
     <defs>
@@ -181,9 +123,10 @@ const Brand=({big=false})=>(
     </div>
   </div>
 );
-const AV=({name="?",color=T.acc,size=30,img=null})=>(
-  img?<img src={img} alt={name} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",border:`1px solid ${color}30`,flexShrink:0}}/>
-  :<div style={{width:size,height:size,borderRadius:"50%",background:`linear-gradient(135deg,${color}28,${color}15)`,border:`1px solid ${color}30`,display:"flex",alignItems:"center",justifyContent:"center",color,fontWeight:700,fontSize:size*.36,flexShrink:0}}>{String(name).slice(0,2).toUpperCase()}</div>
+const AV=({name="?",color=T.acc,size=30})=>(
+  <div style={{width:size,height:size,borderRadius:"50%",background:`linear-gradient(135deg,${color}28,${color}15)`,border:`1px solid ${color}30`,display:"flex",alignItems:"center",justifyContent:"center",color,fontWeight:700,fontSize:size*.36,flexShrink:0}}>
+    {String(name).slice(0,2).toUpperCase()}
+  </div>
 );
 const SC=({label,val,sub,accent})=>(
   <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:14,position:"relative",overflow:"hidden"}}>
@@ -199,7 +142,6 @@ const Tog=({on,onChange,color=T.acc})=>(
     <div className="kn" style={{left:on?"21px":"3px"}}/>
   </button>
 );
-
 const billingTag=(s,isOffered)=>{
   if(isOffered) return <span className="tag" style={{background:`${T.cy}18`,color:T.cy}}>Offert ♥</span>;
   const m={actif:{bg:`${T.ok}18`,c:T.ok,l:"Abonné"},impayé:{bg:`${T.ng}18`,c:T.ng,l:"Impayé"},essai:{bg:`${T.go}18`,c:T.go,l:"Essai"}};
@@ -207,9 +149,9 @@ const billingTag=(s,isOffered)=>{
   return <span className="tag" style={{background:v.bg,color:v.c}}>{v.l}</span>;
 };
 
-/* ─── NAV ────────────────────────────────────────── */
+/* ─── NAV ───────────────────────────────── */
 const NAVS={
-  admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"pricing",l:"Tarifs"}],
+  admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"}],
   agency:  [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Liens d'invitation"},{id:"matches",l:"Matchs"},{id:"settings",l:"Paramètres"}],
   director:[{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"}],
   manager: [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"}],
@@ -217,56 +159,40 @@ const NAVS={
   creator: [{id:"dash",l:"Mon espace"},{id:"planning",l:"Mon planning"},{id:"my_lives",l:"Mes lives"},{id:"matches",l:"Mes matchs"}],
 };
 
-/* ─── AUTH ───────────────────────────────────────── */
+/* ─── AUTH ──────────────────────────────── */
 function useAuth(){
   const [user,setUser]=useState(null);
   const [profile,setProfile]=useState(null);
   const [loading,setLoading]=useState(true);
-  const load=async(uid)=>{
-    try{const p=await getProfile(uid);setProfile(p);}catch(e){console.error(e);}
-    setLoading(false);
-  };
+  const load=async(uid)=>{try{const p=await getProfile(uid);setProfile(p);}catch(e){console.error(e);}setLoading(false);};
   useEffect(()=>{
     if(!sb){setLoading(false);return;}
-    sb.auth.getSession().then(({data:{session}})=>{
-      setUser(session?.user??null);
-      if(session?.user) load(session.user.id);
-      else setLoading(false);
-    });
-    const {data:{subscription}}=sb.auth.onAuthStateChange((_,session)=>{
-      setUser(session?.user??null);
-      if(session?.user) load(session.user.id);
-      else{setProfile(null);setLoading(false);}
-    });
+    sb.auth.getSession().then(({data:{session}})=>{setUser(session?.user??null);if(session?.user)load(session.user.id);else setLoading(false);});
+    const {data:{subscription}}=sb.auth.onAuthStateChange((_,session)=>{setUser(session?.user??null);if(session?.user)load(session.user.id);else{setProfile(null);setLoading(false);}});
     return()=>subscription.unsubscribe();
   },[]);
-  return{user,profile,loading,
-    signIn:(e,p)=>sb?.auth.signInWithPassword({email:e,password:p}),
-    signOut:()=>sb?.auth.signOut(),
-    reload:()=>user&&load(user.id)};
+  return{user,profile,loading,signIn:(e,p)=>sb?.auth.signInWithPassword({email:e,password:p}),signOut:()=>sb?.auth.signOut(),reload:()=>user&&load(user.id)};
 }
 
-/* ─── BLOCKED SCREEN ─────────────────────────────── */
+/* ─── BLOCKED SCREEN ────────────────────── */
 function BlockedScreen({agencyName}){
   return(
-    <div className="blocked-overlay">
-      <div style={{textAlign:"center",maxWidth:420,padding:20}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(10,5,25,.92)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(8px)"}}>
+      <div style={{textAlign:"center",maxWidth:420,padding:28}}>
         <div style={{fontSize:48,marginBottom:16}}>🔒</div>
         <h1 style={{fontSize:22,fontWeight:800,color:T.tx,marginBottom:8}}>Accès suspendu</h1>
         <p style={{fontSize:13.5,color:T.sec,marginBottom:20,lineHeight:1.7}}>
-          L'abonnement de <strong style={{color:T.tx}}>{agencyName||"votre agence"}</strong> a expiré ou n'est pas actif.<br/>
-          Contactez votre administrateur pour régulariser la situation.
+          L'abonnement de <strong style={{color:T.tx}}>{agencyName||"votre agence"}</strong> a expiré.<br/>
+          Contactez votre administrateur pour régulariser.
         </p>
-        <a href={`mailto:${CONTACT}`}>
-          <button className="btn" style={{fontSize:13,padding:"9px 20px"}}>Contacter Diamond's</button>
-        </a>
+        <a href={`mailto:${CONTACT}`}><button className="btn" style={{fontSize:13,padding:"9px 20px"}}>Contacter Diamond's</button></a>
         <div style={{marginTop:12,fontSize:11.5,color:T.sec}}>{CONTACT}</div>
       </div>
     </div>
   );
 }
 
-/* ─── LOGIN ──────────────────────────────────────── */
+/* ─── LOGIN ─────────────────────────────── */
 function LoginPage(){
   const [email,setEmail]=useState("");
   const [pw,setPw]=useState("");
@@ -282,7 +208,7 @@ function LoginPage(){
     if(error){setErr(error.message);setLoad(false);}
   };
   const register=async()=>{
-    if(!code.trim()){setErr("Entrez votre code d'invitation");return;}
+    if(!code.trim()){setErr("Code d'invitation requis");return;}
     setErr("");setLoad(true);
     if(!sb){setErr("Supabase non configuré");setLoad(false);return;}
     const {data,error}=await sb.auth.signUp({email,password:pw});
@@ -326,7 +252,7 @@ function LoginPage(){
             {mode==="register"&&(
               <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Code d'invitation</label>
                 <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="NOVA-AGENT-XXXXXX" style={{fontFamily:"monospace",letterSpacing:".08em"}}/>
-                <div style={{fontSize:11,color:T.sec,marginTop:4}}>Demandez ce code à votre agence</div>
+                <div style={{fontSize:11,color:T.sec,marginTop:4}}>Code fourni par votre agence</div>
               </div>
             )}
             {err&&<div style={{padding:"7px 10px",borderRadius:8,background:"rgba(244,67,54,.1)",border:"1px solid rgba(244,67,54,.2)",fontSize:11.5,color:T.ng}}>{err}</div>}
@@ -336,69 +262,20 @@ function LoginPage(){
           </div>
         </div>
         <div style={{textAlign:"center",fontSize:11.5,color:T.sec}}>
-          Problème ? <a href={`mailto:${CONTACT}`} style={{color:T.acc}}>{CONTACT}</a>
+          Problème ? <a href={`mailto:${CONTACT}`} style={{color:T.acc,textDecoration:"none"}}>{CONTACT}</a>
         </div>
       </div>
     </div>
   );
 }
 
-/* ─── PRICING PAGE ───────────────────────────────── */
-function PricingPage(){
-  return(
-    <div className="fup">
-      <div style={{marginBottom:20}}>
-        <h1 style={{fontSize:22,fontWeight:800,color:T.tx,marginBottom:4}}>Tarifs Diamond's</h1>
-        <p style={{fontSize:13,color:T.sec}}>Des prix adaptés à la taille de ton agence · Sans engagement · Support inclus</p>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12,marginBottom:20}}>
-        {PLANS.map(plan=>(
-          <div key={plan.id} className="card" style={{padding:20,border:`1px solid ${plan.color}${plan.popular?"60":"25"}`,position:"relative",overflow:"hidden"}}>
-            {plan.popular&&<div style={{position:"absolute",top:0,right:0,background:plan.color,color:"white",fontSize:9.5,fontWeight:700,padding:"4px 10px",borderRadius:"0 12px 0 9px",letterSpacing:".05em"}}>POPULAIRE</div>}
-            <div style={{width:40,height:40,borderRadius:11,background:plan.color+"18",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:12}}>
-              <DiamondSVG size={22}/>
-            </div>
-            <div style={{fontWeight:800,fontSize:16,color:T.tx,marginBottom:3}}>{plan.label}</div>
-            <div style={{fontSize:11.5,color:T.sec,marginBottom:14}}>{plan.desc}</div>
-            <div style={{display:"flex",alignItems:"baseline",gap:5,marginBottom:16}}>
-              <span style={{fontSize:32,fontWeight:900,color:plan.color}}>{plan.price}€</span>
-              <span style={{fontSize:12,color:T.sec}}>/mois</span>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:16}}>
-              {plan.features.map((f,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"center",gap:7}}>
-                  <div style={{width:16,height:16,borderRadius:"50%",background:plan.color+"20",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:9,color:plan.color,fontWeight:900}}>✓</div>
-                  <span style={{fontSize:12,color:T.sec}}>{f}</span>
-                </div>
-              ))}
-            </div>
-            <a href={`mailto:${CONTACT}?subject=Abonnement ${plan.label}`}>
-              <button className="btn" style={{width:"100%",justifyContent:"center",fontSize:12,background:`linear-gradient(135deg,${plan.color},${plan.color}BB)`}}>
-                Choisir {plan.label}
-              </button>
-            </a>
-          </div>
-        ))}
-      </div>
-      <div className="card" style={{padding:16,background:"rgba(127,0,255,.06)",border:"1px solid rgba(127,0,255,.2)"}}>
-        <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:6}}>Questions sur les tarifs ?</div>
-        <div style={{fontSize:12.5,color:T.sec,marginBottom:10}}>Notre équipe répond dans les 24h · Demos disponibles sur rendez-vous</div>
-        <a href={`mailto:${CONTACT}`}>
-          <button className="btng" style={{fontSize:12}}>{CONTACT}</button>
-        </a>
-      </div>
-    </div>
-  );
-}
-
-/* ─── ADMIN DASH ─────────────────────────────────── */
+/* ─── ADMIN DASH ────────────────────────── */
 function AdminDash({setTab}){
   const [agencies,setAgencies]=useState([]);
   const [loading,setLoading]=useState(true);
   useEffect(()=>{fetchAllAgencies().then(d=>{setAgencies(d);setLoading(false);});},[]);
   const paying=agencies.filter(a=>a.billing_status==="actif"&&!a.is_offered);
-  const mrr=paying.length*99;
-  const offered=agencies.filter(a=>a.is_offered).length;
+  const mrr=paying.length*PRICE;
   return(
     <div className="fup">
       <div style={{marginBottom:14}}>
@@ -406,10 +283,10 @@ function AdminDash({setTab}){
         <h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Vue globale</h1>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-        <SC label="MRR" val={mrr+"€"} sub="Hors offerts" accent={T.acc}/>
+        <SC label="MRR" val={mrr+"€"} sub={`${PRICE}€/agence · hors offerts`} accent={T.acc}/>
         <SC label="ARR estimé" val={mrr*12+"€"} sub="Projection"/>
         <SC label="Agences actives" val={paying.length} sub="Payantes" accent={T.ok}/>
-        <SC label="Offerts ♥" val={offered} sub="Hors MRR" accent={T.cy}/>
+        <SC label="Offerts ♥" val={agencies.filter(a=>a.is_offered).length} sub="Hors MRR" accent={T.cy}/>
       </div>
       {loading?<div style={{textAlign:"center",padding:30,color:T.sec}}>Chargement…</div>:
       agencies.length===0?(
@@ -423,9 +300,9 @@ function AdminDash({setTab}){
           {agencies.map(ag=>(
             <div key={ag.id} className="cr" style={{gridTemplateColumns:"38px 1fr 90px 80px"}}>
               <div style={{width:32,height:32,borderRadius:9,background:(ag.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:800,fontSize:13}}>{ag.name[0]}</div>
-              <div><div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.name}</div><div style={{fontSize:11,color:T.sec}}>Slug: {ag.slug}</div></div>
+              <div><div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.name}</div><div style={{fontSize:11,color:T.sec}}>/{ag.slug}</div></div>
               {billingTag(ag.billing_status,ag.is_offered)}
-              <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.is_offered?"Offert":ag.billing_status==="actif"?"99€":"0€"}</div>
+              <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.is_offered?"Offert ♥":ag.billing_status==="actif"?`${PRICE}€`:"0€"}</div>
             </div>
           ))}
         </div>
@@ -434,31 +311,31 @@ function AdminDash({setTab}){
   );
 }
 
-/* ─── ADMIN AGENCY DASH ──────────────────────────── */
+/* ─── ADMIN AGENCY DASH ─────────────────── */
 function AdminAgencyDash({ag}){
   const [team,setTeam]=useState({creators:[],agents:[],managers:[],directors:[]});
   const [loading,setLoading]=useState(true);
   useEffect(()=>{fetchTeam(ag.id).then(d=>{setTeam(d);setLoading(false);});},[ag.id]);
   if(loading) return <div style={{textAlign:"center",padding:30,color:T.sec}}>Chargement…</div>;
   const {creators,agents,managers,directors}=team;
-  const okBoth=creators.filter(c=>calcPayout(ag,c).eligible).length;
-  const total=creators.length;
-  const pct=total>0?Math.round(okBoth/total*100):0;
+  const ok=creators.filter(c=>calcPayout(ag,c).eligible).length;
+  const tot=creators.length;
+  const pct=tot>0?Math.round(ok/tot*100):0;
   return(
     <div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-        <SC label="Directeurs" val={directors.length} sub="" accent={T.acc}/>
-        <SC label="Managers"   val={managers.length}  sub=""/>
-        <SC label="Agents"     val={agents.length}    sub=""/>
-        <SC label="Créateurs"  val={`${okBoth}/${total}`} sub={`${total-okBoth} bloqué`} accent={okBoth===total&&total>0?T.ok:"#FF6D00"}/>
+        <SC label="Directeurs" val={directors.length} accent={T.acc}/>
+        <SC label="Managers" val={managers.length}/>
+        <SC label="Agents" val={agents.length}/>
+        <SC label="Créateurs" val={`${ok}/${tot}`} sub={`${tot-ok} bloqué`} accent={ok===tot&&tot>0?T.ok:"#FF6D00"}/>
       </div>
-      <div className="card-glow" style={{padding:18,marginBottom:12}}>
-        <div style={{display:"flex",alignItems:"flex-end",gap:10,marginBottom:10}}>
-          <div style={{fontSize:40,fontWeight:900,color:T.acc,lineHeight:1}}>{okBoth}</div>
-          <div style={{paddingBottom:4}}><div style={{fontSize:13,fontWeight:700,color:T.sec}}>/ {total} éligibles</div></div>
+      <div className="glow" style={{padding:18,marginBottom:12}}>
+        <div style={{display:"flex",alignItems:"flex-end",gap:10,marginBottom:12}}>
+          <div style={{fontSize:40,fontWeight:900,color:T.acc,lineHeight:1}}>{ok}</div>
+          <div style={{paddingBottom:4}}><div style={{fontSize:13,fontWeight:700,color:T.sec}}>/ {tot} éligibles</div></div>
           <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:26,fontWeight:900,color:pct>=75?T.ok:pct>=50?T.go:T.ng}}>{pct}%</div></div>
         </div>
-        {total>0&&<div style={{height:6,borderRadius:20,overflow:"hidden",display:"flex",gap:2}}><div style={{flex:okBoth,background:"linear-gradient(90deg,#00C853,#00E676)",borderRadius:20}}/><div style={{flex:total-okBoth,background:"rgba(244,67,54,.28)",borderRadius:20}}/></div>}
+        {tot>0&&<div style={{height:6,borderRadius:20,overflow:"hidden",display:"flex",gap:2}}><div style={{flex:ok,background:"linear-gradient(90deg,#00C853,#00E676)",borderRadius:20}}/><div style={{flex:tot-ok,background:"rgba(244,67,54,.28)",borderRadius:20}}/></div>}
       </div>
       {creators.length>0&&(
         <div className="card" style={{overflow:"hidden"}}>
@@ -466,7 +343,7 @@ function AdminAgencyDash({ag}){
           {creators.map(c=>{const p=calcPayout(ag,c);return(
             <div key={c.id} className="cr" style={{gridTemplateColumns:"30px 1fr 90px 55px 55px 80px"}}>
               <AV name={(c.pseudo||"??").replace("@","").slice(0,2)} color={T.acc} size={26}/>
-              <div><div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>{c.pseudo}</div></div>
+              <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>{c.pseudo}</div>
               <div style={{fontWeight:700,color:T.cy,fontSize:12}}>💎 {(c.diamonds||0).toLocaleString()}</div>
               <div style={{fontWeight:600,fontSize:12,color:(c.days_live||0)>=(ag.min_days||20)?T.ok:T.ng}}>{c.days_live||0}j</div>
               <div style={{fontWeight:600,fontSize:12,color:(c.hours_live||0)>=(ag.min_hours||40)?T.ok:T.ng}}>{c.hours_live||0}h</div>
@@ -479,7 +356,7 @@ function AdminAgencyDash({ag}){
   );
 }
 
-/* ─── ADMIN AGENCIES ─────────────────────────────── */
+/* ─── ADMIN AGENCIES ────────────────────── */
 function AdminAgencies(){
   const [agencies,setAgencies]=useState([]);
   const [sel,setSel]=useState(null);
@@ -498,11 +375,8 @@ function AdminAgencies(){
 
   const load=()=>fetchAllAgencies().then(setAgencies);
   useEffect(()=>{load();},[]);
+  const loadCodes=async(agId)=>{const data=await getAgencyCodes(agId);setCodes(c=>({...c,[agId]:data}));};
 
-  const loadCodes=async(agId)=>{
-    const data=await getAgencyCodes(agId);
-    setCodes(c=>({...c,[agId]:data}));
-  };
   const doCreate=async()=>{
     if(!name.trim()||!slug.trim()){setErr("Nom et slug obligatoires");return;}
     setCreating(true);setErr("");
@@ -516,11 +390,7 @@ function AdminAgencies(){
     await genCode(ag.id,user.id,"admin",targetRole);
     await loadCodes(ag.id);setGenning(null);
   };
-  const updateBilling=async(id,field,value)=>{
-    if(!sb) return;
-    await sb.from("agencies").update({[field]:value}).eq("id",id);
-    load();
-  };
+  const updateBilling=async(id,field,value)=>{if(!sb) return;await sb.from("agencies").update({[field]:value}).eq("id",id);load();};
   const cp=(k)=>{setCopied(k);setTimeout(()=>setCopied(null),2000);};
 
   if(viewDash) return(
@@ -542,22 +412,19 @@ function AdminAgencies(){
         <div><h1 style={{fontSize:18,fontWeight:800,color:T.tx}}>{sel.name}</h1><div style={{fontSize:11.5,color:T.sec}}>Slug: {sel.slug}</div></div>
       </div>
       <div className="card" style={{padding:16,marginBottom:14}}>
-        <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Générer des codes d'invitation</div>
-        <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Chaque code est <strong style={{color:T.tx}}>unique</strong> — jamais identique pour 2 personnes différentes.</div>
+        <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:4}}>Générer des codes d'invitation</div>
+        <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Chaque code est <strong style={{color:T.tx}}>unique</strong> — jamais identique pour 2 personnes.</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          {["director","manager","agent","creator"].map(r=>{
-            const key=sel.id+"-"+r;
-            return(<button key={r} className="btn" style={{fontSize:11.5,padding:"6px 12px",background:`linear-gradient(135deg,${COLORS[r]},${COLORS[r]}BB)`}} onClick={()=>doGenCode(sel,r)} disabled={genning===key}>
+          {["director","manager","agent","creator"].map(r=>{const key=sel.id+"-"+r;return(
+            <button key={r} className="btn" style={{fontSize:11.5,padding:"6px 12px",background:`linear-gradient(135deg,${COLORS[r]},${COLORS[r]}BB)`}} onClick={()=>doGenCode(sel,r)} disabled={genning===key}>
               {genning===key?<Spin/>:"+"} Code {r}
-            </button>);
-          })}
+            </button>
+          );})}
         </div>
       </div>
       <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Codes actifs non utilisés</div>
       {(codes[sel.id]||[]).length===0?(
-        <div style={{textAlign:"center",padding:"24px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:12,fontSize:12}}>
-          Aucun code actif · Génère des codes ci-dessus
-        </div>
+        <div style={{textAlign:"center",padding:"24px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:12,fontSize:12}}>Aucun code · Génère des codes ci-dessus</div>
       ):(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {(codes[sel.id]||[]).map(code=>(
@@ -575,9 +442,7 @@ function AdminAgencies(){
               </div>
               <div style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"6px 10px",border:`1px solid ${T.b}`}}>
                 <code style={{flex:1,fontSize:10,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{BASE}?c={code.code}</code>
-                <button className="btng" style={{padding:"3px 8px",fontSize:10.5}} onClick={()=>cp(`u-${code.id}`)}>
-                  {copied===`u-${code.id}`?"✓":"Copier"}
-                </button>
+                <button className="btng" style={{padding:"3px 8px",fontSize:10.5}} onClick={()=>cp(`u-${code.id}`)}>{copied===`u-${code.id}`?"✓":"Copier"}</button>
               </div>
             </div>
           ))}
@@ -593,12 +458,12 @@ function AdminAgencies(){
         <button className="btn" style={{fontSize:12}} onClick={()=>setShowForm(!showForm)}>+ Nouvelle agence</button>
       </div>
       {showForm&&(
-        <div className="card-glow" style={{padding:18,marginBottom:14}} className="fup">
-          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:14}}>Créer une nouvelle agence</div>
+        <div className="glow" style={{padding:18,marginBottom:14}}>
+          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:14}}>Créer une agence</div>
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Nom *</label>
               <input className="inp" value={name} onChange={e=>setName(e.target.value)} placeholder="Nova TikTok"/></div>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Slug unique * (codes seront SLUG-ROLE-XXXXXX)</label>
+            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Slug * — les codes seront SLUG-ROLE-XXXXXX</label>
               <input className="inp" value={slug} onChange={e=>setSlug(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,""))} placeholder="NOVA" style={{fontFamily:"monospace",letterSpacing:".08em"}}/></div>
             <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Couleur</label>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -608,7 +473,7 @@ function AdminAgencies(){
             </div>
             {err&&<div style={{padding:"7px 10px",borderRadius:8,background:"rgba(244,67,54,.1)",border:"1px solid rgba(244,67,54,.2)",fontSize:11.5,color:T.ng}}>{err}</div>}
             <div style={{display:"flex",gap:8}}>
-              <button className="btn" onClick={doCreate} disabled={creating}>{creating?<><Spin/>Création…</>:"Créer l'agence"}</button>
+              <button className="btn" onClick={doCreate} disabled={creating}>{creating?<><Spin/>Création…</>:"Créer"}</button>
               <button className="btng" onClick={()=>{setShowForm(false);setErr("");}}>Annuler</button>
             </div>
           </div>
@@ -617,24 +482,24 @@ function AdminAgencies(){
       {agencies.length===0?(
         <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
           <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:8}}>Aucune agence</div>
-          <div style={{fontSize:12,color:T.sec}}>Clique sur "+ Nouvelle agence" pour commencer.</div>
         </div>
       ):(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {agencies.map(ag=>(
-            <div key={ag.id} className="card" style={{padding:16,transition:"border-color .2s",display:"flex",alignItems:"center",gap:12}}
+            <div key={ag.id} className="card" style={{padding:16,display:"flex",alignItems:"center",gap:12,transition:"border-color .2s"}}
               onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(127,0,255,.3)"} onMouseLeave={e=>e.currentTarget.style.borderColor=T.b}>
               <div style={{width:44,height:44,borderRadius:13,background:(ag.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:800,fontSize:18,flexShrink:0}}>{ag.name[0]}</div>
               <div style={{flex:1}}>
-                <div style={{fontWeight:800,fontSize:14,color:T.tx,display:"flex",alignItems:"center",gap:7}}>{ag.name}{billingTag(ag.billing_status,ag.is_offered)}</div>
+                <div style={{fontWeight:800,fontSize:14,color:T.tx,display:"flex",alignItems:"center",gap:7,marginBottom:3}}>{ag.name}{billingTag(ag.billing_status,ag.is_offered)}</div>
                 <div style={{fontSize:11.5,color:T.sec}}>Slug: {ag.slug} · Crea {ag.pct_creator||55}% · Agt {ag.pct_agent||10}%</div>
               </div>
-              <div style={{display:"flex",gap:6,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
+              <div style={{display:"flex",gap:5,flexWrap:"wrap",justifyContent:"flex-end"}}>
                 <button className="btng" style={{fontSize:10.5}} onClick={()=>{setSel(ag);loadCodes(ag.id);}}>Codes</button>
                 <button className="btng" style={{fontSize:10.5}} onClick={()=>setViewDash(ag)}>Dashboard</button>
                 {!ag.is_offered&&ag.billing_status!=="actif"&&<button className="btn" style={{fontSize:10.5,padding:"4px 9px",background:`linear-gradient(135deg,${T.ok},#00E676)`}} onClick={()=>updateBilling(ag.id,"billing_status","actif")}>Activer</button>}
                 {!ag.is_offered&&<button style={{padding:"4px 9px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.cy}30`,background:`${T.cy}10`,color:T.cy,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>updateBilling(ag.id,"is_offered",true)}>Offrir ♥</button>}
                 {ag.is_offered&&<button className="btng" style={{fontSize:10.5,color:T.ng}} onClick={()=>updateBilling(ag.id,"is_offered",false)}>Retirer</button>}
+                {ag.billing_status==="actif"&&!ag.is_offered&&<button style={{padding:"4px 9px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.ng}30`,background:`${T.ng}10`,color:T.ng,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>updateBilling(ag.id,"billing_status","impayé")}>Impayé</button>}
               </div>
             </div>
           ))}
@@ -644,17 +509,13 @@ function AdminAgencies(){
   );
 }
 
-/* ─── ADMIN BILLING ──────────────────────────────── */
+/* ─── ADMIN BILLING ─────────────────────── */
 function AdminBilling(){
   const [agencies,setAgencies]=useState([]);
   useEffect(()=>{fetchAllAgencies().then(setAgencies);},[]);
-  const updateBilling=async(id,field,value)=>{
-    if(!sb) return;
-    await sb.from("agencies").update({[field]:value}).eq("id",id);
-    fetchAllAgencies().then(setAgencies);
-  };
+  const update=async(id,field,val)=>{if(!sb) return;await sb.from("agencies").update({[field]:val}).eq("id",id);fetchAllAgencies().then(setAgencies);};
   const paying=agencies.filter(a=>a.billing_status==="actif"&&!a.is_offered);
-  const mrr=paying.length*99;
+  const mrr=paying.length*PRICE;
   const offertCount=agencies.filter(a=>a.is_offered).length;
   return(
     <div className="fup">
@@ -662,23 +523,26 @@ function AdminBilling(){
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
         <SC label="MRR" val={mrr+"€"} sub="Hors offerts" accent={T.stripe}/>
         <SC label="ARR estimé" val={mrr*12+"€"} sub="Projection"/>
-        <SC label="Impayés" val={agencies.filter(a=>a.billing_status==="impayé"&&!a.is_offered).length} sub="" accent={T.ng}/>
+        <SC label="Impayés" val={agencies.filter(a=>a.billing_status==="impayé"&&!a.is_offered).length} accent={T.ng}/>
         <SC label="Offerts ♥" val={offertCount} sub="Hors MRR" accent={T.cy}/>
+      </div>
+      <div style={{padding:"10px 14px",borderRadius:11,background:"rgba(127,0,255,.06)",border:"1px solid rgba(127,0,255,.15)",fontSize:12.5,color:T.tx,marginBottom:14}}>
+        Abonnement unique <strong style={{color:T.acc}}>{PRICE}€/mois</strong> par agence · Accès illimité à toutes les fonctionnalités
       </div>
       <div className="card" style={{overflow:"hidden"}}>
         <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Toutes les agences</div>
         {agencies.length===0&&<div style={{padding:"28px 20px",textAlign:"center",color:T.sec}}>Aucune agence</div>}
-        {agencies.map((ag,i)=>(
-          <div key={ag.id} className="cr" style={{gridTemplateColumns:"38px 1fr 90px 80px 180px"}}>
+        {agencies.map(ag=>(
+          <div key={ag.id} className="cr" style={{gridTemplateColumns:"38px 1fr 90px 80px 200px"}}>
             <div style={{width:32,height:32,borderRadius:9,background:(ag.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:800,fontSize:13}}>{ag.name[0]}</div>
             <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.name}</div>
             {billingTag(ag.billing_status,ag.is_offered)}
-            <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.is_offered?"Offert ♥":ag.billing_status==="actif"?"99€":"0€"}</div>
+            <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.is_offered?"Offert ♥":ag.billing_status==="actif"?`${PRICE}€`:"0€"}</div>
             <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-              {!ag.is_offered&&ag.billing_status!=="actif"&&<button className="btn" style={{fontSize:10.5,padding:"3px 8px",background:`linear-gradient(135deg,${T.ok},#00E676)`}} onClick={()=>updateBilling(ag.id,"billing_status","actif")}>Activer</button>}
-              {!ag.is_offered&&ag.billing_status==="actif"&&<button style={{padding:"3px 8px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.ng}30`,background:`${T.ng}10`,color:T.ng,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>updateBilling(ag.id,"billing_status","impayé")}>Impayé</button>}
-              {!ag.is_offered&&<button style={{padding:"3px 8px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.cy}30`,background:`${T.cy}10`,color:T.cy,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>updateBilling(ag.id,"is_offered",true)}>Offrir ♥</button>}
-              {ag.is_offered&&<button className="btng" style={{fontSize:10.5}} onClick={()=>updateBilling(ag.id,"is_offered",false)}>Retirer</button>}
+              {!ag.is_offered&&ag.billing_status!=="actif"&&<button className="btn" style={{fontSize:10.5,padding:"3px 8px",background:`linear-gradient(135deg,${T.ok},#00E676)`}} onClick={()=>update(ag.id,"billing_status","actif")}>Activer</button>}
+              {!ag.is_offered&&ag.billing_status==="actif"&&<button style={{padding:"3px 8px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.ng}30`,background:`${T.ng}10`,color:T.ng,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>update(ag.id,"billing_status","impayé")}>Impayé</button>}
+              {!ag.is_offered&&<button style={{padding:"3px 8px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.cy}30`,background:`${T.cy}10`,color:T.cy,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>update(ag.id,"is_offered",true)}>Offrir ♥</button>}
+              {ag.is_offered&&<button className="btng" style={{fontSize:10.5}} onClick={()=>update(ag.id,"is_offered",false)}>Retirer</button>}
             </div>
           </div>
         ))}
@@ -687,8 +551,8 @@ function AdminBilling(){
   );
 }
 
-/* ─── CODES PANEL ────────────────────────────────── */
-function CodesPanel({profile,agents}){
+/* ─── CODES PANEL ───────────────────────── */
+function CodesPanel({profile}){
   const [codes,setCodes]=useState([]);
   const [loading,setLoading]=useState(true);
   const [gen,setGen]=useState(null);
@@ -707,11 +571,12 @@ function CodesPanel({profile,agents}){
     setCodes(fresh);setGen(null);
   };
   const cp=(k)=>{setCopied(k);setTimeout(()=>setCopied(null),2000);};
-  if(!targets.length) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucun lien disponible.</div>;
+
+  if(!targets.length) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucun lien disponible pour votre rôle.</div>;
   return(
     <div className="fup">
       <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:6}}>Liens d'invitation</h1>
-      <p style={{fontSize:12,color:T.sec,marginBottom:14}}>Chaque code est <strong style={{color:T.tx}}>unique et personnel</strong> — deux agents n'ont jamais le même.</p>
+      <p style={{fontSize:12,color:T.sec,marginBottom:14}}>Chaque code est <strong style={{color:T.tx}}>unique et personnel</strong> — deux agents n'ont jamais le même code.</p>
       <div className="card" style={{padding:14,marginBottom:14}}>
         <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Générer un nouveau code</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -740,9 +605,7 @@ function CodesPanel({profile,agents}){
               </div>
               <div style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"6px 10px",border:`1px solid ${T.b}`}}>
                 <code style={{flex:1,fontSize:10,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{BASE}?c={code.code}</code>
-                <button className="btng" style={{padding:"3px 8px",fontSize:10.5}} onClick={()=>cp(`u-${code.id}`)}>
-                  {copied===`u-${code.id}`?"✓":"Copier"}
-                </button>
+                <button className="btng" style={{padding:"3px 8px",fontSize:10.5}} onClick={()=>cp(`u-${code.id}`)}>{copied===`u-${code.id}`?"✓":"Copier"}</button>
               </div>
             </div>
           ))}
@@ -752,7 +615,7 @@ function CodesPanel({profile,agents}){
   );
 }
 
-/* ─── PLANNING ───────────────────────────────────── */
+/* ─── PLANNING ──────────────────────────── */
 function PlanningView({profile}){
   const [slots,setSlots]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -765,64 +628,64 @@ function PlanningView({profile}){
   const save=async()=>{
     setSaving(true);
     await saveScheduleSlot({...form,day_of_week:adding,creator_profile_id:profile.id,agency_id:profile.agency_id});
-    const fresh=await fetchSchedule(profile.id);setSlots(fresh);setAdding(null);setSaving(false);
+    const fresh=await fetchSchedule(profile.id);
+    setSlots(fresh);setAdding(null);setSaving(false);
   };
-  const del=async(id)=>{
-    await deleteScheduleSlot(id);
-    setSlots(s=>s.filter(x=>x.id!==id));
-  };
+  const del=async(id)=>{await deleteScheduleSlot(id);setSlots(s=>s.filter(x=>x.id!==id));};
 
   return(
     <div className="fup">
-      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:6}}>Mon planning live</h1>
-      <p style={{fontSize:12,color:T.sec,marginBottom:14}}>Indique tes disponibilités · Ton staff peut voir ce planning pour organiser tes matchs</p>
-      <div style={{display:"flex",flexDirection:"column",gap:10}}>
-        {DAYS.map((day,i)=>{
-          const daySlots=slots.filter(s=>s.day_of_week===i);
-          return(
-            <div key={i} className="card" style={{padding:14,border:`1px solid ${daySlots.length>0?T.acc+"40":T.b}`}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:daySlots.length>0?10:0}}>
-                <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{day}</div>
-                <button className="btng" style={{fontSize:10.5}} onClick={()=>setAdding(adding===i?null:i)}>
-                  {adding===i?"Annuler":"+ Ajouter"}
-                </button>
+      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:4}}>Mon planning live</h1>
+      <p style={{fontSize:12,color:T.sec,marginBottom:14}}>Indique tes dispo · Ton staff peut voir ce planning pour organiser tes matchs · Tu peux modifier à tout moment</p>
+      {loading?<div style={{textAlign:"center",padding:20,color:T.sec}}>Chargement…</div>:(
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {DAYS.map((day,i)=>{
+            const daySlots=slots.filter(s=>s.day_of_week===i);
+            return(
+              <div key={i} className="card" style={{padding:14,border:`1px solid ${daySlots.length>0?T.acc+"40":T.b}`}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:daySlots.length>0||adding===i?10:0}}>
+                  <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{day}</div>
+                  <button className="btng" style={{fontSize:10.5}} onClick={()=>setAdding(adding===i?null:i)}>
+                    {adding===i?"Annuler":"+ Créneau"}
+                  </button>
+                </div>
+                {daySlots.map(slot=>(
+                  <div key={slot.id} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",borderRadius:8,background:"rgba(127,0,255,.06)",marginBottom:5,border:"1px solid rgba(127,0,255,.15)"}}>
+                    <div style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{slot.start_time?.slice(0,5)} → {slot.end_time?.slice(0,5)}</div>
+                    <span className="tag" style={{background:slot.accept_inter_agency?`${T.cy}18`:"rgba(255,255,255,.06)",color:slot.accept_inter_agency?T.cy:T.sec}}>
+                      {slot.accept_inter_agency?"Inter-agence":"Intra seulement"}
+                    </span>
+                    {slot.notes&&<span style={{fontSize:11,color:T.sec,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.notes}</span>}
+                    <button className="btng" style={{fontSize:10.5,color:T.ng,borderColor:T.ng+"30",padding:"2px 8px"}} onClick={()=>del(slot.id)}>✕</button>
+                  </div>
+                ))}
+                {adding===i&&(
+                  <div style={{padding:12,borderRadius:10,background:"rgba(127,0,255,.06)",border:"1px solid rgba(127,0,255,.2)",marginTop:daySlots.length>0?10:0}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                      <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Début</label>
+                        <input className="inp" type="time" value={form.start_time} onChange={e=>setForm(f=>({...f,start_time:e.target.value}))}/></div>
+                      <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Fin</label>
+                        <input className="inp" type="time" value={form.end_time} onChange={e=>setForm(f=>({...f,end_time:e.target.value}))}/></div>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                      <Tog on={form.accept_inter_agency} onChange={v=>setForm(f=>({...f,accept_inter_agency:v}))} color={T.cy}/>
+                      <label style={{fontSize:12,color:T.tx}}>Accepter les matchs inter-agences</label>
+                    </div>
+                    <div style={{marginBottom:10}}><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Note (optionnel)</label>
+                      <input className="inp" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Ex: dispo sauf urgence"/></div>
+                    <button className="btn" style={{fontSize:12}} onClick={save} disabled={saving}>{saving?<Spin/>:"Enregistrer"}</button>
+                  </div>
+                )}
               </div>
-              {daySlots.map(slot=>(
-                <div key={slot.id} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",borderRadius:8,background:"rgba(127,0,255,.06)",marginBottom:5,border:`1px solid rgba(127,0,255,.15)`}}>
-                  <div style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{slot.start_time} → {slot.end_time}</div>
-                  <span className="tag" style={{background:slot.accept_inter_agency?`${T.cy}18`:"rgba(255,255,255,.06)",color:slot.accept_inter_agency?T.cy:T.sec}}>
-                    {slot.accept_inter_agency?"Inter-agence":"Intra-agence"}
-                  </span>
-                  {slot.notes&&<span style={{fontSize:11,color:T.sec,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.notes}</span>}
-                  <button className="btng" style={{fontSize:10.5,color:T.ng,borderColor:T.ng+"30"}} onClick={()=>del(slot.id)}>✕</button>
-                </div>
-              ))}
-              {adding===i&&(
-                <div style={{padding:12,borderRadius:10,background:"rgba(127,0,255,.06)",border:`1px solid rgba(127,0,255,.2)`,marginTop:10}}>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-                    <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Heure de début</label>
-                      <input className="inp" type="time" value={form.start_time} onChange={e=>setForm(f=>({...f,start_time:e.target.value}))}/></div>
-                    <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Heure de fin</label>
-                      <input className="inp" type="time" value={form.end_time} onChange={e=>setForm(f=>({...f,end_time:e.target.value}))}/></div>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                    <Tog on={form.accept_inter_agency} onChange={v=>setForm(f=>({...f,accept_inter_agency:v}))} color={T.cy}/>
-                    <label style={{fontSize:12,color:T.tx}}>Accepter les matchs inter-agences</label>
-                  </div>
-                  <div style={{marginBottom:10}}><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Note (optionnel)</label>
-                    <input className="inp" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Ex: disponible sauf urgence"/></div>
-                  <button className="btn" style={{fontSize:12}} onClick={save} disabled={saving}>{saving?<Spin/>:"Enregistrer"}</button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-/* ─── MY LIVES ───────────────────────────────────── */
+/* ─── MY LIVES ──────────────────────────── */
 function MyLivesView({profile}){
   const [entries,setEntries]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -838,29 +701,29 @@ function MyLivesView({profile}){
     setSaving(true);setErr("");
     const res=await addLiveEntry({...form,creator_profile_id:profile.id,agency_id:profile.agency_id});
     if(res.error){setErr(res.error);setSaving(false);return;}
-    const fresh=await fetchLiveEntries(profile.id);setEntries(fresh);
-    setForm({live_date:"",duration_minutes:60,viewers:0,diamonds:0,notes:""});
+    const fresh=await fetchLiveEntries(profile.id);
+    setEntries(fresh);setForm({live_date:"",duration_minutes:60,viewers:0,diamonds:0,notes:""});
     setShowForm(false);setSaving(false);
   };
 
-  const totalDiamonds=entries.reduce((s,e)=>s+(e.diamonds||0),0);
-  const totalHours=Math.round(entries.reduce((s,e)=>s+(e.duration_minutes||0),0)/60*10)/10;
+  const totalD=entries.reduce((s,e)=>s+(e.diamonds||0),0);
+  const totalH=Math.round(entries.reduce((s,e)=>s+(e.duration_minutes||0),0)/60*10)/10;
 
   return(
     <div className="fup">
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
         <div><h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Mes lives</h1>
-          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Ajoute tes lives manuellement · Connecte TikTok bientôt disponible</p></div>
+          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Saisis tes lives manuellement · Connexion TikTok directe bientôt</p></div>
         <button className="btn" style={{fontSize:12}} onClick={()=>setShowForm(!showForm)}>+ Ajouter un live</button>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
-        <SC label="💎 Diamants totaux" val={totalDiamonds.toLocaleString()} sub="Ce mois" accent={T.cy}/>
-        <SC label="⏱ Heures live" val={totalHours+"h"} sub={entries.length+" lives"}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
+        <SC label="💎 Diamants" val={totalD.toLocaleString()} sub="Ce mois" accent={T.cy}/>
+        <SC label="⏱ Heures" val={totalH+"h"} sub={entries.length+" lives"}/>
         <SC label="👁 Spectateurs" val={entries.reduce((s,e)=>s+(e.viewers||0),0).toLocaleString()} sub="Cumulés"/>
       </div>
       {showForm&&(
-        <div className="card-glow" style={{padding:18,marginBottom:14}}>
-          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:14}}>Ajouter un live</div>
+        <div className="glow" style={{padding:18,marginBottom:14}}>
+          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:14}}>Nouveau live</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:11,marginBottom:11}}>
             <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Date *</label>
               <input className="inp" type="date" value={form.live_date} onChange={e=>setForm(f=>({...f,live_date:e.target.value}))}/></div>
@@ -872,7 +735,7 @@ function MyLivesView({profile}){
               <input className="inp" type="number" value={form.viewers} onChange={e=>setForm(f=>({...f,viewers:+e.target.value}))} min={0}/></div>
           </div>
           <div style={{marginBottom:11}}><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Notes</label>
-            <input className="inp" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Ex: très bon live, beaucoup de cadeaux"/></div>
+            <input className="inp" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Ex: super live, beaucoup de cadeaux"/></div>
           {err&&<div style={{padding:"7px 10px",borderRadius:8,background:"rgba(244,67,54,.1)",border:"1px solid rgba(244,67,54,.2)",fontSize:11.5,color:T.ng,marginBottom:10}}>{err}</div>}
           <div style={{display:"flex",gap:8}}>
             <button className="btn" style={{fontSize:12}} onClick={save} disabled={saving}>{saving?<Spin/>:"Enregistrer"}</button>
@@ -884,13 +747,13 @@ function MyLivesView({profile}){
       entries.length===0?(
         <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
           Aucun live enregistré · Ajoute ton premier live ci-dessus
-          <div style={{marginTop:12,fontSize:11,color:T.sec}}>La connexion TikTok directe arrive bientôt ✨</div>
+          <div style={{marginTop:10,fontSize:11,color:T.sec}}>Connexion TikTok directe bientôt ✨</div>
         </div>
       ):(
         <div className="card" style={{overflow:"hidden"}}>
-          <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Historique des lives</div>
-          {entries.map((e,i)=>(
-            <div key={e.id} className="cr" style={{gridTemplateColumns:"90px 80px 80px 80px 1fr"}}>
+          <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Historique</div>
+          {entries.map(e=>(
+            <div key={e.id} className="cr" style={{gridTemplateColumns:"90px 90px 80px 80px 1fr"}}>
               <div style={{fontWeight:700,fontSize:12.5,color:T.tx}}>{new Date(e.live_date).toLocaleDateString("fr-FR")}</div>
               <div style={{fontWeight:700,color:T.cy,fontSize:12}}>💎 {(e.diamonds||0).toLocaleString()}</div>
               <div style={{fontSize:12,color:T.sec}}>{Math.round((e.duration_minutes||0)/60*10)/10}h</div>
@@ -900,21 +763,20 @@ function MyLivesView({profile}){
           ))}
         </div>
       )}
-      <div style={{marginTop:14,padding:"11px 14px",borderRadius:11,background:"rgba(127,0,255,.06)",border:"1px solid rgba(127,0,255,.15)",fontSize:12,color:T.sec}}>
-        🔗 Connexion TikTok officielle (TikTok Login Kit) — bientôt disponible pour synchroniser automatiquement tes lives
-      </div>
     </div>
   );
 }
 
-/* ─── MATCHES VIEW ───────────────────────────────── */
-function MatchesView({profile,creators,agents}){
+/* ─── MATCHES ───────────────────────────── */
+function MatchesView({profile,creators}){
   const [matches,setMatches]=useState([]);
   const [loading,setLoading]=useState(true);
   const [showCreate,setShowCreate]=useState(false);
   const [form,setForm]=useState({creator_a:"",creator_b:"",match_date:"",match_time:"20:00",is_inter_agency:false});
   const [saving,setSaving]=useState(false);
+  const [autoResult,setAutoResult]=useState(null);
   const ag=profile?.agencies;
+  const role=profile?.role;
 
   useEffect(()=>{
     if(ag?.id) fetchMatches(ag.id).then(d=>{setMatches(d);setLoading(false);});
@@ -922,49 +784,83 @@ function MatchesView({profile,creators,agents}){
   },[ag?.id]);
 
   const createMatch=async()=>{
-    if(!form.creator_a||!form.match_date){return;}
+    if(!form.creator_a||!form.match_date) return;
     setSaving(true);
-    const a=creators.find(c=>c.id===form.creator_a);
-    const b=form.creator_b?creators.find(c=>c.id===form.creator_b):null;
     await sb.from("matches").insert({
-      creator_a:a?.profile_id||form.creator_a,
-      creator_b:b?.profile_id||null,
-      agency_a:ag?.id,
-      agency_b:ag?.id,
+      creator_a:form.creator_a,creator_b:form.creator_b||null,
+      agency_a:ag?.id,agency_b:ag?.id,
       is_inter_agency:form.is_inter_agency,
-      match_date:form.match_date,
-      match_time:form.match_time,
-      status:"pending",
-      created_by:profile?.id,
+      match_date:form.match_date,match_time:form.match_time,
+      status:"pending",created_by:profile?.id,
     });
-    const fresh=await fetchMatches(ag?.id);setMatches(fresh);
-    setShowCreate(false);setSaving(false);
+    const fresh=await fetchMatches(ag?.id);
+    setMatches(fresh);setShowCreate(false);setSaving(false);
+  };
+
+  const autoMatch=()=>{
+    if(!form.creator_a){return;}
+    const crea=creators.find(c=>c.id===form.creator_a||c.profile_id===form.creator_a);
+    if(!crea) return;
+    const similar=creators.filter(c=>{
+      const cId=c.id||c.profile_id;
+      const aId=crea.id||crea.profile_id;
+      if(cId===aId) return false;
+      const diff=Math.abs((c.diamonds||0)-(crea.diamonds||0));
+      return diff<=(crea.diamonds||1)*0.3;
+    });
+    if(similar.length>0){
+      const pick=similar[Math.floor(Math.random()*similar.length)];
+      setAutoResult(pick);
+      setForm(f=>({...f,creator_b:pick.id||pick.profile_id}));
+    } else {
+      setAutoResult({pseudo:"Aucun adversaire trouvé dans ta tranche"});
+    }
   };
 
   const statusColor={pending:T.go,confirmed:T.ok,done:T.cy,cancelled:T.ng};
   const statusLabel={pending:"En attente",confirmed:"Confirmé",done:"Terminé",cancelled:"Annulé"};
+  const canCreate=["agency","director","manager","agent"].includes(role);
 
   return(
     <div className="fup">
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
         <div><h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Matchs TikTok Live</h1>
-          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Organise des matchs entre créateurs · Intra ou inter-agences</p></div>
-        <button className="btn" style={{fontSize:12}} onClick={()=>setShowCreate(!showCreate)}>+ Créer un match</button>
+          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Matchs intra et inter-agences · Matchmaking automatique par niveau de diamants</p></div>
+        {canCreate&&<button className="btn" style={{fontSize:12}} onClick={()=>setShowCreate(!showCreate)}>+ Créer un match</button>}
       </div>
 
-      {showCreate&&(
-        <div className="card-glow" style={{padding:18,marginBottom:14}}>
+      {/* Matchmaking auto */}
+      <div className="card" style={{padding:16,marginBottom:14,background:"rgba(0,229,255,.04)",border:"1px solid rgba(0,229,255,.2)"}}>
+        <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:4}}>🎯 Matchmaking automatique</div>
+        <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Diamond's trouve un adversaire de <strong style={{color:T.tx}}>même niveau</strong> (±30% de diamants) selon les disponibilités.</div>
+        <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+          <select className="inp" style={{flex:1,minWidth:200}} value={form.creator_a} onChange={e=>setForm(f=>({...f,creator_a:e.target.value}))}>
+            <option value="">Sélectionner un créateur…</option>
+            {creators.map(c=><option key={c.id||c.profile_id} value={c.id||c.profile_id}>{c.pseudo} — 💎 {(c.diamonds||0).toLocaleString()}</option>)}
+          </select>
+          <button className="btn" style={{fontSize:12,padding:"8px 14px"}} onClick={autoMatch} disabled={!form.creator_a}>🔍 Trouver un adversaire</button>
+        </div>
+        {autoResult&&(
+          <div style={{marginTop:10,padding:"10px 13px",borderRadius:9,background:"rgba(127,0,255,.08)",border:"1px solid rgba(127,0,255,.2)",fontSize:12.5,color:T.tx}}>
+            {autoResult.diamonds?`✅ Adversaire trouvé : ${autoResult.pseudo} — 💎 ${(autoResult.diamonds||0).toLocaleString()}`:`⚠ ${autoResult.pseudo}`}
+          </div>
+        )}
+        <div style={{marginTop:10,fontSize:11,color:T.sec}}>✨ Génère automatiquement une affiche de match avec @TikTok, date et heure</div>
+      </div>
+
+      {showCreate&&canCreate&&(
+        <div className="glow" style={{padding:18,marginBottom:14}}>
           <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:14}}>Nouveau match</div>
           <div style={{display:"flex",flexDirection:"column",gap:11}}>
             <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Créateur A *</label>
               <select className="inp" value={form.creator_a} onChange={e=>setForm(f=>({...f,creator_a:e.target.value}))}>
-                <option value="">Choisir un créateur…</option>
-                {creators.map(c=><option key={c.id} value={c.id}>{c.pseudo}</option>)}
+                <option value="">Choisir…</option>
+                {creators.map(c=><option key={c.id} value={c.id}>{c.pseudo} — 💎 {(c.diamonds||0).toLocaleString()}</option>)}
               </select></div>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Créateur B (optionnel — laissez vide pour recherche automatique)</label>
+            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Créateur B (optionnel si matchmaking auto)</label>
               <select className="inp" value={form.creator_b} onChange={e=>setForm(f=>({...f,creator_b:e.target.value}))}>
-                <option value="">Recherche auto par niveau…</option>
-                {creators.filter(c=>c.id!==form.creator_a).map(c=><option key={c.id} value={c.id}>{c.pseudo} — 💎 {(c.diamonds||0).toLocaleString()}</option>)}
+                <option value="">À définir…</option>
+                {creators.filter(c=>(c.id||c.profile_id)!==form.creator_a).map(c=><option key={c.id} value={c.id}>{c.pseudo} — 💎 {(c.diamonds||0).toLocaleString()}</option>)}
               </select></div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Date *</label>
@@ -977,36 +873,24 @@ function MatchesView({profile,creators,agents}){
               <label style={{fontSize:12,color:T.tx}}>Match inter-agences</label>
             </div>
             <div style={{display:"flex",gap:8}}>
-              <button className="btn" style={{fontSize:12}} onClick={createMatch} disabled={saving}>{saving?<Spin/>:"Créer le match"}</button>
+              <button className="btn" style={{fontSize:12}} onClick={createMatch} disabled={saving||!form.creator_a||!form.match_date}>{saving?<Spin/>:"Créer le match"}</button>
               <button className="btng" onClick={()=>setShowCreate(false)}>Annuler</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Matchmaking auto */}
-      <div className="card" style={{padding:14,marginBottom:14,background:"rgba(0,229,255,.04)",border:"1px solid rgba(0,229,255,.2)"}}>
-        <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:4}}>🎯 Matchmaking automatique</div>
-        <div style={{fontSize:12,color:T.sec,marginBottom:10}}>Diamond's trouve automatiquement un adversaire de même niveau (diamants similaires) en fonction des disponibilités du créateur.</div>
-        <select className="inp" style={{marginBottom:10}} defaultValue="">
-          <option value="">Sélectionner un créateur pour matchmaking auto…</option>
-          {creators.map(c=><option key={c.id} value={c.id}>{c.pseudo} — 💎 {(c.diamonds||0).toLocaleString()}</option>)}
-        </select>
-        <button className="btng" style={{fontSize:12}}>🔍 Trouver un adversaire</button>
-        <div style={{fontSize:11,color:T.sec,marginTop:8}}>✨ Génère automatiquement une affiche de match avec photo, @TikTok, date et heure</div>
-      </div>
-
       {loading?<div style={{textAlign:"center",padding:20,color:T.sec}}>Chargement…</div>:
       matches.length===0?(
         <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
-          Aucun match programmé · Crée ton premier match ci-dessus
+          Aucun match programmé
         </div>
       ):(
         <div className="card" style={{overflow:"hidden"}}>
           <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Matchs programmés</div>
           {matches.map(m=>(
-            <div key={m.id} className="cr" style={{gridTemplateColumns:"100px 1fr 90px 90px 100px"}}>
-              <div style={{fontWeight:700,fontSize:12,color:T.tx}}>{m.match_date?new Date(m.match_date).toLocaleDateString("fr-FR"):"?"}</div>
+            <div key={m.id} className="cr" style={{gridTemplateColumns:"100px 1fr 80px 90px 80px"}}>
+              <div style={{fontWeight:700,fontSize:12,color:T.tx}}>{m.match_date?new Date(m.match_date).toLocaleDateString("fr-FR"):"—"}</div>
               <div>
                 <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>Match {m.is_inter_agency?"inter":"intra"}-agence</div>
                 <div style={{fontSize:10.5,color:T.sec}}>{m.match_time||"?"}</div>
@@ -1017,7 +901,7 @@ function MatchesView({profile,creators,agents}){
               <span className="tag" style={{background:`${statusColor[m.status]||T.go}18`,color:statusColor[m.status]||T.go}}>
                 {statusLabel[m.status]||"En attente"}
               </span>
-              <button className="btng" style={{fontSize:10.5}}>Voir l'affiche</button>
+              <button className="btng" style={{fontSize:10.5}}>Affiche</button>
             </div>
           ))}
         </div>
@@ -1026,7 +910,7 @@ function MatchesView({profile,creators,agents}){
   );
 }
 
-/* ─── CREATORS VIEW ──────────────────────────────── */
+/* ─── CREATORS VIEW ─────────────────────── */
 function CreatorsView({profile,creators,agents,reload}){
   const ag=profile?.agencies;
   const role=profile?.role;
@@ -1044,9 +928,9 @@ function CreatorsView({profile,creators,agents,reload}){
     if(sb) await sb.from("creators").update({agent_id:agentId}).eq("id",creatorId);
     setDoing(null);setTr(null);reload?.();
   };
-  const togglePayout=async(creatorId,current)=>{
+  const togglePayout=async(profileId,current)=>{
     if(!sb) return;
-    await sb.from("profiles").update({disable_creator_payout:!current}).eq("id",creatorId);
+    await sb.from("profiles").update({disable_creator_payout:!current}).eq("id",profileId);
     reload?.();
   };
 
@@ -1061,27 +945,27 @@ function CreatorsView({profile,creators,agents,reload}){
       </div>
       {creators.length===0?(
         <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
-          Aucun créateur · Invitez-en via vos liens ou importez des données Backstage
+          Aucun créateur · Invitez-en via vos liens
         </div>
       ):(
         <div className="card" style={{overflow:"hidden"}}>
           <div style={{overflowX:"auto"}}><div style={{minWidth:540}}>
-            <div className="cr" style={{gridTemplateColumns:`30px 1fr ${canName?"110px ":""}${canPhone?"110px ":""}90px 50px 50px 80px 80px${canTransfer?" 90px":""}`,background:"rgba(255,255,255,.02)",borderBottom:`1px solid ${T.b}`,fontSize:9.5,fontWeight:600,color:T.sec,textTransform:"uppercase"}}>
-              <div/><div>Créateur</div>{canName&&<div>Nom</div>}{canPhone&&<div>Téléphone</div>}<div>💎 Diamants</div><div>Jours</div><div>Heures</div><div>Statut</div><div>Reversement</div>{canTransfer&&<div>Action</div>}
+            <div className="cr" style={{gridTemplateColumns:`30px 1fr ${canName?"110px ":""}${canPhone?"110px ":""}90px 50px 50px 80px 80px${canTransfer?" 100px":""}`,background:"rgba(255,255,255,.02)",borderBottom:`1px solid ${T.b}`,fontSize:9.5,fontWeight:600,color:T.sec,textTransform:"uppercase"}}>
+              <div/><div>Créateur</div>{canName&&<div>Nom</div>}{canPhone&&<div>Téléphone</div>}<div>💎 Diamants</div><div>Jours</div><div>Heures</div><div>Statut</div><div>Reversement</div>{canTransfer&&<div>Actions</div>}
             </div>
             {creators.map(c=>{
               const p=calcPayout(ag,c);
               const myAgent=agents.find(a=>a.id===c.agent_id);
               return(
                 <div key={c.id}>
-                  <div className="cr" style={{gridTemplateColumns:`30px 1fr ${canName?"110px ":""}${canPhone?"110px ":""}90px 50px 50px 80px 80px${canTransfer?" 90px":""}`}}>
+                  <div className="cr" style={{gridTemplateColumns:`30px 1fr ${canName?"110px ":""}${canPhone?"110px ":""}90px 50px 50px 80px 80px${canTransfer?" 100px":""}`}}>
                     <AV name={(c.pseudo||"??").replace("@","").slice(0,2)} color={T.acc} size={26}/>
                     <div>
                       <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>{c.pseudo}</div>
-                      <div style={{fontSize:10,color:T.sec,display:"flex",alignItems:"center",gap:5}}>
+                      <div style={{fontSize:10,color:T.sec,display:"flex",alignItems:"center",gap:4}}>
                         {myAgent?.name||"Sans agent"}
-                        {c.staff_as_creator&&<span className="tag" style={{background:`${T.pu}18`,color:T.pu,fontSize:9}}>Staff+Créa</span>}
-                        {c.disable_creator_payout&&<span className="tag" style={{background:`${T.ng}18`,color:T.ng,fontSize:9}}>Reversement OFF</span>}
+                        {c.staff_as_creator&&<span className="tag" style={{background:`${T.pu}18`,color:T.pu,fontSize:8,padding:"1px 4px"}}>Staff+Créa</span>}
+                        {c.disable_creator_payout&&<span className="tag" style={{background:`${T.ng}18`,color:T.ng,fontSize:8,padding:"1px 4px"}}>Rev. OFF</span>}
                       </div>
                     </div>
                     {canName&&<div style={{fontSize:12,fontWeight:600,color:T.tx}}>{c.first_name} {c.last_name}</div>}
@@ -1093,9 +977,9 @@ function CreatorsView({profile,creators,agents,reload}){
                     <div style={{fontWeight:700,fontSize:12.5,color:p.eligible?T.acc:T.sec}}>{p.eligible?`${p.creator}€`:"0€"}</div>
                     {canTransfer&&(
                       <div style={{display:"flex",gap:4}}>
-                        <button className="btng" style={{fontSize:9.5,padding:"2px 6px"}} onClick={()=>setTr(tr===c.id?null:c.id)}>↔</button>
-                        {canTogglePayout&&<button className="btng" style={{fontSize:9.5,padding:"2px 6px",color:c.disable_creator_payout?T.ok:T.ng}} onClick={()=>togglePayout(c.profile_id,c.disable_creator_payout)}>
-                          {c.disable_creator_payout?"Rev ON":"Rev OFF"}
+                        <button className="btng" style={{fontSize:9.5,padding:"2px 6px"}} onClick={()=>setTr(tr===c.id?null:c.id)} title="Transférer">↔</button>
+                        {canTogglePayout&&<button className="btng" style={{fontSize:9.5,padding:"2px 6px",color:c.disable_creator_payout?T.ok:T.ng}} onClick={()=>togglePayout(c.profile_id,c.disable_creator_payout)} title="Activer/désactiver reversement créateur">
+                          {c.disable_creator_payout?"Rev ✓":"Rev ✕"}
                         </button>}
                       </div>
                     )}
@@ -1122,7 +1006,7 @@ function CreatorsView({profile,creators,agents,reload}){
   );
 }
 
-/* ─── IMPORT BACKSTAGE ───────────────────────────── */
+/* ─── IMPORT BACKSTAGE ──────────────────── */
 function ImportView({profile,reload}){
   const [phase,setPhase]=useState("idle");
   const [prog,setProg]=useState(0);
@@ -1144,7 +1028,7 @@ function ImportView({profile,reload}){
     setTimeout(()=>{if(res?.error){setErr(res.error);setPhase("idle");}else{setRes(res);setPhase("done");reload?.();}},300);
   };
   const expiry=()=>{const d=new Date();d.setMonth(d.getMonth()+1);d.setDate(15);return d.toLocaleDateString("fr-FR");};
-  if(!canImport()) return <div style={{padding:"20px 16px",borderRadius:13,background:"rgba(244,67,54,.08)",border:"1px solid rgba(244,67,54,.2)",fontSize:13.5,color:T.ng}}>⛔ Permission refusée. Contactez le fondateur de l'agence.</div>;
+  if(!canImport()) return <div style={{padding:"20px 16px",borderRadius:13,background:"rgba(244,67,54,.08)",border:"1px solid rgba(244,67,54,.2)",fontSize:13.5,color:T.ng}}>⛔ Permission refusée.</div>;
   return(
     <div className="fup">
       <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:4}}>Import Backstage</h1>
@@ -1164,7 +1048,7 @@ function ImportView({profile,reload}){
       </div>}
       {phase==="load"&&<div className="card" style={{padding:"36px 28px",textAlign:"center"}}>
         <div style={{width:44,height:44,borderRadius:"50%",border:"3px solid rgba(127,0,255,.2)",borderTop:`3px solid ${T.acc}`,animation:"sp2 .8s linear infinite",margin:"0 auto 13px"}}/>
-        <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:13}}>Remplacement des données…</div>
+        <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:13}}>Remplacement…</div>
         <div style={{height:5,background:"rgba(255,255,255,.08)",borderRadius:20,overflow:"hidden"}}><div style={{height:"100%",borderRadius:20,width:`${prog}%`,background:`linear-gradient(90deg,${T.acc},${T.cy})`,transition:"width .1s"}}/></div>
         <div style={{marginTop:6,fontSize:11,color:T.sec}}>{prog}%</div>
       </div>}
@@ -1178,7 +1062,7 @@ function ImportView({profile,reload}){
   );
 }
 
-/* ─── SETTINGS ───────────────────────────────────── */
+/* ─── SETTINGS ──────────────────────────── */
 function SettingsView({profile,reload}){
   const ag=profile?.agencies;
   const [pcts,setPcts]=useState({director:ag?.pct_director||3,manager:ag?.pct_manager||5,agent:ag?.pct_agent||10,creator:ag?.pct_creator||55});
@@ -1198,7 +1082,7 @@ function SettingsView({profile,reload}){
     <div className="fup">
       <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Paramètres agence</h1>
       <div className="card" style={{padding:20,marginBottom:12}}>
-        <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Répartition des revenus (0–100%)</div>
+        <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Répartition des revenus</div>
         <div style={{borderRadius:8,overflow:"hidden",height:28,display:"flex",marginBottom:12}}>
           {ROLES.map(r=><div key={r.k} style={{width:`${pcts[r.k]}%`,background:r.c,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10.5,fontWeight:700,color:"white",overflow:"hidden",whiteSpace:"nowrap",transition:"width .25s"}}>{pcts[r.k]>5?`${pcts[r.k]}%`:""}</div>)}
           <div style={{flex:1,background:"rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10.5,fontWeight:700,color:T.sec}}>Agence {100-total}%</div>
@@ -1214,7 +1098,7 @@ function SettingsView({profile,reload}){
       </div>
       <div className="card" style={{padding:18,marginBottom:12}}>
         <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Conditions minimales</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:12}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
           <div>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><label style={{fontSize:12,fontWeight:600,color:T.tx}}>Jours min.</label><span style={{fontSize:13,fontWeight:800,color:"#FF6D00"}}>{minD}j</span></div>
             <input type="range" min={0} max={31} step={1} value={minD} style={{accentColor:"#FF6D00"}} onChange={e=>setMinD(+e.target.value)}/>
@@ -1242,7 +1126,7 @@ function SettingsView({profile,reload}){
   );
 }
 
-/* ─── DASH VIEW ──────────────────────────────────── */
+/* ─── DASH VIEW ─────────────────────────── */
 function DashView({profile,creators,agents,managers,directors}){
   const ag=profile?.agencies;
   const role=profile?.role;
@@ -1255,7 +1139,7 @@ function DashView({profile,creators,agents,managers,directors}){
     return(
       <div className="fup">
         <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Bonjour, {c.pseudo} 👋</h1>
-        <div className="card-glow" style={{padding:24,textAlign:"center",marginBottom:12}}>
+        <div className="glow" style={{padding:24,textAlign:"center",marginBottom:12}}>
           <div style={{fontSize:11,fontWeight:600,color:T.sec,textTransform:"uppercase",letterSpacing:".08em",marginBottom:10}}>Tes diamants ce mois</div>
           <div style={{fontSize:52,fontWeight:900,color:T.cy,lineHeight:1,marginBottom:4}}>💎 {(c.diamonds||0).toLocaleString()}</div>
           <div style={{fontSize:12,color:T.sec,marginBottom:16}}>diamants accumulés en live</div>
@@ -1279,21 +1163,20 @@ function DashView({profile,creators,agents,managers,directors}){
   const okBoth=creators.filter(c=>calcPayout(ag,c).eligible).length;
   const total=creators.length;
   const pct=total>0?Math.round(okBoth/total*100):0;
-  const rLabel={agency:"Fondateur · Agence",director:"Directeur",manager:"Manager",agent:"Agent"}[role];
   return(
     <div className="fup">
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:10,fontWeight:700,color:T.acc,textTransform:"uppercase",letterSpacing:".1em",marginBottom:3}}>{rLabel}</div>
+        <div style={{fontSize:10,fontWeight:700,color:T.acc,textTransform:"uppercase",letterSpacing:".1em",marginBottom:3}}>{{agency:"Fondateur · Agence",director:"Directeur",manager:"Manager",agent:"Agent"}[role]}</div>
         <h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>{ag.name}</h1>
       </div>
       {ag.last_import_date&&<div style={{padding:"9px 12px",borderRadius:10,background:"rgba(0,200,83,.06)",border:"1px solid rgba(0,200,83,.2)",fontSize:12,color:T.tx,marginBottom:12}}>
         💾 Import du <strong>{new Date(ag.last_import_date).toLocaleDateString("fr-FR")}</strong> · Valide jusqu'au <strong style={{color:T.ok}}>{new Date(ag.last_import_expiry).toLocaleDateString("fr-FR")}</strong>
       </div>}
-      <div className="card-glow" style={{padding:18,marginBottom:12}}>
+      <div className="glow" style={{padding:18,marginBottom:12}}>
         <div style={{display:"flex",alignItems:"flex-end",gap:10,marginBottom:12}}>
           <div style={{fontSize:44,fontWeight:900,color:T.acc,lineHeight:1}}>{okBoth}</div>
           <div style={{paddingBottom:4}}><div style={{fontSize:15,fontWeight:700,color:T.sec}}>/ {total}</div><div style={{fontSize:11,color:T.sec}}>créateurs éligibles</div></div>
-          <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:28,fontWeight:900,color:pct>=75?T.ok:pct>=50?T.go:T.ng}}>{pct}%</div><div style={{fontSize:11,color:T.sec}}>éligibilité</div></div>
+          <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:28,fontWeight:900,color:pct>=75?T.ok:pct>=50?T.go:T.ng}}>{pct}%</div></div>
         </div>
         {total>0&&<div style={{height:7,borderRadius:20,overflow:"hidden",display:"flex",gap:2,marginBottom:10}}><div style={{flex:okBoth,background:"linear-gradient(90deg,#00C853,#00E676)",borderRadius:20}}/><div style={{flex:total-okBoth,background:"rgba(244,67,54,.28)",borderRadius:20}}/></div>}
         <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
@@ -1303,16 +1186,16 @@ function DashView({profile,creators,agents,managers,directors}){
         </div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
-        <SC label="Directeurs" val={directors.length} sub="Responsables" accent={T.acc}/>
-        <SC label="Managers"   val={managers.length}  sub="Superviseurs"/>
-        <SC label="Agents"     val={agents.length}    sub="Comm. libre"/>
-        <SC label="Créateurs"  val={`${okBoth}/${total}`} sub={`${total-okBoth} bloqué`} accent={okBoth===total&&total>0?T.ok:"#FF6D00"}/>
+        <SC label="Directeurs" val={directors.length} accent={T.acc}/>
+        <SC label="Managers" val={managers.length}/>
+        <SC label="Agents" val={agents.length}/>
+        <SC label="Créateurs" val={`${okBoth}/${total}`} sub={`${total-okBoth} bloqué`} accent={okBoth===total&&total>0?T.ok:"#FF6D00"}/>
       </div>
     </div>
   );
 }
 
-/* ─── TEAM VIEW ──────────────────────────────────── */
+/* ─── TEAM VIEW ─────────────────────────── */
 function TeamView({agents,managers,directors}){
   const [tab,setTab]=useState("agents");
   const lists={agents,managers,directors};
@@ -1329,9 +1212,7 @@ function TeamView({agents,managers,directors}){
         ))}
       </div>
       {items.length===0?(
-        <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
-          Aucun {tab.slice(0,-1)} · Invitez-en via vos liens d'invitation
-        </div>
+        <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>Aucun {tab.slice(0,-1)} · Invitez-en via vos liens</div>
       ):(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {items.map(p=>(
@@ -1347,7 +1228,7 @@ function TeamView({agents,managers,directors}){
   );
 }
 
-/* ─── APP ROOT ───────────────────────────────────── */
+/* ─── APP ROOT ──────────────────────────── */
 export default function App(){
   const auth=useAuth();
   const [tab,setTab]=useState("dash");
@@ -1357,9 +1238,7 @@ export default function App(){
   const agencyId=auth.profile?.agency_id;
   const ag=auth.profile?.agencies;
 
-  useEffect(()=>{
-    if(agencyId){setLT(true);fetchTeam(agencyId).then(d=>{setTeam(d);setLT(false);});}
-  },[agencyId]);
+  useEffect(()=>{if(agencyId){setLT(true);fetchTeam(agencyId).then(d=>{setTeam(d);setLT(false);})};},[agencyId]);
   useEffect(()=>{setTab("dash");},[role]);
 
   const reload=()=>{auth.reload();if(agencyId) fetchTeam(agencyId).then(setTeam);};
@@ -1368,26 +1247,24 @@ export default function App(){
     <>
       <style>{css}</style>
       <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{textAlign:"center"}}><div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Brand big={true}/></div>
-        <div style={{width:28,height:28,borderRadius:"50%",border:`3px solid rgba(127,0,255,.2)`,borderTop:`3px solid ${T.acc}`,animation:"sp2 .8s linear infinite",margin:"0 auto"}}/></div>
-    </div></>
+        <div style={{textAlign:"center"}}><div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Brand big={true}/></div>
+          <div style={{width:28,height:28,borderRadius:"50%",border:"3px solid rgba(127,0,255,.2)",borderTop:`3px solid ${T.acc}`,animation:"sp2 .8s linear infinite",margin:"0 auto"}}/></div>
+      </div>
+    </>
   );
 
   if(!auth.user) return <><style>{css}</style><LoginPage/></>;
 
-  // Vérif accès : si agence impayée et pas admin → écran bloqué
   const isBlocked=role!=="admin"&&ag&&!billingOk(ag);
-
   const nav=NAVS[role]||NAVS["admin"];
   const views={
     dash:    ()=>role==="admin"?<AdminDash setTab={setTab}/>:<DashView profile={auth.profile} creators={team.creators} agents={team.agents} managers={team.managers} directors={team.directors}/>,
     agencies:()=><AdminAgencies/>,
     billing: ()=><AdminBilling/>,
-    pricing: ()=><PricingPage/>,
     team:    ()=><TeamView agents={team.agents} managers={team.managers} directors={team.directors}/>,
     creators:()=><CreatorsView profile={auth.profile} creators={team.creators} agents={team.agents} reload={reload}/>,
     import:  ()=><ImportView profile={auth.profile} reload={reload}/>,
-    links:   ()=><CodesPanel profile={auth.profile} agents={team.agents}/>,
+    links:   ()=><CodesPanel profile={auth.profile}/>,
     settings:()=><SettingsView profile={auth.profile} reload={reload}/>,
     matches: ()=><MatchesView profile={auth.profile} creators={team.creators} agents={team.agents}/>,
     planning:()=><PlanningView profile={auth.profile}/>,
@@ -1400,25 +1277,25 @@ export default function App(){
       <style>{css}</style>
       {isBlocked&&<BlockedScreen agencyName={ag?.name}/>}
       <div style={{minHeight:"100vh",background:T.bg,display:"flex",fontFamily:"Inter,sans-serif"}}>
-      <div style={{width:195,flexShrink:0,background:T.card,borderRight:`1px solid ${T.b}`,display:"flex",flexDirection:"column"}}>
-        <div style={{padding:"14px 10px 16px",cursor:"pointer"}} onClick={()=>setTab("dash")}><Brand/></div>
-        <div style={{padding:"0 8px",flex:1,overflowY:"auto"}}>
-          {nav.map(n=><button key={n.id} className={`nb${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.l}</button>)}
-        </div>
-        <div style={{padding:"9px 10px",borderTop:`1px solid ${T.b}`,display:"flex",alignItems:"center",gap:8}}>
-          <AV name={(auth.profile?.email||"?")[0].toUpperCase()} color={T.acc} size={28}/>
-          <div style={{overflow:"hidden",minWidth:0}}>
-            <div style={{fontSize:11.5,fontWeight:600,color:T.tx,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{auth.profile?.email}</div>
-            <div style={{fontSize:9.5,color:T.sec}}>{role}</div>
+        <div style={{width:195,flexShrink:0,background:T.card,borderRight:`1px solid ${T.b}`,display:"flex",flexDirection:"column"}}>
+          <div style={{padding:"14px 10px 16px",cursor:"pointer"}} onClick={()=>setTab("dash")}><Brand/></div>
+          <div style={{padding:"0 8px",flex:1,overflowY:"auto"}}>
+            {nav.map(n=><button key={n.id} className={`nb${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.l}</button>)}
           </div>
+          <div style={{padding:"9px 10px",borderTop:`1px solid ${T.b}`,display:"flex",alignItems:"center",gap:8}}>
+            <AV name={(auth.profile?.email||"?")[0].toUpperCase()} color={T.acc} size={28}/>
+            <div style={{overflow:"hidden",minWidth:0}}>
+              <div style={{fontSize:11.5,fontWeight:600,color:T.tx,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{auth.profile?.email}</div>
+              <div style={{fontSize:9.5,color:T.sec}}>{role}</div>
+            </div>
+          </div>
+          <button onClick={auth.signOut} style={{margin:"0 8px 10px",padding:"7px 10px",borderRadius:9,border:`1px solid ${T.b}`,background:"transparent",color:T.sec,fontSize:12,cursor:"pointer",fontFamily:"Inter,sans-serif",transition:"color .18s"}}
+            onMouseEnter={e=>e.currentTarget.style.color=T.ng} onMouseLeave={e=>e.currentTarget.style.color=T.sec}>Déconnexion</button>
         </div>
-        <button onClick={auth.signOut} style={{margin:"0 8px 10px",padding:"7px 10px",borderRadius:9,border:`1px solid ${T.b}`,background:"transparent",color:T.sec,fontSize:12,cursor:"pointer",fontFamily:"Inter,sans-serif",transition:"color .18s"}}
-          onMouseEnter={e=>e.currentTarget.style.color=T.ng} onMouseLeave={e=>e.currentTarget.style.color=T.sec}>Déconnexion</button>
+        <main style={{flex:1,overflowY:"auto",padding:"18px 20px"}}>
+          {loadT?<div style={{textAlign:"center",padding:40,color:T.sec}}>Chargement…</div>:<View/>}
+        </main>
       </div>
-      <main style={{flex:1,overflowY:"auto",padding:"18px 20px"}}>
-        {loadT?<div style={{textAlign:"center",padding:40,color:T.sec}}>Chargement…</div>:<View/>}
-      </main>
-    </div>
     </>
   );
 }
