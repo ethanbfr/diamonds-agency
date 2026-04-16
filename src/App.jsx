@@ -307,6 +307,7 @@ function AdminDash({setTab}){
   },[]);
 
   const mrr = agencies.filter(a=>a.billing_status==="actif").length*99;
+  const offert = agencies.filter(a=>a.billing_status==="offert").length;
 
   return(
     <div className="fup">
@@ -335,8 +336,8 @@ function AdminDash({setTab}){
             <div key={ag.id} className="cr" style={{gridTemplateColumns:"38px 1fr 80px 80px"}}>
               <div style={{width:32,height:32,borderRadius:9,background:(ag.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:800,fontSize:13}}>{(ag.name||"?")[0]}</div>
               <div><div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.name}</div><div style={{fontSize:11,color:T.sec}}>Slug: {ag.slug}</div></div>
-              <span className="tag" style={{background:ag.billing_status==="actif"?`${T.ok}18`:ag.billing_status==="impayé"?`${T.ng}18`:`${T.go}18`,color:ag.billing_status==="actif"?T.ok:ag.billing_status==="impayé"?T.ng:T.go}}>
-                {ag.billing_status==="actif"?"Abonné":ag.billing_status==="impayé"?"Impayé":"Essai"}
+              <span className="tag" style={{background:ag.billing_status==="actif"?`${T.ok}18`:ag.billing_status==="impayé"?`${T.ng}18`:ag.billing_status==="offert"?`${T.cy}18`:`${T.go}18`,color:ag.billing_status==="actif"?T.ok:ag.billing_status==="impayé"?T.ng:ag.billing_status==="offert"?T.cy:T.go}}>
+                {ag.billing_status==="actif"?"Abonné":ag.billing_status==="impayé"?"Impayé":ag.billing_status==="offert"?"Offert ♥":"Essai"}
               </span>
               <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.billing_status==="actif"?"99€":"0€"}</div>
             </div>
@@ -352,6 +353,7 @@ function AdminAgencies(){
   const [agencies,setAgencies] = useState([]);
   const [sel,setSel]           = useState(null);
   const [showForm,setShowForm] = useState(false);
+  const [viewDash,setViewDash] = useState(null);
   const [name,setName]         = useState("");
   const [slug,setSlug]         = useState("");
   const [color,setColor]       = useState("#7F00FF");
@@ -394,6 +396,19 @@ function AdminAgencies(){
   };
 
   const cp = (k) => {setCopied(k);setTimeout(()=>setCopied(null),2000);};
+
+  if(viewDash) return(
+    <div className="fup">
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+        <button className="btng" onClick={()=>setViewDash(null)}>← Retour</button>
+        <h1 style={{fontSize:18,fontWeight:800,color:T.tx}}>Dashboard — {viewDash.name}</h1>
+        <span className="tag" style={{background:viewDash.billing_status==="offert"?`${T.cy}18`:`${T.ok}18`,color:viewDash.billing_status==="offert"?T.cy:T.ok}}>
+          {viewDash.billing_status==="offert"?"Offert ♥":"Abonné"}
+        </span>
+      </div>
+      <AdminAgencyDash ag={viewDash}/>
+    </div>
+  );
 
   if(sel) return(
     <div className="fup">
@@ -504,7 +519,7 @@ function AdminAgencies(){
       ):(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {agencies.map(ag=>(
-            <div key={ag.id} onClick={()=>{setSel(ag);loadCodes(ag.id);}}
+            <div key={ag.id}
               style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:16,cursor:"pointer",transition:"border-color .2s",display:"flex",alignItems:"center",gap:12}}
               onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(127,0,255,.3)"} onMouseLeave={e=>e.currentTarget.style.borderColor=T.b}>
               <div style={{width:44,height:44,borderRadius:13,background:(ag.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:800,fontSize:18,flexShrink:0}}>{ag.name[0]}</div>
@@ -513,10 +528,10 @@ function AdminAgencies(){
                 <div style={{fontSize:11.5,color:T.sec}}>Slug: {ag.slug} · Crea {ag.pct_creator||55}% · Agent {ag.pct_agent||10}% · Manager {ag.pct_manager||5}% · Dir {ag.pct_director||3}%</div>
               </div>
               <div style={{flexShrink:0,textAlign:"right"}}>
-                <span className="tag" style={{background:ag.billing_status==="actif"?`${T.ok}18`:ag.billing_status==="impayé"?`${T.ng}18`:`${T.go}18`,color:ag.billing_status==="actif"?T.ok:ag.billing_status==="impayé"?T.ng:T.go,display:"block",marginBottom:4}}>
-                  {ag.billing_status==="actif"?"Abonné":ag.billing_status==="impayé"?"Impayé":"Essai"}
+                <span className="tag" style={{background:ag.billing_status==="actif"?`${T.ok}18`:ag.billing_status==="impayé"?`${T.ng}18`:ag.billing_status==="offert"?`${T.cy}18`:`${T.go}18`,color:ag.billing_status==="actif"?T.ok:ag.billing_status==="impayé"?T.ng:ag.billing_status==="offert"?T.cy:T.go,display:"block",marginBottom:4}}>
+                  {ag.billing_status==="actif"?"Abonné":ag.billing_status==="impayé"?"Impayé":ag.billing_status==="offert"?"Offert ♥":"Essai"}
                 </span>
-                <div style={{fontSize:10.5,color:T.acc}}>Gérer →</div>
+                <div style={{display:"flex",flexDirection:"column",gap:5}}><button className="btn" style={{fontSize:10.5,padding:"4px 10px"}} onClick={e=>{e.stopPropagation();setSel(ag);loadCodes(ag.id);}}>Codes →</button><button className="btng" style={{fontSize:10.5}} onClick={e=>{e.stopPropagation();setViewDash(ag);}}>Dashboard →</button></div>
               </div>
             </div>
           ))}
@@ -538,6 +553,7 @@ function AdminBilling(){
   };
 
   const mrr = agencies.filter(a=>a.billing_status==="actif").length*99;
+  const offert = agencies.filter(a=>a.billing_status==="offert").length;
   return(
     <div className="fup">
       <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Facturation</h1>
@@ -546,6 +562,7 @@ function AdminBilling(){
         <SC label="ARR estimé" val={mrr*12+"€"} sub="Projection"/>
         <SC label="Impayés" val={agencies.filter(a=>a.billing_status==="impayé").length} sub="" accent={T.ng}/>
         <SC label="En essai" val={agencies.filter(a=>a.billing_status==="essai").length} sub="À convertir" accent={T.go}/>
+        <SC label="Offerts ♥" val={offertCount} sub="Hors MRR" accent={T.cy}/>
       </div>
       <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,overflow:"hidden"}}>
         <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Toutes les agences</div>
@@ -554,18 +571,87 @@ function AdminBilling(){
           <div key={ag.id} className="cr" style={{gridTemplateColumns:"38px 1fr 80px 80px 130px"}}>
             <div style={{width:32,height:32,borderRadius:9,background:(ag.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:800,fontSize:13}}>{ag.name[0]}</div>
             <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.name}</div>
-            <span className="tag" style={{background:ag.billing_status==="actif"?`${T.ok}18`:ag.billing_status==="impayé"?`${T.ng}18`:`${T.go}18`,color:ag.billing_status==="actif"?T.ok:ag.billing_status==="impayé"?T.ng:T.go}}>
-              {ag.billing_status==="actif"?"Abonné":ag.billing_status==="impayé"?"Impayé":"Essai"}
+            <span className="tag" style={{background:ag.billing_status==="actif"?`${T.ok}18`:ag.billing_status==="impayé"?`${T.ng}18`:ag.billing_status==="offert"?`${T.cy}18`:`${T.go}18`,color:ag.billing_status==="actif"?T.ok:ag.billing_status==="impayé"?T.ng:ag.billing_status==="offert"?T.cy:T.go}}>
+              {ag.billing_status==="actif"?"Abonné":ag.billing_status==="impayé"?"Impayé":ag.billing_status==="offert"?"Offert ♥":"Essai"}
             </span>
             <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.billing_status==="actif"?"99€":"0€"}</div>
             <div style={{display:"flex",gap:6}}>
-              {ag.billing_status!=="actif"&&<button className="btn" style={{fontSize:10.5,padding:"3px 9px",background:`linear-gradient(135deg,${T.ok},#00E676)`}} onClick={()=>update(ag.id,"actif")}>Activer</button>}
+              {ag.billing_status!=="actif"&&ag.billing_status!=="offert"&&<button className="btn" style={{fontSize:10.5,padding:"3px 9px",background:`linear-gradient(135deg,${T.ok},#00E676)`}} onClick={()=>update(ag.id,"actif")}>Activer</button>}
               {ag.billing_status==="actif"&&<button style={{padding:"3px 9px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.ng}30`,background:`${T.ng}10`,color:T.ng,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>update(ag.id,"impayé")}>Impayé</button>}
               {ag.billing_status==="impayé"&&<button className="btn" style={{fontSize:10.5,padding:"3px 9px"}} onClick={()=>update(ag.id,"essai")}>Essai</button>}
+              {ag.billing_status!=="offert"&&<button style={{padding:"3px 9px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.cy}30`,background:`${T.cy}10`,color:T.cy,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>update(ag.id,"offert")}>Offrir ♥</button>}
+              {ag.billing_status==="offert"&&<button className="btng" style={{fontSize:10.5}} onClick={()=>update(ag.id,"essai")}>Retirer</button>}
             </div>
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+
+/* ─── ADMIN AGENCY DASH ──────────────────────────── */
+/* Vue complète d'une agence depuis l'espace admin */
+function AdminAgencyDash({ag}){
+  const [team,setTeam] = useState({creators:[],agents:[],managers:[],directors:[]});
+  const [loading,setLoading] = useState(true);
+
+  useEffect(()=>{
+    fetchTeam(ag.id).then(d=>{setTeam(d);setLoading(false);});
+  },[ag.id]);
+
+  if(loading) return <div style={{textAlign:"center",padding:30,color:T.sec}}>Chargement…</div>;
+
+  const {creators,agents,managers,directors} = team;
+  const okBoth = creators.filter(c=>calcPayout(ag,c).eligible).length;
+  const total  = creators.length;
+  const pct    = total>0?Math.round(okBoth/total*100):0;
+
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+        <SC label="Directeurs" val={directors.length} sub="" accent={T.acc}/>
+        <SC label="Managers"   val={managers.length}  sub=""/>
+        <SC label="Agents"     val={agents.length}    sub=""/>
+        <SC label="Créateurs"  val={`${okBoth}/${total}`} sub={`${total-okBoth} bloqué`} accent={okBoth===total&&total>0?T.ok:"#FF6D00"}/>
+      </div>
+      <div style={{background:T.card,borderRadius:12,border:"1px solid rgba(127,0,255,.3)",padding:18,marginBottom:12}}>
+        <div style={{display:"flex",alignItems:"flex-end",gap:10,marginBottom:10}}>
+          <div style={{fontSize:40,fontWeight:900,color:T.acc,lineHeight:1}}>{okBoth}</div>
+          <div style={{paddingBottom:4}}><div style={{fontSize:13,fontWeight:700,color:T.sec}}>/ {total} éligibles</div></div>
+          <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:26,fontWeight:900,color:pct>=75?T.ok:pct>=50?T.go:T.ng}}>{pct}%</div></div>
+        </div>
+        {total>0&&<div style={{height:6,borderRadius:20,overflow:"hidden",display:"flex",gap:2}}><div style={{flex:okBoth,background:"linear-gradient(90deg,#00C853,#00E676)",borderRadius:20}}/><div style={{flex:total-okBoth,background:"rgba(244,67,54,.28)",borderRadius:20}}/></div>}
+        <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:10}}>
+          {[{l:`Crea ${ag.pct_creator||55}%`,c:T.ok},{l:`Agt ${ag.pct_agent||10}%`,c:T.cy},{l:`Mgr ${ag.pct_manager||5}%`,c:T.pu},{l:`Dir ${ag.pct_director||3}%`,c:T.acc}].map((x,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:7,height:7,borderRadius:2,background:x.c}}/><span style={{fontSize:11,color:T.sec}}>{x.l}</span></div>
+          ))}
+        </div>
+      </div>
+      {creators.length>0&&(
+        <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,overflow:"hidden"}}>
+          <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Créateurs</div>
+          <div style={{overflowX:"auto"}}><div style={{minWidth:480}}>
+            <div className="cr" style={{gridTemplateColumns:"30px 1fr 90px 50px 50px 75px 75px",background:"rgba(255,255,255,.02)",borderBottom:`1px solid ${T.b}`,fontSize:9.5,fontWeight:600,color:T.sec,textTransform:"uppercase"}}>
+              <div/><div>Pseudo</div><div>💎 Diamants</div><div>Jours</div><div>Heures</div><div>Statut</div><div>Reversement</div>
+            </div>
+            {creators.map(c=>{
+              const p=calcPayout(ag,c);
+              return(
+                <div key={c.id} className="cr" style={{gridTemplateColumns:"30px 1fr 90px 50px 50px 75px 75px"}}>
+                  <AV name={(c.pseudo||"??").replace("@","").slice(0,2)} color={T.acc} size={26}/>
+                  <div><div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>{c.pseudo}</div><div style={{fontSize:10,color:T.sec}}>{agents.find(a=>a.id===c.agent_id)?.name||"—"}</div></div>
+                  <div style={{fontWeight:700,color:T.cy,fontSize:12}}>💎 {(c.diamonds||0).toLocaleString()}</div>
+                  <div style={{fontWeight:600,fontSize:12,color:(c.days_live||0)>=(ag.min_days||20)?T.ok:T.ng}}>{c.days_live||0}j</div>
+                  <div style={{fontWeight:600,fontSize:12,color:(c.hours_live||0)>=(ag.min_hours||40)?T.ok:T.ng}}>{c.hours_live||0}h</div>
+                  <div><span className="tag" style={{background:p.eligible?`${T.ok}18`:`${T.ng}18`,color:p.eligible?T.ok:T.ng}}>{p.eligible?"éligible":"bloqué"}</span></div>
+                  <div style={{fontWeight:700,fontSize:12,color:p.eligible?T.acc:T.sec}}>{p.eligible?`${p.creator}€`:"0€"}</div>
+                </div>
+              );
+            })}
+          </div></div>
+        </div>
+      )}
     </div>
   );
 }
