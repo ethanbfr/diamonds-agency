@@ -2046,6 +2046,8 @@ function TeamView({agents,managers,directors}){
       )}
     </div>
   );
+}
+
 // function MatchPoster({matchData,creators,onClose}){
 //   // const cA=creators.find(c=>(c.id===matchData.creator_a||c.profile_id===matchData.creator_a));
 //   // const cB=creators.find(c=>(c.id===matchData.creator_b||c.profile_id===matchData.creator_b));
@@ -2108,19 +2110,17 @@ function RemindersPanel({matches,schedules}){
       <div style={{fontWeight:700,fontSize:12.5,color:T.go,marginBottom:8}}> Rappels</div>
       {upcoming.map(m=>(
         <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,fontSize:12,color:T.tx}}>
-          <span style={{fontSize:14}}></span>
-          <span>Match le <strong>{new Date(m.match_date).toLocaleDateString("fr-FR")}</strong>  <strong>{m.match_time||"?"}</strong></span>
+          <span style={{fontSize:14}}>⚔️</span>
+          <span>Match le <strong>{new Date(m.match_date).toLocaleDateString("fr-FR")}</strong> à <strong>{m.match_time||"?"}</strong></span>
           <span className="tag" style={{background:`${T.go}18`,color:T.go,fontSize:10}}>Dans {Math.ceil((new Date(m.match_date)-today)/(1000*60*60*24))}j</span>
         </div>
       ))}
       {schedules.length>0&&(
-        <div style={{fontSize:11.5,color:T.sec,marginTop:4}}> Tu as {schedules.length} crneaux de live programms cette semaine</div>
+        <div style={{fontSize:11.5,color:T.sec,marginTop:4}}>📅 Tu as {schedules.length} créneaux de live programmés cette semaine</div>
       )}
     </div>
   );
 }
-
-/*  BLOCKED AGENCIES SETTINGS  */
 function BlockedAgenciesPanel({profile}){
   const [allAgencies,setAllAgencies]=useState([]);
   const [blocked,setBlocked]=useState([]);
@@ -2227,10 +2227,10 @@ export default function App(){
             </div>
           </div>
           <button onClick={auth.signOut} style={{margin:"0 8px 10px",padding:"7px 10px",borderRadius:9,border:`1px solid ${T.b}`,background:"transparent",color:T.sec,fontSize:12,cursor:"pointer",fontFamily:"Inter,sans-serif",transition:"color .18s"}}
-            onMouseEnter={e=>e.currentTarget.style.color=T.ng} onMouseLeave={e=>e.currentTarget.style.color=T.sec}>Dconnexion</button>
+            onMouseEnter={e=>e.currentTarget.style.color=T.ng} onMouseLeave={e=>e.currentTarget.style.color=T.sec}>Déconnexion</button>
         </div>
         <main style={{flex:1,overflowY:"auto",padding:"18px 20px"}}>
-          {loadT?<div style={{textAlign:"center",padding:40,color:T.sec}}>Chargement</div>:<View/>}
+          {loadT?<div style={{textAlign:"center",padding:40,color:T.sec}}>Chargement…</div>:<View/>}
         </main>
       </div>
     </>
