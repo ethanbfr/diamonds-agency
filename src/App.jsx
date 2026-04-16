@@ -2093,7 +2093,7 @@ function AdminMonitoringView(){
     <div className="fup">
       <div style={{marginBottom:20}}>
         <h1 style={{fontSize:24,fontWeight:800,color:T.tx,marginBottom:8}}>Monitoring système</h1>
-        <div style={{fontSize:13,color:T.sec}}">Surveillance en temps réel de la plateforme Diamond's</div>
+        <div style={{fontSize:13,color:T.sec}}>Surveillance en temps réel de la plateforme Diamond's</div>
       </div>
       
       {loading?(
@@ -2230,7 +2230,7 @@ function AdminAnalyticsView(){
     <div className="fup">
       <div style={{marginBottom:20}}>
         <h1 style={{fontSize:24,fontWeight:800,color:T.tx,marginBottom:8}}>Analytics avancés</h1>
-        <div style={{fontSize:13,color:T.sec}}">Analyse des performances et tendances de la plateforme</div>
+        <div style={{fontSize:13,color:T.sec}}>Analyse des performances et tendances de la plateforme</div>
       </div>
       
       {/* Sélecteur de période */}
@@ -2354,6 +2354,131 @@ function AdminAnalyticsView(){
                 <div style={{fontSize:11,color:T.sec}}>Diamants/heure</div>
               </div>
             </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ─── ADMIN PLANNING VIEW ────────────────────── */
+function AdminPlanningView(){
+  const [globalPlanning,setGlobalPlanning] = useState([]);
+  const [loading,setLoading] = useState(true);
+  const [selectedDay,setSelectedDay] = useState(null);
+  
+  useEffect(()=>{
+    const loadGlobalPlanning = async () => {
+      setLoading(true);
+      const planning = await getGlobalPlanning();
+      setGlobalPlanning(planning);
+      setLoading(false);
+    };
+    loadGlobalPlanning();
+  },[]);
+  
+  const DAYS = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+  
+  const planningByDay = DAYS.map((day, i)=>{
+    const dayPlanning = globalPlanning.filter(p=>p.day_of_week===i);
+    return {
+      day,
+      index: i,
+      creators: dayPlanning.length,
+      details: dayPlanning
+    };
+  });
+  
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:24,fontWeight:800,color:T.tx,marginBottom:8}}>Planning global</h1>
+        <div style={{fontSize:13,color:T.sec}}>Vue d'ensemble de tous les créateurs</div>
+      </div>
+      
+      {loading?(
+        <div style={{textAlign:"center",padding:60,color:T.sec}}>
+          <Spin/> <div style={{marginTop:12}}>Chargement du planning global...</div>
+        </div>
+      ):(
+        <>
+          {/* Statistiques */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
+            <SC label="Créateurs actifs" val={globalPlanning.length} sub="Avec planning" accent={T.ok}/>
+            <SC label="Total dispos" val={globalPlanning.reduce((acc,p)=>acc+1,0)} sub="Créneaux" accent={T.cy}/>
+            <SC label="Agences" val={[...new Set(globalPlanning.map(p=>p.agency))].length} sub="Representées" accent={T.acc}/>
+            <SC label="Jours couverts" val={planningByDay.filter(d=>d.creators>0).length} sub="/7 jours" accent={T.pu}/>
+          </div>
+          
+          {/* Planning par jour */}
+          <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:20,marginBottom:24}}>
+            <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:16}}>Répartition par jour</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:8}}>
+              {planningByDay.map(({day,index,creators})=>(
+                <div 
+                  key={day} 
+                  onClick={()=>setSelectedDay(selectedDay===index?null:index)}
+                  style={{
+                    padding:12,textAlign:"center",borderRadius:8,cursor:"pointer",
+                    background:selectedDay===index?`${T.acc}15`:creators>0?`${T.ok}10`:"rgba(255,255,255,.02)",
+                    border:selectedDay===index?`1px solid ${T.acc}`:creators>0?`1px solid ${T.ok}30`:`1px solid ${T.b}`,
+                    transition:"all .2s"
+                  }}
+                >
+                  <div style={{fontSize:11,fontWeight:600,color:selectedDay===index?T.acc:creators>0?T.ok:T.sec}}>{day.slice(0,3)}</div>
+                  <div style={{fontSize:14,fontWeight:800,color:selectedDay===index?T.acc:T.tx,marginTop:2}}>{creators}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Détails du jour sélectionné */}
+          {selectedDay!==null && (
+            <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,padding:20}}>
+              <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:16}}>
+                {DAYS[selectedDay]} - {planningByDay[selectedDay].creators} créateurs
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {planningByDay[selectedDay].details.map((p,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:12,background:"rgba(255,255,255,.02)",borderRadius:8}}>
+                    <div style={{width:40,height:40,borderRadius:"50%",background:p.agencyColor?`${p.agencyColor}18`:`${T.acc}18`,display:"flex",alignItems:"center",justifyContent:"center",color:p.agencyColor||T.acc,fontWeight:700,fontSize:12}}>
+                      {p.creator?.replace("@","").slice(0,2).toUpperCase()}
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:600,fontSize:12,color:T.tx}}>{p.creator}</div>
+                      <div style={{fontSize:11,color:T.sec}}>{p.agency}</div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:11,fontWeight:600,color:T.ok}}>{p.start_hour}</div>
+                      <div style={{fontSize:10,color:T.sec}}>→ {p.end_hour}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Liste complète */}
+          <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.b}`,overflow:"hidden"}}>
+            <div style={{padding:"14px 16px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Tous les plannings</div>
+            {globalPlanning.length===0?(
+              <div style={{padding:40,textAlign:"center",color:T.sec}}>Aucun planning enregistré</div>
+            ):(
+              globalPlanning.map((p,i)=>(
+                <div key={i} className="cr" style={{gridTemplateColumns:"40px 1fr 80px 80px 100px"}}>
+                  <div style={{width:36,height:36,borderRadius:"50%",background:p.agencyColor?`${p.agencyColor}18`:`${T.acc}18`,display:"flex",alignItems:"center",justifyContent:"center",color:p.agencyColor||T.acc,fontWeight:700,fontSize:12}}>
+                    {p.creator?.replace("@","").slice(0,2).toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{fontWeight:600,fontSize:12,color:T.tx,marginBottom:2}}>{p.creator}</div>
+                    <div style={{fontSize:11,color:T.sec}}>{p.agency}</div>
+                  </div>
+                  <div style={{fontSize:11,color:T.sec}}>{DAYS[p.day_of_week||0]}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:T.ok}}>{p.start_hour}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:T.cy}}>{p.end_hour}</div>
+                </div>
+              ))
+            )}
           </div>
         </>
       )}
