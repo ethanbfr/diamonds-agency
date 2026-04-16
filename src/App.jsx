@@ -2237,7 +2237,3 @@ export default function App(){
   );
 }
 
-// Fixed syntax error for deployment - GitHub change detection v2
-
-
-}
