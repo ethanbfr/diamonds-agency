@@ -895,7 +895,7 @@ function AdminAllStaffView(){
   );
 }
 
-/* ---- ADMIN BILLING ---- */─────────────────────── */
+/* ---- ADMIN BILLING ---- */
 function AdminBilling(){
   const [agencies,setAgencies]=useState([]);
   useEffect(()=>{fetchAllAgencies().then(setAgencies);},[]);
@@ -1826,4 +1826,4 @@ export default function App(){
   );
 }
 
-// Fixed syntax error for deployment - GitHub change detection
+// Fixed syntax error for deployment - GitHub change detection v2
