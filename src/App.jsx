@@ -2346,11 +2346,11 @@ function AdminAnalyticsView(){
                 <div style={{fontSize:11,color:T.sec}}>Spectateurs moyens</div>
               </div>
               <div style={{textAlign:"center",padding:16,background:"rgba(0,229,255,.06)",borderRadius:10}}>
-                <div style={{fontSize:24,fontWeight:800,color:T.cy,marginBottom:4}}">{Math.round((data.totalLiveHours||0)/(data.totalMatches||1))}</div>
+                <div style={{fontSize:24,fontWeight:800,color:T.cy,marginBottom:4}}>{Math.round((data.totalLiveHours||0)/(data.totalMatches||1))}</div>
                 <div style={{fontSize:11,color:T.sec}}>Heures par match</div>
               </div>
               <div style={{textAlign:"center",padding:16,background:"rgba(0,200,83,.06)",borderRadius:10}}>
-                <div style={{fontSize:24,fontWeight:800,color:T.ok,marginBottom:4}}">{Math.round((data.totalDiamonds||0)/(data.totalLiveHours||1))}</div>
+                <div style={{fontSize:24,fontWeight:800,color:T.ok,marginBottom:4}}>{Math.round((data.totalDiamonds||0)/(data.totalLiveHours||1))}</div>
                 <div style={{fontSize:11,color:T.sec}}>Diamants/heure</div>
               </div>
             </div>
