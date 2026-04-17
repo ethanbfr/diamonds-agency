@@ -2127,9 +2127,6 @@ export default function App(){
             </button>
           </div>
         </div>
-          </div>
-
-        </div>
         <main style={{flex:1,overflowY:"auto",padding:"28px 32px",background:"#080808",marginLeft:220,minHeight:"100vh"}}>
           {loadT?<div style={{textAlign:"center",padding:40,color:T.sec}}>Chargement…</div>:<View/>}
         </main>
