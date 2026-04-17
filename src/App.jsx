@@ -6,36 +6,36 @@ const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 
 const T={
-  bg:"#0F0015",
-  bgGradient:"linear-gradient(135deg, #0F0015 0%, #1A0E2E 20%, #2A0F3D 40%, #1A0E2E 60%, #0F0015 100%)",
-  card:"rgba(138, 43, 226, 0.12)",
-  cardGlass:"rgba(255, 255, 255, 0.08)",
-  cardGlassHover:"rgba(138, 43, 226, 0.18)",
-  b:"rgba(255, 255, 255, 0.15)",
-  acc:"#8A2BE2",
-  accLight:"#A855F7",
-  accGlow:"rgba(138, 43, 226, 0.6)",
-  cy:"#00D4FF",
-  cyLight:"#3399FF",
-  cyGlow:"rgba(0, 212, 255, 0.4)",
-  sec:"#C8A2E8",
-  ok:"#00FF88",
-  okGlow:"rgba(0, 255, 136, 0.4)",
-  ng:"#FF4757",
-  ngGlow:"rgba(255, 71, 87, 0.4)",
-  go:"#FFB800",
-  goGlow:"rgba(255, 184, 0, 0.4)",
-  pu:"#E91E63",
-  puGlow:"rgba(233, 30, 99, 0.4)",
-  tx:"#FFFFFF",
-  txDim:"#F0F0FF",
-  stripe:"#8A2BE2",
-  neon:"#FFFFFF",
-  neonPink:"#FFB6C1",
-  neonGreen:"#00FF88",
-  neonPurple:"#E91E63",
-  diamond:"rgba(255, 215, 0, 0.8)",
-  diamondGlow:"rgba(255, 215, 0, 0.95)"
+  bg:"#1a0d2e",
+  bgGradient:"linear-gradient(135deg, #1a0d2e 0%, #2d1b4d 25%, #402466 50%, #2d1b4d 75%, #1a0d2e 100%)",
+  card:"rgba(147, 51, 234, 0.08)",
+  cardGlass:"rgba(255, 255, 255, 0.05)",
+  cardGlassHover:"rgba(147, 51, 234, 0.12)",
+  b:"rgba(255, 255, 255, 0.1)",
+  acc:"#9333ea",
+  accLight:"#b366f8",
+  accGlow:"rgba(147, 51, 234, 0.3)",
+  cy:"#00d4ff",
+  cyLight:"#40e0d0",
+  cyGlow:"rgba(0, 212, 209, 0.2)",
+  sec:"#b19cd9",
+  ok:"#32cd32",
+  okGlow:"rgba(50, 205, 50, 0.2)",
+  ng:"#e74c3c",
+  ngGlow:"rgba(231, 76, 60, 0.2)",
+  go:"#f39c12",
+  goGlow:"rgba(243, 156, 18, 0.2)",
+  pu:"#dda0dd",
+  puGlow:"rgba(221, 160, 221, 0.2)",
+  tx:"#ffffff",
+  txDim:"#e0e0e0",
+  stripe:"#9333ea",
+  neon:"#ffffff",
+  neonPink:"#ffb6c1",
+  neonGreen:"#90ee90",
+  neonPurple:"#dda0dd",
+  diamond:"rgba(255, 215, 0, 0.7)",
+  diamondGlow:"rgba(255, 215, 0, 0.8)"
 };
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
@@ -72,9 +72,9 @@ body{font-family:Inter,sans-serif;background:${T.bgGradient};color:${T.tx};font-
 
 /* Futuristic buttons */
 .btn{background:linear-gradient(135deg,${T.acc},${T.accLight});color:#fff;border:none;border-radius:12px;padding:12px 20px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-family:Inter,sans-serif;transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);position:relative;overflow:hidden;text-transform:uppercase;letterSpacing:"0.05em"}
-.btn::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg, transparent, rgba(255,255,255,0.3), transparent);transform:translateX(-100%);transition:transform .6s}
+.btn::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg, transparent, rgba(255,255,255,0.2), transparent);transform:translateX(-100%);transition:transform .6s}
 .btn:hover::before{transform:translateX(100%)}
-.btn:hover{box-shadow:0 8px 32px ${T.accGlow},0 0 20px ${T.neonPurple};transform:translateY(-2px) scale(1.02);animation:neonGlow 2s ease-in-out infinite}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;animation:none}
+.btn:hover{box-shadow:0 4px 16px ${T.accGlow};transform:translateY(-1px)}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
 .btng{background:transparent;color:${T.txDim};border:1px solid ${T.b};border-radius:10px;padding:8px 14px;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:Inter,sans-serif;transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);text-transform:uppercase}
 .btng:hover{background:${T.cardGlassHover};color:${T.tx};border-color:${T.acc};transform:translateY(-1px);box-shadow:0 4px 16px ${T.accGlow}}
@@ -100,10 +100,10 @@ select.inp option{background:${T.bg};color:${T.tx}}
 
 /* Futuristic cards with glassmorphism */
 .card{background:${T.cardGlass};border-radius:16px;border:1px solid ${T.b};backdrop-filter:blur(20px);position:relative;overflow:hidden;transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);animation:fadeIn .5s ease-out}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg, rgba(139,92,246,0.1), transparent);opacity:0.5;pointer-events:none}
-.card:hover{transform:translateY(-4px);box-shadow:0 12px 40px ${T.accGlow},0 0 30px ${T.neonPurple};border-color:${T.acc}40}
-.glow{background:${T.cardGlassHover};border-radius:16px;border:1px solid ${T.acc};backdrop-filter:blur(20px);box-shadow:0 8px 32px ${T.accGlow},0 0 20px ${T.neonPurple};position:relative;overflow:hidden;animation:glowPulse 3s ease-in-out infinite}
-.glow::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg, ${T.accGlow}, transparent);opacity:0.3;pointer-events:none}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg, rgba(139,92,246,0.05), transparent);opacity:0.3;pointer-events:none}
+.card:hover{transform:translateY(-2px);box-shadow:0 6px 20px ${T.accGlow};border-color:${T.acc}30}
+.glow{background:${T.cardGlassHover};border-radius:16px;border:1px solid ${T.acc};backdrop-filter:blur(20px);box-shadow:0 4px 16px ${T.accGlow};position:relative;overflow:hidden}
+.glow::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg, ${T.accGlow}, transparent);opacity:0.2;pointer-events:none}
 
 /* Futuristic toggle */
 .tog{width:48px;height:26px;border-radius:13px;cursor:pointer;border:none;position:relative;flex-shrink:0;transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);background:${T.cardGlass}}
@@ -193,18 +193,18 @@ const DiamondSVG=({size=40})=>(
   <svg width={size} height={size} viewBox="0 0 40 40">
     <defs>
       <linearGradient id="dg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#FFD700"/>
-        <stop offset="30%" stopColor="#FFA500"/>
-        <stop offset="60%" stopColor="#FF8C00"/>
-        <stop offset="100%" stopColor="#FF6347"/>
+        <stop offset="0%" stopColor="#9333ea"/>
+        <stop offset="30%" stopColor="#b366f8"/>
+        <stop offset="60%" stopColor="#dda0dd"/>
+        <stop offset="100%" stopColor="#ffb6c1"/>
       </linearGradient>
       <linearGradient id="dg2" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#FFED4E"/>
-        <stop offset="50%" stopColor="#FFD700"/>
-        <stop offset="100%" stopColor="rgba(255,255,255,0.3)"/>
+        <stop offset="0%" stopColor="#ffffff"/>
+        <stop offset="50%" stopColor="#e0e0e0"/>
+        <stop offset="100%" stopColor="rgba(255,255,255,0.1)"/>
       </linearGradient>
       <filter id="diamondGlow">
-        <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
         <feMerge>
           <feMergeNode in="coloredBlur"/>
           <feMergeNode in="SourceGraphic"/>
@@ -223,7 +223,7 @@ const DiamondSVG=({size=40})=>(
         points="0,-14 14,0 0,14 -14,0" 
         fill="url(#dg)" 
         filter="url(#diamondGlow)"
-        style={{filter:"drop-shadow(0 0 25px rgba(255,215,0,0.9))"}}
+        style={{filter:"drop-shadow(0 0 15px rgba(147,51,234,0.6))"}}
       />
       <polygon 
         points="0,-14 14,0 0,0 -14,0" 
@@ -237,7 +237,7 @@ const DiamondSVG=({size=40})=>(
         fill="url(#dg)" 
         filter="url(#diamondGlow)"
         opacity=".7"
-        style={{filter:"drop-shadow(0 0 20px rgba(255,215,0,0.7))"}}
+        style={{filter:"drop-shadow(0 0 12px rgba(147,51,234,0.4))"}}
       />
       <polygon 
         points="0,-14 14,0 0,0 -14,0" 
@@ -245,13 +245,13 @@ const DiamondSVG=({size=40})=>(
         opacity=".8"
       />
     </g>
-    <circle cx="10" cy="10" r="1.5" fill="#FFD700" filter="url(#sparkle)">
+    <circle cx="10" cy="10" r="1.5" fill="#ffffff" filter="url(#sparkle)">
       <animate attributeName="opacity" values="1;0.4;1" dur="3s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="30" cy="10" r="1" fill="#FFD700" filter="url(#sparkle)">
+    <circle cx="30" cy="10" r="1" fill="#ffffff" filter="url(#sparkle)">
       <animate attributeName="opacity" values="1;0.3;1" dur="2.5s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="20" cy="30" r="0.8" fill="#FFD700" filter="url(#sparkle)">
+    <circle cx="20" cy="30" r="0.8" fill="#ffffff" filter="url(#sparkle)">
       <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" repeatCount="indefinite"/>
     </circle>
   </svg>
