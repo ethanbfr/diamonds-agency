@@ -245,7 +245,6 @@ function LoginPage(){
     const {error}=await sb.auth.signInWithPassword({email,password:pw});
     if(error){setErr(error.message);setLoad(false);}
   };
-
   const register=async()=>{
     if(!code.trim()){setErr("Code d'invitation requis");return;}
     setErr("");setLoad(true);
@@ -259,11 +258,8 @@ function LoginPage(){
       if(error){setErr(error.message);setLoad(false);return;}
       if(data.user){
         const {data:ag}=await sb.from("agencies").insert({
-          name:email.split("@")[0],
-          slug:"AG"+Date.now().toString(36).toUpperCase().slice(-6),
-          billing_status:"essai",is_offered:false,
-          pct_director:3,pct_manager:5,pct_agent:10,pct_creator:55,
-          min_days:20,min_hours:40,accept_inter_agency:true
+          name:email.split("@")[0],slug:"AG"+Date.now().toString(36).toUpperCase().slice(-6),
+          billing_status:"essai",is_offered:false,pct_director:3,pct_manager:5,pct_agent:10,pct_creator:55,min_days:20,min_hours:40,accept_inter_agency:true
         }).select().single();
         await sb.from("profiles").update({role:"agency",agency_id:ag?.id}).eq("id",data.user.id);
         await sb.from("invite_codes").update({uses:1}).eq("code",cleanCode);
@@ -276,8 +272,7 @@ function LoginPage(){
     if(cErr){setErr("Code invalide ou expiré");setLoad(false);return;}
     if(handle.trim()) await sb.from("profiles").update({tiktok_handle:"@"+handle.trim().replace(/^@/,"")}).eq("id",data.user?.id);
     if(avatar){
-      const ext=avatar.name.split(".").pop();
-      const path=`avatars/${data.user?.id}.${ext}`;
+      const ext=avatar.name.split(".").pop();const path=`avatars/${data.user?.id}.${ext}`;
       await sb.storage.from("avatars").upload(path,avatar,{upsert:true});
       const {data:u}=sb.storage.from("avatars").getPublicUrl(path);
       if(u?.publicUrl) await sb.from("profiles").update({tiktok_avatar_url:u.publicUrl}).eq("id",data.user?.id);
@@ -286,113 +281,101 @@ function LoginPage(){
   };
 
   if(mode==="confirm") return(
-    <div style={{minHeight:"100vh",background:"#080808",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{textAlign:"center",maxWidth:380,padding:32}} className="fup">
-        <div style={{width:72,height:72,borderRadius:20,background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.4)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 24px",fontSize:30,color:"#A855F7"}}>✓</div>
-        <h1 style={{fontSize:26,fontWeight:800,color:"#FFF",marginBottom:10,letterSpacing:"-.025em"}}>Compte créé !</h1>
-        <p style={{fontSize:14,color:"#6B7280",marginBottom:28,lineHeight:1.65}}>Vérifie ta boîte mail pour confirmer ton compte, puis connecte-toi.</p>
-        <button className="btn" style={{fontSize:14,padding:"13px 32px",margin:"0 auto",display:"flex"}} onClick={()=>setMode("login")}>Se connecter →</button>
+    <div style={{minHeight:"100vh",background:"#080808",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{textAlign:"center",maxWidth:380,padding:32}}>
+        <div style={{width:72,height:72,borderRadius:20,background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.35)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 24px",fontSize:32}}>✓</div>
+        <h1 style={{fontSize:28,fontWeight:800,color:"#FFF",marginBottom:12,letterSpacing:"-.03em"}}>Compte créé !</h1>
+        <p style={{fontSize:15,color:"#525252",marginBottom:28,lineHeight:1.65}}>Vérifie ta boîte mail pour confirmer ton compte, puis connecte-toi.</p>
+        <button className="btn" style={{fontSize:15,padding:"14px 32px",margin:"0 auto",display:"flex"}} onClick={()=>setMode("login")}>Se connecter →</button>
       </div>
     </div>
   );
 
   return(
-    <div style={{minHeight:"100vh",background:"#080808",display:"flex",alignItems:"center",justifyContent:"center",padding:20,position:"relative",overflow:"hidden"}}>
-      {/* BG glow */}
-      <div style={{position:"absolute",top:"-30%",left:"50%",transform:"translateX(-50%)",width:600,height:600,borderRadius:"50%",background:"radial-gradient(circle,rgba(147,51,234,0.12) 0%,transparent 70%)",pointerEvents:"none"}}/>
+    <div style={{minHeight:"100vh",background:"#080808",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,position:"relative",overflow:"hidden"}}>
+      {/* Purple ambient glow */}
+      <div style={{position:"absolute",top:"-20%",left:"50%",transform:"translateX(-50%)",width:700,height:700,borderRadius:"50%",background:"radial-gradient(circle,rgba(147,51,234,0.1) 0%,transparent 65%)",pointerEvents:"none"}}/>
 
-      <div style={{width:"100%",maxWidth:420,position:"relative"}}>
+      {/* Brand */}
+      <div style={{textAlign:"center",marginBottom:40}}>
+        <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Brand big={true}/></div>
+        <p style={{fontSize:15,color:"#525252"}}>La plateforme des agences TikTok Live</p>
+      </div>
 
-        {/* Brand top */}
-        <div style={{textAlign:"center",marginBottom:36}} className="fup">
-          <div style={{display:"flex",justifyContent:"center",marginBottom:14}}><Brand big={true}/></div>
-          <p style={{fontSize:14,color:"#6B7280"}}>La plateforme des agences TikTok Live</p>
-        </div>
+      {/* Card */}
+      <div style={{width:"100%",maxWidth:430,background:"rgba(255,255,255,0.03)",borderRadius:24,border:"1px solid rgba(255,255,255,0.07)",padding:32,marginBottom:16}}>
 
-        {/* Main card */}
-        <div className="fup1" style={{background:"rgba(255,255,255,0.03)",borderRadius:24,border:"1px solid rgba(255,255,255,0.08)",padding:32,marginBottom:14,backdropFilter:"blur(20px)"}}>
-
-          {/* Mode tabs */}
-          <div style={{display:"flex",gap:0,marginBottom:28,background:"rgba(255,255,255,0.05)",padding:4,borderRadius:14}}>
-            {["login","register"].map(m=>(
-              <button key={m} onClick={()=>{setMode(m);setErr("");}} style={{flex:1,padding:"11px",borderRadius:11,fontSize:13,fontWeight:600,cursor:"pointer",border:"none",background:mode===m?"#9333EA":"transparent",color:mode===m?"#FFF":"#6B7280",fontFamily:"Inter,sans-serif",transition:"all .2s",letterSpacing:".01em"}}>
-                {m==="login"?"Connexion":"Inscription"}
-              </button>
-            ))}
-          </div>
-
-          <div style={{display:"flex",flexDirection:"column",gap:16}}>
-            <div>
-              <label style={{fontSize:11,fontWeight:600,color:"#6B7280",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Email</label>
-              <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())}
-                placeholder="vous@email.com" style={{fontSize:14,padding:"13px 15px"}}/>
-            </div>
-
-            <div>
-              <label style={{fontSize:11,fontWeight:600,color:"#6B7280",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Mot de passe</label>
-              <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())}
-                placeholder="••••••••" style={{fontSize:14,padding:"13px 15px"}}/>
-            </div>
-
-            {mode==="register"&&(<>
-              <div>
-                <label style={{fontSize:11,fontWeight:600,color:"#6B7280",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>@ TikTok</label>
-                <input className="inp" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))}
-                  placeholder="mon_pseudo_tiktok" style={{fontSize:14,padding:"13px 15px",fontFamily:"monospace"}}/>
-                <p style={{fontSize:11,color:"#4B5563",marginTop:5}}>Identique à votre compte TikTok</p>
-              </div>
-              <div>
-                <label style={{fontSize:11,fontWeight:600,color:"#6B7280",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Photo de profil</label>
-                <input className="inp" type="file" accept="image/*" onChange={e=>setAvatar(e.target.files[0])} style={{fontSize:12,padding:"10px 15px",cursor:"pointer"}}/>
-              </div>
-              <div>
-                <label style={{fontSize:11,fontWeight:600,color:"#6B7280",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Code d'invitation</label>
-                <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())}
-                  placeholder="NOVA-AGENT-XXXXXX" style={{fontSize:13,padding:"13px 15px",fontFamily:"monospace",letterSpacing:".08em"}}/>
-                <p style={{fontSize:11,color:"#4B5563",marginTop:5}}>Code fourni par votre agence · Commence par AGENCE- si vous êtes une agence</p>
-              </div>
-            </>)}
-
-            {err&&(
-              <div style={{padding:"11px 14px",borderRadius:10,background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",fontSize:13,color:"#EF4444",display:"flex",alignItems:"center",gap:8}}>
-                <span>⚠</span>{err}
-              </div>
-            )}
-
-            <button className="btn" style={{width:"100%",justifyContent:"center",padding:"14px",fontSize:15,marginTop:4,letterSpacing:".01em"}} onClick={mode==="login"?login:register} disabled={load}>
-              {load?<><Spin/>{mode==="login"?"Connexion…":"Création…"}</>:(mode==="login"?"Se connecter →":"Créer mon compte →")}
+        {/* Tabs */}
+        <div style={{display:"flex",background:"rgba(255,255,255,0.05)",borderRadius:14,padding:4,marginBottom:28}}>
+          {["login","register"].map(m=>(
+            <button key={m} onClick={()=>{setMode(m);setErr("");}} style={{flex:1,padding:"11px",borderRadius:11,fontSize:13.5,fontWeight:600,cursor:"pointer",border:"none",background:mode===m?"#9333EA":"transparent",color:mode===m?"#FFF":"#525252",fontFamily:"Inter,sans-serif",transition:"all .2s"}}>
+              {m==="login"?"Connexion":"Inscription"}
             </button>
-          </div>
+          ))}
         </div>
 
-        {/* Features list - only on register */}
-        {mode==="register"&&(
-          <div className="fup2" style={{background:"rgba(147,51,234,0.06)",borderRadius:16,border:"1px solid rgba(147,51,234,0.15)",padding:20,marginBottom:14}}>
-            <p style={{fontSize:11,fontWeight:600,color:"#9333EA",textTransform:"uppercase",letterSpacing:".08em",marginBottom:12}}>✦ Ce que vous obtenez</p>
-            {["Accès à votre espace agence","Gestion de vos créateurs et staff","Génération de matchs TikTok Live","Affiches de match personnalisées","Suivi des diamants et reversements"].map((f,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:i<4?8:0}}>
-                <div style={{width:18,height:18,borderRadius:"50%",background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.4)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  <div style={{width:6,height:6,borderRadius:"50%",background:"#9333EA"}}/>
-                </div>
-                <span style={{fontSize:13,color:"#D1D5DB"}}>{f}</span>
+        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+          <div>
+            <label style={{fontSize:11,fontWeight:600,color:"#525252",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Email</label>
+            <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())}
+              placeholder="vous@email.com"/>
+          </div>
+          <div>
+            <label style={{fontSize:11,fontWeight:600,color:"#525252",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Mot de passe</label>
+            <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())}
+              placeholder="••••••••"/>
+          </div>
+          {mode==="register"&&(<>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:"#525252",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>@ TikTok</label>
+              <input className="inp" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} placeholder="mon_pseudo_tiktok" style={{fontFamily:"monospace"}}/>
+              <p style={{fontSize:11,color:"#333",marginTop:5}}>Identique à votre compte TikTok</p>
+            </div>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:"#525252",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Photo de profil</label>
+              <input className="inp" type="file" accept="image/*" onChange={e=>setAvatar(e.target.files[0])} style={{cursor:"pointer",fontSize:12}}/>
+            </div>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:"#525252",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Code d'invitation</label>
+              <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="NOVA-AGENT-XXXXXX" style={{fontFamily:"monospace",letterSpacing:".08em"}}/>
+              <p style={{fontSize:11,color:"#333",marginTop:5}}>Code fourni par votre agence · Commence par AGENCE- si vous êtes une agence</p>
+            </div>
+          </>)}
+
+          {err&&<div style={{padding:"11px 14px",borderRadius:10,background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.18)",fontSize:13,color:"#EF4444",display:"flex",gap:8,alignItems:"flex-start"}}><span style={{flexShrink:0}}>⚠</span>{err}</div>}
+
+          <button className="btn" style={{width:"100%",justifyContent:"center",padding:"14px",fontSize:15,marginTop:4}} onClick={mode==="login"?login:register} disabled={load}>
+            {load?<><Spin/>{mode==="login"?"Connexion…":"Création…"}</>:(mode==="login"?"Se connecter →":"Créer mon compte →")}
+          </button>
+        </div>
+      </div>
+
+      {/* Features - inscription only */}
+      {mode==="register"&&(
+        <div style={{width:"100%",maxWidth:430,background:"rgba(147,51,234,0.05)",borderRadius:16,border:"1px solid rgba(147,51,234,0.12)",padding:20,marginBottom:16}}>
+          <p style={{fontSize:11,fontWeight:700,color:"#9333EA",textTransform:"uppercase",letterSpacing:".08em",marginBottom:12}}>✦ Ce que vous obtenez</p>
+          {["Espace agence complet","Gestion créateurs & staff","Matchs TikTok Live","Affiches personnalisées","Suivi diamants & reversements"].map((f,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:i<4?8:0}}>
+              <div style={{width:18,height:18,borderRadius:"50%",background:"rgba(147,51,234,0.12)",border:"1px solid rgba(147,51,234,0.35)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <div style={{width:6,height:6,borderRadius:"50%",background:"#9333EA"}}/>
               </div>
-            ))}
-          </div>
-        )}
+              <span style={{fontSize:13,color:"#A3A3A3"}}>{f}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
-        <div style={{textAlign:"center",fontSize:12,color:"#374151"}}>
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+        <p style={{fontSize:12,color:"#2A2A2A",textAlign:"center"}}>
           Problème ? <a href={`mailto:${CONTACT}`} style={{color:"#9333EA",textDecoration:"none"}}>Contacter Diamond's</a>
-        </div>
-        <div style={{textAlign:"center",marginTop:10,fontSize:11,color:"#1F2937",letterSpacing:".04em"}}>
-          🔒 SÉCURISÉ · DONNÉES CHIFFRÉES
-        </div>
+        </p>
+        <p style={{fontSize:11,color:"#1F1F1F",letterSpacing:".05em"}}>🔒 SÉCURISÉ · DONNÉES CHIFFRÉES</p>
       </div>
     </div>
   );
 }
-
 
 /* ─── ADMIN DASH ────────────────────────── */
 function AdminDash({setTab}){
@@ -2012,32 +1995,26 @@ function AdminAllLivesView(){
 
 /* ─── ADMIN POSTER TEMPLATES ────────────── */
 function AdminPosterTemplatesView(){
-  const demoA={pseudo:"@créateur_A",tiktok_avatar_url:null,diamonds:15000};
-  const demoB={pseudo:"@créateur_B",tiktok_avatar_url:null,diamonds:12500};
-  const demoMatch={match_date:new Date().toISOString().split("T")[0],match_time:"20:00",is_inter_agency:false};
-  const [selected,setSelected]=useState(null);
+  const demoA={pseudo:"@créateur_A",tiktok_avatar_url:null};
+  const demoB={pseudo:"@créateur_B",tiktok_avatar_url:null};
+  const today=new Date().toISOString().split("T")[0];
+  const LABELS={gold:"Fond sombre doré",purple:"Nuit violette",space:"Espace cyan",rose:"Roses & fleurs",fire:"Flammes rouges",emerald:"Forêt émeraude"};
   return(
     <div className="fup">
       <div style={{marginBottom:20}}>
         <h1 style={{fontSize:22,fontWeight:700,color:T.tx,marginBottom:4}}>Templates d'affiches</h1>
-        <p style={{fontSize:13,color:T.sec}}>Aperçu des 6 templates disponibles lors de la génération d'un match</p>
+        <p style={{fontSize:13,color:T.sec}}>Cliquez sur "Affiche 🖼" dans un match pour choisir un template et télécharger</p>
       </div>
       <div style={{padding:"10px 14px",borderRadius:10,background:"rgba(147,51,234,0.08)",border:"1px solid rgba(147,51,234,0.2)",fontSize:12,color:"#A78BFA",marginBottom:20}}>
-        💡 Ces templates s'affichent automatiquement quand vous cliquez sur <strong style={{color:"#FFFFFF"}}>"Affiche 🖼"</strong> sur un match. Les créateurs avec une photo de profil verront leur vraie photo sur l'affiche.
+        💡 Les vraies photos TikTok des créateurs s'affichent automatiquement si elles sont uploadées dans leur profil
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14}}>
         {POSTER_TEMPLATES.map(tmpl=>(
-          <div key={tmpl.id} onClick={()=>setSelected(selected===tmpl.id?null:tmpl.id)} style={{cursor:"pointer"}}>
-            <PosterCard tmpl={tmpl} cA={demoA} cB={demoB}
-              matchDate={demoMatch.match_date} matchTime={demoMatch.match_time}
-              isInter={false} selected={selected===tmpl.id} onSelect={()=>{}}/>
-            <div style={{marginTop:8,fontSize:11,color:T.sec,textAlign:"center",lineHeight:1.5}}>
-              {tmpl.id==="dark_gold"&&"Fond noir · Accents dorés · Couronne"}
-              {tmpl.id==="purple_magic"&&"Fond violet · Accents violet clair"}
-              {tmpl.id==="black_marble"&&"Marbre noir · Accents blancs · Couronne"}
-              {tmpl.id==="neon_space"&&"Fond spatial · Accents cyan néon"}
-              {tmpl.id==="rose_gold"&&"Fond sombre rosé · Accents pink · Couronne"}
-              {tmpl.id==="emerald"&&"Fond vert sombre · Accents émeraude"}
+          <div key={tmpl.id} style={{borderRadius:12,overflow:"hidden",border:"1px solid rgba(255,255,255,0.08)"}}>
+            <PosterPreview tmpl={tmpl} cA={demoA} cB={demoB} matchDate={today} matchTime="20:00" isInter={false} mini={true}/>
+            <div style={{background:"#111",padding:"8px 10px",textAlign:"center"}}>
+              <div style={{fontSize:10,fontWeight:700,color:tmpl.acc,letterSpacing:".05em",textTransform:"uppercase"}}>{tmpl.label}</div>
+              <div style={{fontSize:10,color:"#555",marginTop:2}}>{LABELS[tmpl.id]||""}</div>
             </div>
           </div>
         ))}
@@ -2118,7 +2095,7 @@ export default function App(){
           <button onClick={auth.signOut} style={{margin:"0 8px 10px",padding:"7px 10px",borderRadius:9,border:`1px solid ${T.b}`,background:"transparent",color:T.sec,fontSize:12,cursor:"pointer",fontFamily:"Inter,sans-serif",transition:"color .18s"}}
             onMouseEnter={e=>e.currentTarget.style.color=T.ng} onMouseLeave={e=>e.currentTarget.style.color=T.sec}>Déconnexion</button>
         </div>
-        <main style={{flex:1,overflowY:"auto",padding:"18px 20px"}}>
+        <main style={{flex:1,overflowY:"auto",padding:"24px 28px",background:"#080808"}}>
           {loadT?<div style={{textAlign:"center",padding:40,color:T.sec}}>Chargement…</div>:<View/>}
         </main>
       </div>
