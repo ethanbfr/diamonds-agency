@@ -860,9 +860,9 @@ function MatchesView({profile,creators}){
   const canCreate=["agency","director","manager","agent"].includes(role);
 
   return(
-    <>
     <div className="fup">
-      <div><h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Matchs TikTok Live</h1>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+        <div><h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Matchs TikTok Live</h1>
           <p style={{fontSize:12,color:T.sec,marginTop:2}}>Matchs intra et inter-agences · Matchmaking automatique par niveau de diamants</p></div>
         {canCreate&&<button className="btn" style={{fontSize:12}} onClick={()=>setShowCreate(!showCreate)}>+ Créer un match</button>}
       </div>
@@ -958,9 +958,8 @@ function MatchesView({profile,creators}){
           ))}
         </div>
       )}
-    </div>
     {poster&&<MatchPoster matchData={poster} creators={creators} onClose={()=>setPoster(null)}/>}
-    </>
+    </div>
   );
 }
 
