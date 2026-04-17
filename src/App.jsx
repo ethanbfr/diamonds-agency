@@ -2116,9 +2116,7 @@ function SettingsView({profile,reload}){
     await sb.from("invite_codes").insert([{
       code,
       target_role:"agency",
-      agency_id:ag.id,
-      uses:0,
-      max_uses:1
+      agency_id:ag.id
     }]);
     await loadAgencyCodes();
     setGenerating(false);
@@ -2200,7 +2198,7 @@ function SettingsView({profile,reload}){
                   <div style={{flex:1}}>
                     <div style={{fontWeight:700,fontSize:12.5,color:T.tx}}>{code.code}</div>
                     <div style={{fontSize:10.5,color:T.sec}}>
-                      {code.uses}/{code.max_uses} utilisations  Expire le {new Date(code.expires_at).toLocaleDateString("fr-FR")}
+                      Code pour agence  Créé le {new Date(code.created_at).toLocaleDateString("fr-FR")}
                     </div>
                   </div>
                   <button className="btng" style={{fontSize:10.5,padding:"4px 8px"}} onClick={()=>navigator.clipboard.writeText(code.code)}>
