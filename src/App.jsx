@@ -2026,17 +2026,21 @@ function AdminPosterTemplatesView(){
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14}}>
         {POSTER_TEMPLATES.map(tmpl=>(
           <div key={tmpl.id} onClick={()=>setSelected(selected===tmpl.id?null:tmpl.id)} style={{cursor:"pointer"}}>
-            <PosterCard tmpl={tmpl} cA={demoA} cB={demoB}
-              matchDate={demoMatch.match_date} matchTime={demoMatch.match_time}
-              isInter={false} selected={selected===tmpl.id} onSelect={()=>{}}/>
-            <div style={{marginTop:8,fontSize:11,color:T.sec,textAlign:"center",lineHeight:1.5}}>
-              {tmpl.id==="dark_gold"&&"Fond noir · Accents dorés · Couronne"}
-              {tmpl.id==="purple_magic"&&"Fond violet · Accents violet clair"}
-              {tmpl.id==="black_marble"&&"Marbre noir · Accents blancs · Couronne"}
-              {tmpl.id==="neon_space"&&"Fond spatial · Accents cyan néon"}
-              {tmpl.id==="rose_gold"&&"Fond sombre rosé · Accents pink · Couronne"}
-              {tmpl.id==="emerald"&&"Fond vert sombre · Accents émeraude"}
+            <div style={{position:"relative",paddingBottom:"120%",overflow:"hidden",background:"#111",borderRadius:10,border:`2px solid ${selected===tmpl.id?tmpl.accent:"rgba(255,255,255,0.08)"}`}}>
+              <img src={POSTER_BG[tmpl.id]} crossOrigin="anonymous" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:.55}} alt=""/>
+              <div style={{position:"absolute",inset:0,background:`linear-gradient(180deg,${tmpl.overlay} 0%,rgba(0,0,0,.85) 100%)`}}/>
+              <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",padding:8}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,width:"100%",justifyContent:"center",marginBottom:8}}>
+                  <div style={{width:34,height:34,borderRadius:"50%",border:`2px solid ${tmpl.accent}`,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,color:tmpl.text}}>{(demoA?.pseudo||"A").replace("@","")[0]?.toUpperCase()||"A"}</div>
+                  <div style={{fontSize:11,fontWeight:900,color:tmpl.accent,padding:"3px 7px",border:`1px solid ${tmpl.accent}`,borderRadius:"50%",background:"rgba(0,0,0,.7)"}}>VS</div>
+                  <div style={{width:34,height:34,borderRadius:"50%",border:`2px solid ${tmpl.accent}`,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,color:tmpl.text}}>{(demoB?.pseudo||"B").replace("@","")[0]?.toUpperCase()||"B"}</div>
+                </div>
+                <div style={{width:"100%",border:`1px solid ${tmpl.accent}`,borderRadius:6,background:"rgba(0,0,0,.6)",padding:"5px",textAlign:"center"}}>
+                  <div style={{fontSize:9,fontWeight:900,color:tmpl.text}}>LE {demoMatch.match_date?new Date(demoMatch.match_date).toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}):"??/??"} · {demoMatch.match_time||"20:00"}</div>
+                </div>
+              </div>
             </div>
+            <div style={{background:"#0D0D0D",padding:"6px 8px",textAlign:"center",fontSize:9,fontWeight:700,color:selected===tmpl.id?tmpl.accent:"#666",letterSpacing:".06em",textTransform:"uppercase"}}>{tmpl.label}</div>
           </div>
         ))}
       </div>
@@ -2049,12 +2053,12 @@ export default function App(){
   const auth=useAuth();
   const [tab,setTab]=useState("dash");
   const [team,setTeam]=useState({creators:[],agents:[],managers:[],directors:[]});
-  const [loadT,setLT]=useState(false);
+  const [loadT,setLoadT]=useState(false);
   const role=auth.profile?.role;
   const agencyId=auth.profile?.agency_id;
   const ag=auth.profile?.agencies;
 
-  useEffect(()=>{if(agencyId){setLT(true);fetchTeam(agencyId).then(d=>{setTeam(d);setLT(false);})};},[agencyId]);
+  useEffect(()=>{if(agencyId){setLoadT(true);fetchTeam(agencyId).then(d=>{setTeam(d);setLoadT(false);})};},[agencyId]);
   useEffect(()=>{setTab("dash");},[role]);
 
   const reload=()=>{auth.reload();if(agencyId) fetchTeam(agencyId).then(setTeam);};
