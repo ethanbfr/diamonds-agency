@@ -400,7 +400,7 @@ function LoginPage(){
       <div style={{textAlign:"center",maxWidth:400}}>
         <div style={{width:56,height:56,borderRadius:16,background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",fontSize:24,color:"#2563EB"}}>✓</div>
         <h2 style={{fontSize:24,fontWeight:700,marginBottom:8,letterSpacing:"-.02em"}}>Compte créé !</h2>
-        <p style={{color:"#555",marginBottom:24,lineHeight:1.6}}>Vérifie ta boîte mail pour confirmer, puis connecte-toi.</p>
+        <p style={{color:"#555",marginBottom:24,lineHeight:1.6}}>Ton compte est prêt. Connecte-toi maintenant.</p>
         <button className="btn" style={{margin:"0 auto"}} onClick={()=>{setStep("auth");setMode("login");}}>Se connecter →</button>
       </div>
     </div>
