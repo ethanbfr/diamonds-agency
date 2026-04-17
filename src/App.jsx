@@ -668,6 +668,18 @@ function AdminAgencies(){
   };
   const updateBilling=async(id,field,value)=>{if(!sb) return;await sb.from("agencies").update({[field]:value}).eq("id",id);load();};
   const deleteAgency=async(id)=>{if(!sb) return;if(!confirm("Êtes-vous sûr de vouloir supprimer cette agence ? Cette action est irréversible.")) return;await sb.from("agencies").delete().eq("id",id);load();};
+  const doGenAgencyCode=async(agency)=>{
+    setGenning("agency");
+    const code=`AGENCE-${agency.slug.toUpperCase()}-${Math.random().toString(36).slice(-6).toUpperCase()}`;
+    await sb.from("invite_codes").insert([{
+      code,
+      target_role:"agency",
+      agency_id:agency.id,
+      uses:0,
+      max_uses:1
+    }]);
+    await loadCodes(agency.id);setGenning(null);
+  };
   const cp=(k)=>{setCopied(k);setTimeout(()=>setCopied(null),2000);};
 
   if(viewDash) return(
@@ -697,6 +709,9 @@ function AdminAgencies(){
               {genning===key?<Spin/>:"+"} Code {r}
             </button>
           );})}
+          <button key="agency" className="btn" style={{fontSize:11.5,padding:"6px 12px",background:`linear-gradient(135deg,#4b0082,#6a0dad)`}} onClick={()=>doGenAgencyCode(sel)} disabled={genning==="agency"}>
+            {genning==="agency"?<Spin/>:"+"} Code Agence
+          </button>
         </div>
       </div>
       <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Codes actifs non utiliss</div>
