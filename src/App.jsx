@@ -558,6 +558,9 @@ function AdminAgencies(){
     if(!name.trim()||!slug.trim()||!email.trim()){setErr("Nom, slug et email obligatoires");return;}
     setCreating(true);setErr("");
     
+    // Récupérer l'ID utilisateur actuel
+    const { data: { user } } = await sb.auth.getUser();
+    
     // Créer l'agence
     const agencyData = {
       name: name.trim(),
@@ -566,7 +569,7 @@ function AdminAgencies(){
       email: email.trim(),
       billing_status: "essai",
       is_offered: false,
-      created_by: sb.auth.getUser().then(u => u.data.user?.id)
+      created_by: user?.id
     };
     
     const {data, error} = await sb.from("agencies").insert([agencyData]).select();
