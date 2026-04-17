@@ -193,26 +193,27 @@ const DiamondSVG=({size=40})=>(
   <svg width={size} height={size} viewBox="0 0 40 40">
     <defs>
       <linearGradient id="dg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#9966cc"/>
-        <stop offset="25%" stopColor="#b19cd9"/>
-        <stop offset="50%" stopColor="#dda0dd"/>
-        <stop offset="75%" stopColor="#e6e6fa"/>
+        <stop offset="0%" stopColor="#ffffff"/>
+        <stop offset="20%" stopColor="#9966cc"/>
+        <stop offset="40%" stopColor="#b19cd9"/>
+        <stop offset="60%" stopColor="#dda0dd"/>
+        <stop offset="80%" stopColor="#e6e6fa"/>
         <stop offset="100%" stopColor="#ffffff"/>
       </linearGradient>
       <linearGradient id="dg2" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#ffffff"/>
-        <stop offset="50%" stopColor="#f0e6ff"/>
-        <stop offset="100%" stopColor="rgba(153, 102, 204, 0.4)"/>
+        <stop offset="30%" stopColor="#f8f8ff"/>
+        <stop offset="100%" stopColor="rgba(153, 102, 204, 0.6)"/>
       </linearGradient>
       <filter id="diamondGlow">
-        <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+        <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
         <feMerge>
           <feMergeNode in="coloredBlur"/>
           <feMergeNode in="SourceGraphic"/>
         </feMerge>
       </filter>
       <filter id="sparkle">
-        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
         <feMerge>
           <feMergeNode in="coloredBlur"/>
           <feMergeNode in="SourceGraphic"/>
@@ -221,39 +222,39 @@ const DiamondSVG=({size=40})=>(
     </defs>
     <g transform="rotate(45 20 20)">
       <polygon 
-        points="0,-18 18,0 0,18 -18,0" 
+        points="0,-20 20,0 0,20 -20,0" 
         fill="url(#dg)" 
         filter="url(#diamondGlow)"
-        style={{filter:"drop-shadow(0 0 25px rgba(153,102,204,0.9))"}}
+        style={{filter:"drop-shadow(0 0 30px rgba(153,102,204,1))"}}
       />
       <polygon 
-        points="0,-18 18,0 0,0 -18,0" 
+        points="0,-20 20,0 0,0 -20,0" 
         fill="url(#dg2)" 
-        opacity=".9"
+        opacity=".95"
       />
     </g>
     <g transform="rotate(0 20 20)">
       <polygon 
-        points="0,-18 18,0 0,18 -18,0" 
+        points="0,-20 20,0 0,20 -20,0" 
         fill="url(#dg)" 
         filter="url(#diamondGlow)"
-        opacity=".7"
-        style={{filter:"drop-shadow(0 0 20px rgba(153,102,204,0.6))"}}
+        opacity=".8"
+        style={{filter:"drop-shadow(0 0 25px rgba(153,102,204,0.8))"}}
       />
       <polygon 
-        points="0,-18 18,0 0,0 -18,0" 
+        points="0,-20 20,0 0,0 -20,0" 
         fill="url(#dg2)" 
-        opacity=".8"
+        opacity=".85"
       />
     </g>
-    <circle cx="6" cy="6" r="2.5" fill="#ffffff" filter="url(#sparkle)">
+    <circle cx="5" cy="5" r="3" fill="#ffffff" filter="url(#sparkle)">
+      <animate attributeName="opacity" values="1;0.2;1" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="35" cy="5" r="2.5" fill="#9966cc" filter="url(#sparkle)">
       <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="34" cy="6" r="2" fill="#b19cd9" filter="url(#sparkle)">
-      <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite"/>
-    </circle>
-    <circle cx="20" cy="34" r="1.8" fill="#ffffff" filter="url(#sparkle)">
-      <animate attributeName="opacity" values="0.9;0.2;0.9" dur="1.8s" repeatCount="indefinite"/>
+    <circle cx="20" cy="35" r="2.2" fill="#ffffff" filter="url(#sparkle)">
+      <animate attributeName="opacity" values="0.9;0.1;0.9" dur="1.8s" repeatCount="indefinite"/>
     </circle>
   </svg>
 );
