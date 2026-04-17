@@ -271,7 +271,7 @@ const billingTag=(s,isOffered)=>{
 
 /* ─── NAV ───────────────────────────────── */
 const NAVS={
-  admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"invite_agencies",l:"Inviter agences"},{id:"all_users",l:"Utilisateurs"},{id:"all_creators",l:"Créateurs"},{id:"all_staff",l:"Staff"},{id:"all_matches",l:"Matchs"},{id:"all_schedules",l:"Plannings"},{id:"all_lives",l:"Lives"},{id:"poster_templates",l:"Templates affiches"}],
+  admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"invite_agencies",l:"Inviter agences"},{id:"members",l:"👥 Membres"},{id:"all_users",l:"Utilisateurs"},{id:"all_creators",l:"Créateurs"},{id:"all_staff",l:"Staff"},{id:"all_matches",l:"Matchs"},{id:"all_schedules",l:"Plannings"},{id:"all_lives",l:"Lives"},{id:"poster_templates",l:"Templates affiches"}],
   agency:  [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Liens d'invitation"},{id:"matches",l:"Matchs"},{id:"settings",l:"Paramètres"},{id:"coach",l:"Coach IA 🤖"}],
   director:[{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
   manager: [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
@@ -513,22 +513,7 @@ function LoginPage(){
 
             {mode==="login"&&(
               <div style={{textAlign:"right",marginTop:-8}}>
-                {!forgotMode
-                  ? <button onClick={()=>setForgotMode(true)} style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Mot de passe oublié ?</button>
-                  : <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                      {resetSent
-                        ? <span style={{fontSize:12,color:"#22C55E"}}>✓ Email envoyé !</span>
-                        : <><input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="votre@email.com" style={{flex:1,fontSize:12,padding:"7px 10px"}}/>
-                          <button className="btn" style={{fontSize:12,padding:"7px 12px",flexShrink:0}} onClick={async()=>{
-                            if(!email){setErr("Entrez votre email");return;}
-                            const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+"/reset"});
-                            if(error) setErr("Erreur: "+error.message);
-                            else setResetSent(true);
-                          }}>Envoyer</button></>
-                      }
-                      <button onClick={()=>{setForgotMode(false);setResetSent(false);}} style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>✕</button>
-                    </div>
-                }
+                <a href="mailto:diamonds.saas@gmail.com?subject=Reset mot de passe&body=Mon email de compte : " style={{fontSize:12,color:"#555",textDecoration:"none"}}>Mot de passe oublié ? Contactez-nous →</a>
               </div>
             )}
 
@@ -2559,6 +2544,143 @@ function CreatorTargetsModal({creator,ag,onClose,onSave}){
   );
 }
 
+
+/* ─── ADMIN MEMBERS VIEW ────────────────── */
+function AdminMembersView(){
+  const [users,setUsers]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState("");
+  const [selected,setSelected]=useState(null);
+  const [newPw,setNewPw]=useState("");
+  const [saving,setSaving]=useState(false);
+  const [msg,setMsg]=useState("");
+  const [showPw,setShowPw]=useState(false);
+
+  useEffect(()=>{
+    fetchAllProfiles().then(d=>{setUsers(d);setLoading(false);});
+  },[]);
+
+  const filtered=users.filter(u=>{
+    if(!search) return true;
+    const s=search.toLowerCase();
+    return (u.email||"").toLowerCase().includes(s)||
+           (u.tiktok_handle||"").toLowerCase().includes(s)||
+           (u.role||"").toLowerCase().includes(s);
+  });
+
+  const roleColor={admin:"#2563EB",agency:"#3B82F6",director:"#818CF8",manager:"#34D399",agent:"#60A5FA",creator:"#F472B6"};
+
+  const changePassword=async()=>{
+    if(!selected||!newPw.trim()){setMsg("Remplis tous les champs");return;}
+    if(newPw.length<6){setMsg("Minimum 6 caractères");return;}
+    setSaving(true);setMsg("");
+    // Use Supabase admin API via service role
+    const {error}=await sb.auth.admin.updateUserById(selected.id,{password:newPw});
+    if(error){
+      // Fallback: direct update via profiles rpc
+      setMsg("❌ Erreur: "+error.message+" — Utilisez Supabase Dashboard pour reset ce mot de passe.");
+    } else {
+      setMsg("✓ Mot de passe modifié pour "+selected.email);
+      setNewPw("");
+      setSelected(null);
+    }
+    setSaving(false);
+  };
+
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:22,fontWeight:700,color:"#fff",marginBottom:4,letterSpacing:"-.02em"}}>Gestion des membres</h1>
+        <p style={{fontSize:13,color:"#555"}}>Recherche par email ou @ TikTok · Réinitialise les mots de passe</p>
+      </div>
+
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+        <SC label="Total membres" val={users.length} accent="#2563EB"/>
+        <SC label="Agences" val={users.filter(u=>u.role==="agency").length}/>
+        <SC label="Staff" val={users.filter(u=>["director","manager","agent"].includes(u.role)).length}/>
+        <SC label="Créateurs" val={users.filter(u=>u.role==="creator").length}/>
+      </div>
+
+      {/* Search */}
+      <div style={{position:"relative",marginBottom:14}}>
+        <input className="inp" placeholder="🔍  Rechercher par email, @TikTok, rôle..." value={search} onChange={e=>setSearch(e.target.value)} style={{fontSize:14,padding:"12px 14px"}}/>
+        {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:16}}>✕</button>}
+      </div>
+
+      <div style={{display:"flex",gap:16,alignItems:"flex-start"}}>
+
+        {/* Users list */}
+        <div style={{flex:1,minWidth:0}}>
+          {loading?<div style={{textAlign:"center",padding:30,color:"#555"}}><Spin/></div>:
+          <div className="card" style={{overflow:"hidden"}}>
+            <div style={{padding:"10px 16px",borderBottom:"1px solid #1e1e1e",fontSize:11,fontWeight:600,color:"#555",textTransform:"uppercase",letterSpacing:".06em"}}>
+              {filtered.length} membre{filtered.length>1?"s":""}
+            </div>
+            {filtered.length===0&&<div style={{padding:"30px 20px",textAlign:"center",color:"#555",fontSize:13}}>Aucun résultat</div>}
+            {filtered.map(u=>(
+              <div key={u.id} onClick={()=>{setSelected(u);setNewPw("");setMsg("");}}
+                style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",borderBottom:"1px solid #1a1a1a",cursor:"pointer",background:selected?.id===u.id?"rgba(37,99,235,0.08)":"transparent",transition:"background .1s"}}
+                onMouseEnter={e=>e.currentTarget.style.background=selected?.id===u.id?"rgba(37,99,235,0.08)":"#191919"}
+                onMouseLeave={e=>e.currentTarget.style.background=selected?.id===u.id?"rgba(37,99,235,0.08)":"transparent"}>
+                <div style={{width:36,height:36,borderRadius:10,background:`${roleColor[u.role]||"#555"}18`,border:`1px solid ${roleColor[u.role]||"#555"}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:roleColor[u.role]||"#555",fontWeight:700,flexShrink:0}}>
+                  {(u.tiktok_handle||u.email||"?").replace("@","")[0]?.toUpperCase()}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:500,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.email}</div>
+                  <div style={{fontSize:11,color:"#555",marginTop:1}}>{u.tiktok_handle||"Pas de @ TikTok"}</div>
+                </div>
+                <span style={{fontSize:10,fontWeight:600,color:roleColor[u.role]||"#555",background:`${roleColor[u.role]||"#555"}15`,padding:"2px 8px",borderRadius:4,textTransform:"uppercase",letterSpacing:".04em",flexShrink:0}}>{u.role}</span>
+              </div>
+            ))}
+          </div>}
+        </div>
+
+        {/* Password reset panel */}
+        {selected&&(
+          <div style={{width:280,flexShrink:0}}>
+            <div className="card" style={{padding:20}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+                <div style={{fontSize:13,fontWeight:600,color:"#fff"}}>Modifier le mot de passe</div>
+                <button onClick={()=>{setSelected(null);setMsg("");}} style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:16}}>✕</button>
+              </div>
+
+              {/* User info */}
+              <div style={{background:"#111",borderRadius:8,padding:"10px 12px",marginBottom:16}}>
+                <div style={{fontSize:12,fontWeight:600,color:"#fff",marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selected.email}</div>
+                <div style={{fontSize:11,color:"#555"}}>{selected.tiktok_handle||"Pas de @ TikTok"} · <span style={{color:roleColor[selected.role]||"#555"}}>{selected.role}</span></div>
+              </div>
+
+              {/* New password */}
+              <div style={{marginBottom:12}}>
+                <label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Nouveau mot de passe</label>
+                <div style={{position:"relative"}}>
+                  <input className="inp" type={showPw?"text":"password"} value={newPw} onChange={e=>setNewPw(e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&changePassword()}
+                    placeholder="Min. 6 caractères" style={{paddingRight:40}}/>
+                  <button onClick={()=>setShowPw(s=>!s)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#555",fontSize:15}}>
+                    {showPw?"🙈":"👁"}
+                  </button>
+                </div>
+              </div>
+
+              {msg&&<div style={{padding:"8px 10px",borderRadius:8,background:msg.startsWith("✓")?"rgba(34,197,94,0.08)":"rgba(239,68,68,0.08)",border:`1px solid ${msg.startsWith("✓")?"rgba(34,197,94,0.2)":"rgba(239,68,68,0.2)"}`,fontSize:12,color:msg.startsWith("✓")?"#22C55E":"#EF4444",marginBottom:12}}>{msg}</div>}
+
+              <button className="btn" style={{width:"100%",justifyContent:"center",padding:"11px",fontSize:13}} onClick={changePassword} disabled={saving||!newPw.trim()}>
+                {saving?<><Spin/>Modification…</>:"🔑 Changer le mot de passe"}
+              </button>
+
+              <div style={{marginTop:10,fontSize:11,color:"#333",textAlign:"center",lineHeight:1.5}}>
+                Si ça échoue → Supabase Dashboard<br/>→ Authentication → Users → cet utilisateur
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ─── APP ROOT ──────────────────────────── */
 export default function App(){
   const auth=useAuth();
@@ -2637,6 +2759,7 @@ export default function App(){
     my_lives:()=><MyLivesView profile={auth.profile}/>,
     coach:   ()=><CoachView profile={auth.profile} creators={team.creators} ag={auth.profile?.agencies}/>,
     invite_agencies:()=><AdminInviteAgencies/>,
+    members:()=><AdminMembersView/>,
     all_users:()=><AdminAllUsersView/>,
     all_creators:()=><AdminAllCreatorsView/>,
     all_staff:()=><AdminAllStaffView/>,
