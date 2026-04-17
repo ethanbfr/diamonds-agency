@@ -5,7 +5,7 @@ const SB_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 
-const T={bg:"#07000E",card:"rgba(110,30,180,0.10)",cardH:"rgba(110,30,180,0.18)",b:"rgba(150,70,240,0.18)",acc:"#8B30D4",accL:"#A855F7",cy:"#C084FC",sec:"#9D70C8",ok:"#32CD32",ng:"#E74C3C",go:"#F39C12",pu:"#D946EF",tx:"#FFFFFF",txD:"#C9B8E8",stripe:"#8B30D4"};
+const T={bg:"#06000D",card:"rgba(255,255,255,0.04)",cardH:"rgba(130,50,220,0.10)",b:"rgba(255,255,255,0.07)",acc:"#8B30D4",accL:"#A855F7",cy:"#A78BFA",sec:"#6B7280",ok:"#22C55E",ng:"#EF4444",go:"#F59E0B",pu:"#C084FC",tx:"#FFFFFF",txD:"#9CA3AF",stripe:"#8B30D4"};
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
 const PRICE=149;
