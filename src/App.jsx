@@ -6,36 +6,36 @@ const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 
 const T={
-  bg:"#1a0d2e",
-  bgGradient:"linear-gradient(135deg, #1a0d2e 0%, #2d1b4d 25%, #402466 50%, #2d1b4d 75%, #1a0d2e 100%)",
-  card:"rgba(147, 51, 234, 0.08)",
-  cardGlass:"rgba(255, 255, 255, 0.05)",
-  cardGlassHover:"rgba(147, 51, 234, 0.12)",
-  b:"rgba(255, 255, 255, 0.1)",
-  acc:"#9333ea",
-  accLight:"#b366f8",
-  accGlow:"rgba(147, 51, 234, 0.3)",
-  cy:"#00d4ff",
-  cyLight:"#40e0d0",
-  cyGlow:"rgba(0, 212, 209, 0.2)",
-  sec:"#b19cd9",
-  ok:"#32cd32",
-  okGlow:"rgba(50, 205, 50, 0.2)",
-  ng:"#e74c3c",
-  ngGlow:"rgba(231, 76, 60, 0.2)",
-  go:"#f39c12",
-  goGlow:"rgba(243, 156, 18, 0.2)",
-  pu:"#dda0dd",
-  puGlow:"rgba(221, 160, 221, 0.2)",
+  bg:"#0a0a0a",
+  bgGradient:"linear-gradient(135deg, #0a0a0a 0%, #1a0a1f 25%, #2d1b4d 50%, #1a0a1f 75%, #0a0a0a 100%)",
+  card:"rgba(156, 39, 176, 0.08)",
+  cardGlass:"rgba(255, 255, 255, 0.04)",
+  cardGlassHover:"rgba(156, 39, 176, 0.12)",
+  b:"rgba(255, 255, 255, 0.08)",
+  acc:"#9c27b0",
+  accLight:"#ba68c8",
+  accGlow:"rgba(156, 39, 176, 0.25)",
+  cy:"#00bcd4",
+  cyLight:"#4dd0e1",
+  cyGlow:"rgba(0, 188, 212, 0.15)",
+  sec:"#ce93d8",
+  ok:"#4caf50",
+  okGlow:"rgba(76, 175, 80, 0.15)",
+  ng:"#f44336",
+  ngGlow:"rgba(244, 67, 54, 0.15)",
+  go:"#ff9800",
+  goGlow:"rgba(255, 152, 0, 0.15)",
+  pu:"#e91e63",
+  puGlow:"rgba(233, 30, 99, 0.15)",
   tx:"#ffffff",
-  txDim:"#e0e0e0",
-  stripe:"#9333ea",
+  txDim:"#b0b0b0",
+  stripe:"#9c27b0",
   neon:"#ffffff",
-  neonPink:"#ffb6c1",
-  neonGreen:"#90ee90",
-  neonPurple:"#dda0dd",
-  diamond:"rgba(255, 215, 0, 0.7)",
-  diamondGlow:"rgba(255, 215, 0, 0.8)"
+  neonPink:"#f8bbd0",
+  neonGreen:"#a5d6a7",
+  neonPurple:"#e1bee7",
+  diamond:"rgba(255, 215, 0, 0.8)",
+  diamondGlow:"rgba(255, 215, 0, 0.9)"
 };
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
@@ -193,25 +193,26 @@ const DiamondSVG=({size=40})=>(
   <svg width={size} height={size} viewBox="0 0 40 40">
     <defs>
       <linearGradient id="dg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#9333ea"/>
-        <stop offset="30%" stopColor="#b366f8"/>
-        <stop offset="60%" stopColor="#dda0dd"/>
-        <stop offset="100%" stopColor="#ffb6c1"/>
+        <stop offset="0%" stopColor="#9c27b0"/>
+        <stop offset="25%" stopColor="#ba68c8"/>
+        <stop offset="50%" stopColor="#ce93d8"/>
+        <stop offset="75%" stopColor="#e1bee7"/>
+        <stop offset="100%" stopColor="#f8bbd0"/>
       </linearGradient>
       <linearGradient id="dg2" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#ffffff"/>
-        <stop offset="50%" stopColor="#e0e0e0"/>
-        <stop offset="100%" stopColor="rgba(255,255,255,0.1)"/>
+        <stop offset="40%" stopColor="#f8bbd0"/>
+        <stop offset="100%" stopColor="rgba(156, 39, 176, 0.3)"/>
       </linearGradient>
       <filter id="diamondGlow">
-        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+        <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
         <feMerge>
           <feMergeNode in="coloredBlur"/>
           <feMergeNode in="SourceGraphic"/>
         </feMerge>
       </filter>
       <filter id="sparkle">
-        <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+        <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
         <feMerge>
           <feMergeNode in="coloredBlur"/>
           <feMergeNode in="SourceGraphic"/>
@@ -220,39 +221,39 @@ const DiamondSVG=({size=40})=>(
     </defs>
     <g transform="rotate(45 20 20)">
       <polygon 
-        points="0,-14 14,0 0,14 -14,0" 
+        points="0,-16 16,0 0,16 -16,0" 
         fill="url(#dg)" 
         filter="url(#diamondGlow)"
-        style={{filter:"drop-shadow(0 0 15px rgba(147,51,234,0.6))"}}
+        style={{filter:"drop-shadow(0 0 20px rgba(156,39,176,0.8))"}}
       />
       <polygon 
-        points="0,-14 14,0 0,0 -14,0" 
+        points="0,-16 16,0 0,0 -16,0" 
         fill="url(#dg2)" 
-        opacity=".9"
+        opacity=".85"
       />
     </g>
     <g transform="rotate(0 20 20)">
       <polygon 
-        points="0,-14 14,0 0,14 -14,0" 
+        points="0,-16 16,0 0,16 -16,0" 
         fill="url(#dg)" 
         filter="url(#diamondGlow)"
-        opacity=".7"
-        style={{filter:"drop-shadow(0 0 12px rgba(147,51,234,0.4))"}}
+        opacity=".6"
+        style={{filter:"drop-shadow(0 0 15px rgba(156,39,176,0.5))"}}
       />
       <polygon 
-        points="0,-14 14,0 0,0 -14,0" 
+        points="0,-16 16,0 0,0 -16,0" 
         fill="url(#dg2)" 
-        opacity=".8"
+        opacity=".75"
       />
     </g>
-    <circle cx="10" cy="10" r="1.5" fill="#ffffff" filter="url(#sparkle)">
-      <animate attributeName="opacity" values="1;0.4;1" dur="3s" repeatCount="indefinite"/>
-    </circle>
-    <circle cx="30" cy="10" r="1" fill="#ffffff" filter="url(#sparkle)">
+    <circle cx="8" cy="8" r="2" fill="#ffffff" filter="url(#sparkle)">
       <animate attributeName="opacity" values="1;0.3;1" dur="2.5s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="20" cy="30" r="0.8" fill="#ffffff" filter="url(#sparkle)">
-      <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" repeatCount="indefinite"/>
+    <circle cx="32" cy="8" r="1.5" fill="#ce93d8" filter="url(#sparkle)">
+      <animate attributeName="opacity" values="1;0.4;1" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="20" cy="32" r="1.2" fill="#ffffff" filter="url(#sparkle)">
+      <animate attributeName="opacity" values="0.9;0.2;0.9" dur="2s" repeatCount="indefinite"/>
     </circle>
   </svg>
 );
