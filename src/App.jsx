@@ -2551,7 +2551,23 @@ function AdminMembersView(){
   const [showPw,setShowPw]=useState(false);
 
   useEffect(()=>{
-    fetchAllProfiles().then(d=>{setUsers(d);setLoading(false);});
+    const load=async()=>{
+      const [profiles,agencies]=await Promise.all([
+        fetchAllProfiles(),
+        fetchAllAgencies()
+      ]);
+      // Fix roles: if profile has agency_id but shows creator -> fix display
+      const fixed=profiles.map(p=>{
+        if(p.agency_id&&p.role==="creator"){
+          const ag=agencies.find(a=>a.id===p.agency_id);
+          if(ag) return {...p,role:"agency",_agencyName:ag.name};
+        }
+        return p;
+      });
+      setUsers(fixed);
+      setLoading(false);
+    };
+    load();
   },[]);
 
   const filtered=users.filter(u=>{
@@ -2568,17 +2584,36 @@ function AdminMembersView(){
     if(!selected||!newPw.trim()){setMsg("Remplis tous les champs");return;}
     if(newPw.length<6){setMsg("Minimum 6 caractères");return;}
     setSaving(true);setMsg("");
-    const {data,error}=await sb.rpc("admin_change_password",{
-      p_user_id:selected.id,
-      p_new_password:newPw
-    });
-    if(error||data?.success===false){
-      setMsg("❌ "+(data?.error||error?.message||"Erreur inconnue"));
-    } else {
-      setMsg("✓ Mot de passe modifié pour "+selected.email);
-      setNewPw("");
-      setTimeout(()=>{setSelected(null);setMsg("");},2000);
-    }
+    try{
+      // Use Supabase Admin REST API with service role key
+      const SUPA_URL=import.meta.env.VITE_SUPABASE_URL;
+      const SUPA_KEY=import.meta.env.VITE_SUPABASE_SERVICE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const res=await fetch(`${SUPA_URL}/auth/v1/admin/users/${selected.id}`,{
+        method:"PUT",
+        headers:{
+          "Content-Type":"application/json",
+          "apikey":SUPA_KEY,
+          "Authorization":`Bearer ${SUPA_KEY}`
+        },
+        body:JSON.stringify({password:newPw})
+      });
+      const data=await res.json();
+      if(res.ok){
+        setMsg("✓ Mot de passe modifié pour "+selected.email);
+        setNewPw("");
+        setTimeout(()=>{setSelected(null);setMsg("");},2000);
+      } else {
+        // Fallback to RPC
+        const {data:rpcData,error:rpcErr}=await sb.rpc("admin_change_password",{p_user_id:selected.id,p_new_password:newPw});
+        if(rpcErr||rpcData?.success===false){
+          setMsg("❌ "+(rpcData?.error||rpcErr?.message||data?.message||"Erreur"));
+        } else {
+          setMsg("✓ Mot de passe modifié pour "+selected.email);
+          setNewPw("");
+          setTimeout(()=>{setSelected(null);setMsg("");},2000);
+        }
+      }
+    }catch(e){setMsg("❌ Erreur: "+e.message);}
     setSaving(false);
   };
 
@@ -2769,40 +2804,84 @@ export default function App(){
   if(needsPayment) return(
     <>
       <style>{css}</style>
-      <div style={{minHeight:"100vh",background:"#0F0F0F",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-        <div style={{width:"100%",maxWidth:460,position:"relative"}}>
-          <div style={{textAlign:"center",marginBottom:28}}>
+      <div style={{minHeight:"100vh",background:"#0F0F0F",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,fontFamily:"Inter,sans-serif"}}>
+        {/* Ambient glow */}
+        <div style={{position:"fixed",top:"-10%",left:"50%",transform:"translateX(-50%)",width:500,height:500,background:"radial-gradient(circle,rgba(37,99,235,0.1) 0%,transparent 65%)",pointerEvents:"none"}}/>
+
+        <div style={{width:"100%",maxWidth:440,position:"relative",zIndex:1}}>
+          {/* Brand */}
+          <div style={{textAlign:"center",marginBottom:32}}>
             <div style={{display:"flex",justifyContent:"center",marginBottom:14}}><Brand big={true}/></div>
+            <p style={{fontSize:15,color:"#555"}}>Activez votre agence Diamond's</p>
           </div>
-          <div style={{background:"#151515",borderRadius:16,border:"1px solid #222",padding:28,marginBottom:12}}>
-            <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(37,99,235,.12)",border:"1px solid rgba(37,99,235,.25)",borderRadius:20,padding:"4px 14px",fontSize:12,fontWeight:700,color:"#3B82F6",letterSpacing:".04em",marginBottom:20}}>✦ ABONNEMENT MENSUEL</div>
-            <div style={{marginBottom:8}}>
-              <span style={{fontSize:72,fontWeight:900,color:"#fff",letterSpacing:"-.04em",lineHeight:1}}>{PRICE}</span>
-              <span style={{fontSize:22,color:"#555",marginLeft:4}}>€<span style={{fontSize:14}}>/mois</span></span>
+
+          {/* Card */}
+          <div style={{background:"#141414",borderRadius:20,border:"1px solid #1e1e1e",overflow:"hidden",marginBottom:12}}>
+            {/* Badge */}
+            <div style={{background:"rgba(37,99,235,0.08)",borderBottom:"1px solid #1e1e1e",padding:"12px 24px",display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:"#2563EB"}}/>
+              <span style={{fontSize:12,fontWeight:700,color:"#3B82F6",letterSpacing:".08em",textTransform:"uppercase"}}>Abonnement mensuel</span>
             </div>
-            <p style={{fontSize:14,color:"#555",marginBottom:24,lineHeight:1.6}}>Accès complet · Résiliable à tout moment · Paiement sécurisé</p>
-            {["Gestion illimitée de créateurs & staff","Génération de matchs TikTok Live","Affiches de match personnalisées","Import Backstage automatisé","Coach IA TikTok Live 2026","Support prioritaire Diamond's"].map((f,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                <div style={{width:18,height:18,borderRadius:"50%",background:"rgba(37,99,235,.1)",border:"1px solid rgba(37,99,235,.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  <div style={{width:6,height:6,borderRadius:"50%",background:"#2563EB"}}/>
+
+            <div style={{padding:"28px 24px"}}>
+              {/* Price */}
+              <div style={{marginBottom:24}}>
+                <div style={{display:"flex",alignItems:"baseline",gap:4,marginBottom:6}}>
+                  <span style={{fontSize:64,fontWeight:900,color:"#fff",letterSpacing:"-.04em",lineHeight:1}}>{PRICE}</span>
+                  <span style={{fontSize:20,color:"#555",fontWeight:400}}>€</span>
+                  <span style={{fontSize:14,color:"#555",fontWeight:400}}>/mois</span>
                 </div>
-                <span style={{fontSize:13,color:"#aaa"}}>{f}</span>
+                <p style={{fontSize:13,color:"#444",lineHeight:1.5}}>Sans engagement · Résiliable à tout moment</p>
               </div>
-            ))}
-            <div style={{marginTop:24}}>
-              <a href={`${STRIPE_LINK}?prefilled_email=${encodeURIComponent(auth.profile?.email||"")}&client_reference_id=${encodeURIComponent(ag?.id||"")}`} style={{display:"block",textDecoration:"none"}} target="_blank" rel="noopener noreferrer">
-                <button className="btn" style={{width:"100%",padding:"15px",fontSize:16,justifyContent:"center",letterSpacing:".01em"}}>
-                  💳 Payer {PRICE}€/mois
+
+              {/* Features */}
+              <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28,paddingBottom:24,borderBottom:"1px solid #1e1e1e"}}>
+                {[
+                  "Gestion illimitée créateurs & staff",
+                  "Matchs TikTok Live & affiches",
+                  "Import Backstage automatisé",
+                  "Coach IA TikTok Live 2026",
+                  "Calcul des reversements diamants",
+                  "Support prioritaire Diamond's"
+                ].map((f,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:10}}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <circle cx="8" cy="8" r="7.5" stroke="#2563EB" strokeOpacity=".4"/>
+                      <path d="M5 8l2 2 4-4" stroke="#2563EB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span style={{fontSize:13,color:"#999"}}>{f}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Email display */}
+              <div style={{background:"#111",borderRadius:8,padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:8}}>
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#555" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                <span style={{fontSize:13,color:"#666"}}>{auth.profile?.email}</span>
+              </div>
+
+              {/* Pay button */}
+              <a href={`${STRIPE_LINK}?prefilled_email=${encodeURIComponent(auth.profile?.email||"")}&client_reference_id=${encodeURIComponent(ag?.id||"")}`}
+                style={{display:"block",textDecoration:"none"}} target="_blank" rel="noopener noreferrer">
+                <button className="btn" style={{width:"100%",padding:"15px",fontSize:15,justifyContent:"center",borderRadius:10,background:"#2563EB"}}>
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                  Payer {PRICE}€/mois
                 </button>
               </a>
-              <div style={{textAlign:"center",marginTop:10,fontSize:11,color:"#333",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                🔒 SÉCURISÉ PAR STRIPE · CHIFFREMENT 256-BIT
+
+              {/* Security */}
+              <div style={{textAlign:"center",marginTop:14,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#333" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                <span style={{fontSize:11,color:"#333",letterSpacing:".04em"}}>SÉCURISÉ PAR STRIPE · CHIFFREMENT 256-BIT</span>
               </div>
             </div>
           </div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <p style={{fontSize:12,color:"#333"}}>Déjà payé ? <button onClick={auth.reload} style={{background:"none",border:"none",color:"#3B82F6",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Actualiser →</button></p>
-            <button onClick={auth.signOut} className="btng" style={{fontSize:11}}>Se déconnecter</button>
+
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0 4px"}}>
+            <button onClick={auth.reload} style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
+              Déjà payé ? Actualiser →
+            </button>
+            <button onClick={auth.signOut} style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Se déconnecter</button>
           </div>
         </div>
       </div>
