@@ -6,36 +6,36 @@ const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 
 const T={
-  bg:"#1A0033",
-  bgGradient:"linear-gradient(135deg, #1A0033 0%, #2D1B4D 25%, #402466 50%, #2D1B4D 75%, #1A0033 100%)",
-  card:"rgba(147, 51, 234, 0.08)",
-  cardGlass:"rgba(255, 255, 255, 0.05)",
-  cardGlassHover:"rgba(147, 51, 234, 0.12)",
-  b:"rgba(255, 255, 255, 0.1)",
-  acc:"#9333EA",
-  accLight:"#B366F8",
-  accGlow:"rgba(147, 51, 234, 0.4)",
-  cy:"#00CED1",
-  cyLight:"#40E0D0",
-  cyGlow:"rgba(0, 206, 209, 0.3)",
-  sec:"#B19CD9",
-  ok:"#32CD32",
-  okGlow:"rgba(50, 205, 50, 0.3)",
-  ng:"#E74C3C",
-  ngGlow:"rgba(231, 76, 60, 0.3)",
-  go:"#F39C12",
-  goGlow:"rgba(243, 156, 18, 0.3)",
-  pu:"#DDA0DD",
-  puGlow:"rgba(221, 160, 221, 0.3)",
+  bg:"#0F0015",
+  bgGradient:"linear-gradient(135deg, #0F0015 0%, #1A0E2E 20%, #2A0F3D 40%, #1A0E2E 60%, #0F0015 100%)",
+  card:"rgba(138, 43, 226, 0.12)",
+  cardGlass:"rgba(255, 255, 255, 0.08)",
+  cardGlassHover:"rgba(138, 43, 226, 0.18)",
+  b:"rgba(255, 255, 255, 0.15)",
+  acc:"#8A2BE2",
+  accLight:"#A855F7",
+  accGlow:"rgba(138, 43, 226, 0.6)",
+  cy:"#00D4FF",
+  cyLight:"#3399FF",
+  cyGlow:"rgba(0, 212, 255, 0.4)",
+  sec:"#C8A2E8",
+  ok:"#00FF88",
+  okGlow:"rgba(0, 255, 136, 0.4)",
+  ng:"#FF4757",
+  ngGlow:"rgba(255, 71, 87, 0.4)",
+  go:"#FFB800",
+  goGlow:"rgba(255, 184, 0, 0.4)",
+  pu:"#E91E63",
+  puGlow:"rgba(233, 30, 99, 0.4)",
   tx:"#FFFFFF",
-  txDim:"#E0E0E0",
-  stripe:"#9333EA",
-  neon:"#E0E0E0",
+  txDim:"#F0F0FF",
+  stripe:"#8A2BE2",
+  neon:"#FFFFFF",
   neonPink:"#FFB6C1",
-  neonGreen:"#90EE90",
-  neonPurple:"#DDA0DD",
-  diamond:"rgba(218, 165, 255, 0.7)",
-  diamondGlow:"rgba(218, 165, 255, 0.9)"
+  neonGreen:"#00FF88",
+  neonPurple:"#E91E63",
+  diamond:"rgba(255, 215, 0, 0.8)",
+  diamondGlow:"rgba(255, 215, 0, 0.95)"
 };
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
@@ -46,12 +46,20 @@ const css=`
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Inter,sans-serif;background:${T.bgGradient};color:${T.tx};font-size:13px;overflow-x:hidden}
 
-/* Clean and subtle animations */
-@keyframes fup{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fupScale{from{opacity:0;transform:translateY(15px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+/* Futuristic animations 2030 */
+@keyframes spk{0%,100%{transform:translate(0,0) scale(1);opacity:.9}35%{transform:translate(4px,-6px) scale(1.3);opacity:.4}70%{transform:translate(-3px,-2px) scale(.8);opacity:.3}}
+@keyframes fup{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fupScale{from{opacity:0;transform:translateY(20px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes sp2{to{transform:rotate(360deg)}}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+@keyframes neonGlow{0%,100%{box-shadow:0 0 20px ${T.accGlow},0 0 40px ${T.neonPurple}}50%{box-shadow:0 0 30px ${T.accGlow},0 0 60px ${T.neonPurple},0 0 80px ${T.neon}}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes cyberLine{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 20px ${T.accGlow}}50%{box-shadow:0 0 40px ${T.accGlow},0 0 60px ${T.neon}}}
 
 .fup{animation:fupScale .4s cubic-bezier(0.4, 0, 0.2, 1) both}.fup1{animation:fupScale .4s .1s cubic-bezier(0.4, 0, 0.2, 1) both}.fup2{animation:fupScale .4s .2s cubic-bezier(0.4, 0, 0.2, 1) both}.fup3{animation:fupScale .4s .3s cubic-bezier(0.4, 0, 0.2, 1) both}
 
@@ -185,15 +193,15 @@ const DiamondSVG=({size=40})=>(
   <svg width={size} height={size} viewBox="0 0 40 40">
     <defs>
       <linearGradient id="dg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor={T.diamond}/>
-        <stop offset="30%" stopColor={T.acc}/>
-        <stop offset="60%" stopColor={T.accLight}/>
-        <stop offset="100%" stopColor={T.neonPurple}/>
+        <stop offset="0%" stopColor="#FFD700"/>
+        <stop offset="30%" stopColor="#FFA500"/>
+        <stop offset="60%" stopColor="#FF8C00"/>
+        <stop offset="100%" stopColor="#FF6347"/>
       </linearGradient>
       <linearGradient id="dg2" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor={T.diamondGlow}/>
-        <stop offset="50%" stopColor={T.diamond}/>
-        <stop offset="100%" stopColor="rgba(255,255,255,0.1)"/>
+        <stop offset="0%" stopColor="#FFED4E"/>
+        <stop offset="50%" stopColor="#FFD700"/>
+        <stop offset="100%" stopColor="rgba(255,255,255,0.3)"/>
       </linearGradient>
       <filter id="diamondGlow">
         <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
@@ -215,7 +223,7 @@ const DiamondSVG=({size=40})=>(
         points="0,-14 14,0 0,14 -14,0" 
         fill="url(#dg)" 
         filter="url(#diamondGlow)"
-        style={{filter:"drop-shadow(0 0 20px rgba(218,165,255,0.8))"}}
+        style={{filter:"drop-shadow(0 0 25px rgba(255,215,0,0.9))"}}
       />
       <polygon 
         points="0,-14 14,0 0,0 -14,0" 
@@ -229,7 +237,7 @@ const DiamondSVG=({size=40})=>(
         fill="url(#dg)" 
         filter="url(#diamondGlow)"
         opacity=".7"
-        style={{filter:"drop-shadow(0 0 15px rgba(218,165,255,0.6))"}}
+        style={{filter:"drop-shadow(0 0 20px rgba(255,215,0,0.7))"}}
       />
       <polygon 
         points="0,-14 14,0 0,0 -14,0" 
@@ -237,13 +245,13 @@ const DiamondSVG=({size=40})=>(
         opacity=".8"
       />
     </g>
-    <circle cx="10" cy="10" r="1.5" fill={T.diamond} filter="url(#sparkle)">
+    <circle cx="10" cy="10" r="1.5" fill="#FFD700" filter="url(#sparkle)">
       <animate attributeName="opacity" values="1;0.4;1" dur="3s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="30" cy="10" r="1" fill={T.diamond} filter="url(#sparkle)">
+    <circle cx="30" cy="10" r="1" fill="#FFD700" filter="url(#sparkle)">
       <animate attributeName="opacity" values="1;0.3;1" dur="2.5s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="20" cy="30" r="0.8" fill={T.diamond} filter="url(#sparkle)">
+    <circle cx="20" cy="30" r="0.8" fill="#FFD700" filter="url(#sparkle)">
       <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" repeatCount="indefinite"/>
     </circle>
   </svg>
@@ -398,7 +406,10 @@ function LoginPage(){
           <div style={{display:"flex",flexDirection:"column",gap:11}}>
             <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Email</label>
               <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())} placeholder="vous@email.com"/></div>
-                        </div>
+            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>@ TikTok * <span style={{color:T.acc}}>(OBLIGATOIRE)</span></label>
+              <input className="inp" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} placeholder="@votre_pseudo_tiktok" style={{fontFamily:"monospace",borderColor:!handle.trim()?T.ng:T.b}}/>
+              <div style={{fontSize:11,color:!handle.trim()?T.ng:T.sec,marginTop:3}}>Doit tre EXACTEMENT identique  votre pseudo TikTok (avec @)</div>
+            </div>
             <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Mot de passe</label>
               <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())} placeholder=""/></div>
             {mode==="register"&&(
@@ -2223,10 +2234,10 @@ export default function App(){
         <div style={{width:195,flexShrink:0,background:T.card,borderRight:`1px solid ${T.b}`,display:"flex",flexDirection:"column"}}>
           <div style={{padding:"14px 10px 16px",cursor:"pointer"}} onClick={()=>setTab("dash")}><Brand/></div>
           <div style={{padding:"0 8px",flex:1,overflowY:"auto"}}>
-            {nav.map(n=>(<button key={n.id} className={`nb${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.l}</button>))}
+            {nav.map(n=><button key={n.id} className={`nb${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.l}</button>)}
           </div>
           <div style={{padding:"9px 10px",borderTop:`1px solid ${T.b}`,display:"flex",alignItems:"center",gap:8}}>
-            <AV name={(auth.profile?.email||"")[0].toUpperCase()} color={T.acc} size={28}/>
+            <AV name={(auth.profile?.email||"?")[0].toUpperCase()} color={T.acc} size={28}/>
             <div style={{overflow:"hidden",minWidth:0}}>
               <div style={{fontSize:11.5,fontWeight:600,color:T.tx,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{auth.profile?.email}</div>
               <div style={{fontSize:9.5,color:T.sec}}>{role}</div>
@@ -2242,4 +2253,3 @@ export default function App(){
     </>
   );
 }
-
