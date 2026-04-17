@@ -355,7 +355,6 @@ function LoginPage(){
   const [email,setEmail]=useState("");
   const [pw,setPw]=useState("");
   const [code,setCode]=useState("");
-  const [handle,setHandle]=useState("");
   const [avatar,setAvatar]=useState(null);
   const [mode,setMode]=useState("login");
   const [err,setErr]=useState("");
