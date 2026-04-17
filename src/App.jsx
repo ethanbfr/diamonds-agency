@@ -378,6 +378,16 @@ function LoginPage(){
     const {data,error}=await sb.auth.signUp({email,password:pw});
     if(error){setErr(error.message);setLoad(false);return;}
     
+    // Créer le profil avec le @ TikTok vide pour l'instant
+    if(sb && data.user) {
+      await sb.from("profiles").insert({
+        id: data.user.id,
+        email: email,
+        tiktok_handle: "",
+        role: "creator" // par défaut, sera mis à jour dans les paramètres
+      });
+    }
+    
     setLoad(false);setMode("confirm");
   };
 
@@ -414,9 +424,6 @@ function LoginPage(){
               <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())} placeholder=""/></div>
             {mode==="register"&&(
               <>
-                <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Photo de profil (mme que TikTok)</label>
-                  <input className="inp" type="file" accept="image/*" onChange={e=>setAvatar(e.target.files[0])} style={{fontSize:11.5}}/>
-                </div>
                 <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Code d'invitation</label>
                   <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="NOVA-AGENT-XXXXXX" style={{fontFamily:"monospace",letterSpacing:".08em"}}/>
                   <div style={{fontSize:11,color:T.sec,marginTop:4}}>Code fourni par votre agence</div>
@@ -2215,6 +2222,8 @@ export default function App(){
 
   if(!auth.user) return <><style>{css}</style><LoginPage/></>;
 
+  // Vérifier si l'utilisateur a un @ TikTok (sauf admin/agence)
+  const needsTikTokHandle = role !== "admin" && role !== "agency" && auth.profile && !auth.profile.tiktok_handle;
   const isBlocked=role!=="admin"&&ag&&!billingOk(ag);
   const nav=NAVS[role]||NAVS["admin"];
   const views={
@@ -2237,6 +2246,39 @@ export default function App(){
     all_lives:()=><AdminAllLivesView/>,
   };
   const View=views[tab]||views.dash;
+
+  // Écran si @ TikTok manquant
+  if(needsTikTokHandle) return(
+    <>
+      <style>{css}</style>
+      <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+        <div style={{width:"100%",maxWidth:420}}>
+          <div style={{textAlign:"center",marginBottom:24}}>
+            <div style={{display:"flex",justifyContent:"center",marginBottom:14}}><Brand big={true}/></div>
+            <h1 style={{fontSize:22,fontWeight:800,color:T.tx,marginBottom:8}}>Bienvenue sur Diamond's !</h1>
+          </div>
+          <div className="card glow" style={{padding:24,marginBottom:16}}>
+            <div style={{fontSize:48,marginBottom:16,textAlign:"center"}}>â¤ï¸</div>
+            <h2 style={{fontSize:18,fontWeight:700,color:T.tx,marginBottom:12,textAlign:"center"}}>@ TikTok requis</h2>
+            <p style={{fontSize:13,color:T.sec,marginBottom:20,lineHeight:1.6,textAlign:"center"}}>
+              Pour accéder à Diamond's, vous devez <strong style={{color:T.acc}}>compléter votre profil</strong> avec votre @ TikTok.
+            </p>
+            <div style={{background:"rgba(153,102,204,.08)",border:"1px solid rgba(153,102,204,.2)",borderRadius:10,padding:14,marginBottom:20}}>
+              <div style={{fontSize:11,fontWeight:600,color:T.acc,marginBottom:6}}>ð C'est simple :</div>
+              <ul style={{fontSize:12,color:T.sec,margin:0,paddingLeft:20,lineHeight:1.5}}>
+                <li>Allez dans <strong style={{color:T.tx}}>Paramètres</strong></li>
+                <li>Ajoutez votre @ TikTok exact</li>
+                <li>Accédez à toutes les fonctionnalités !</li>
+              </ul>
+            </div>
+            <button className="btn" style={{width:"100%",justifyContent:"center",padding:"12px"}} onClick={()=>setTab("settings")}>
+              Aller dans les paramètres
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
 
   return(
     <>
