@@ -2367,9 +2367,7 @@ function AdminInviteAgencies(){
       
       const {data, error} = await sb.from("invite_codes").insert([{
         code,
-        target_role:"agency",
-        uses:0,
-        max_uses:1
+        target_role:"agency"
       }]);
       
       if(error) {
@@ -2428,7 +2426,7 @@ function AdminInviteAgencies(){
               <div style={{flex:1}}>
                 <div style={{fontWeight:800,fontSize:16,color:T.tx,marginBottom:4}}>{code.code}</div>
                 <div style={{fontSize:11.5,color:T.sec}}>
-                  {code.uses}/{code.max_uses} utilisations  Créé le {new Date(code.created_at).toLocaleDateString("fr-FR")}
+                  Code pour agence  Créé le {new Date(code.created_at).toLocaleDateString("fr-FR")}
                 </div>
               </div>
               <div style={{display:"flex",gap:6}}>
