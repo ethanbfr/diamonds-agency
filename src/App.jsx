@@ -309,7 +309,7 @@ const billingTag=(s,isOffered)=>{
 
 /*  NAV  */
 const NAVS={
-  admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"all_users",l:"Tous les utilisateurs"},{id:"all_creators",l:"Tous crateurs"},{id:"all_staff",l:"Tout staff"},{id:"all_matches",l:"Tous matchs"},{id:"all_schedules",l:"Tous plannings"},{id:"all_lives",l:"Tous lives"}],
+  admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"invite_agencies",l:"Inviter des agences"},{id:"billing",l:"Facturation"},{id:"all_users",l:"Tous les utilisateurs"},{id:"all_creators",l:"Tous crateurs"},{id:"all_staff",l:"Tout staff"},{id:"all_matches",l:"Tous matchs"},{id:"all_schedules",l:"Tous plannings"},{id:"all_lives",l:"Tous lives"}],
   agency:  [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon quipe"},{id:"creators",l:"Crateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Liens d'invitation"},{id:"matches",l:"Matchs"},{id:"settings",l:"Paramtres"}],
   director:[{id:"dash",l:"Mon ple"},{id:"creators",l:"Mes crateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"}],
   manager: [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes crateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"}],
@@ -2327,6 +2327,94 @@ function BlockedAgenciesPanel({profile}){
   );
 }
 
+/*  ADMIN INVITE AGENCIES  */
+function AdminInviteAgencies(){
+  const [codes,setCodes]=useState([]);
+  const [generating,setGenerating]=useState(false);
+  const [copied,setCopied]=useState(null);
+
+  useEffect(()=>{
+    loadCodes();
+  }, []);
+
+  const loadCodes=async()=>{
+    if(!sb) return;
+    const {data}=await sb.from("invite_codes").select("*").eq("target_role","agency").order("created_at",{ascending:false});
+    setCodes(data||[]);
+  };
+
+  const generateCode=async()=>{
+    if(!sb) return;
+    setGenerating(true);
+    const code=`AGENCE-${Math.random().toString(36).slice(-6).toUpperCase()}`;
+    await sb.from("invite_codes").insert([{
+      code,
+      target_role:"agency",
+      uses:0,
+      max_uses:1
+    }]);
+    await loadCodes();
+    setGenerating(false);
+  };
+
+  const copyCode=(code)=>{
+    navigator.clipboard.writeText(code);
+    setCopied(code);
+    setTimeout(()=>setCopied(null),2000);
+  };
+
+  const deleteCode=async(id)=>{
+    if(!sb) return;
+    if(!confirm("Supprimer ce code ?")) return;
+    await sb.from("invite_codes").delete().eq("id",id);
+    await loadCodes();
+  };
+
+  return(
+    <div className="fup">
+      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Inviter des agences</h1>
+      <div className="card" style={{padding:20,marginBottom:16}}>
+        <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:8}}>Générer des codes d'invitation</div>
+        <div style={{fontSize:12,color:T.sec,marginBottom:16}}>
+          Donnez ces codes aux agences pour qu'elles puissent s'inscrire sur Diamond's.
+        </div>
+        <button className="btn" style={{fontSize:13}} onClick={generateCode} disabled={generating}>
+          {generating?<><Spin/>Génération...</>:"Générer un code agence"}
+        </button>
+      </div>
+
+      {codes.length===0?(
+        <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
+          <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:8}}>Aucun code généré</div>
+          <div style={{fontSize:12,color:T.sec}}>Générez des codes pour inviter des agences</div>
+        </div>
+      ):(
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:8}}>Codes générés ({codes.length})</div>
+          {codes.map(code=>(
+            <div key={code.id} className="card" style={{padding:16,display:"flex",alignItems:"center",gap:12}}>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:800,fontSize:16,color:T.tx,marginBottom:4}}>{code.code}</div>
+                <div style={{fontSize:11.5,color:T.sec}}>
+                  {code.uses}/{code.max_uses} utilisations  Créé le {new Date(code.created_at).toLocaleDateString("fr-FR")}
+                </div>
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                <button className="btng" style={{fontSize:10.5}} onClick={()=>copyCode(code.code)}>
+                  {copied===code.code?"Copié !":"Copier"}
+                </button>
+                <button className="btng" style={{fontSize:10.5,color:T.ng,borderColor:T.ng+"30"}} onClick={()=>deleteCode(code.id)}>
+                  Supprimer
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---- APP ROOT ---- */
 export default function App(){
   const auth=useAuth();
@@ -2361,6 +2449,7 @@ export default function App(){
   const views={
     dash:    ()=>role==="admin"?<AdminDash setTab={setTab}/>:<DashView profile={auth.profile} creators={team.creators} agents={team.agents} managers={team.managers} directors={team.directors}/>,
     agencies:()=><AdminAgencies/>,
+    invite_agencies:()=><AdminInviteAgencies/>,
     billing: ()=><AdminBilling/>,
     all_users:()=><AdminAllUsersView/>,
     all_creators:()=><AdminAllCreatorsView/>,
@@ -2370,7 +2459,7 @@ export default function App(){
     import:  ()=><ImportView profile={auth.profile} reload={reload}/>,
     links:   ()=><CodesPanel profile={auth.profile}/>,
     settings:()=><SettingsView profile={auth.profile} reload={reload}/>,
-    matches: ()=><MatchesView profile={auth.profile} creators={team.creators} agents={team.agents}/>,
+    matches: ()=><MatchesView profile={auth.profile} creators={team.creators} agents={team.agencies}/>,
     planning:()=><PlanningView profile={auth.profile}/>,
     my_lives:()=><MyLivesView profile={auth.profile}/>,
     all_matches:()=><AdminAllMatchesView/>,
