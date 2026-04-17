@@ -5,7 +5,7 @@ const SB_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 
-const T={bg:"#06000D",card:"rgba(255,255,255,0.04)",cardH:"rgba(130,50,220,0.10)",b:"rgba(255,255,255,0.07)",acc:"#8B30D4",accL:"#A855F7",cy:"#A78BFA",sec:"#6B7280",ok:"#22C55E",ng:"#EF4444",go:"#F59E0B",pu:"#C084FC",tx:"#FFFFFF",txD:"#9CA3AF",stripe:"#8B30D4"};
+const T={bg:"#050008",card:"rgba(138,43,226,0.07)",cardH:"rgba(138,43,226,0.14)",b:"rgba(138,43,226,0.2)",acc:"#8B2BE2",accL:"#A855F7",glow:"rgba(138,43,226,0.5)",cy:"#BF5AF2",sec:"#8B6BAE",ok:"#30D158",ng:"#FF453A",go:"#FFD60A",pu:"#DA8FFF",tx:"#FFFFFF",txD:"#C4B0D8",stripe:"#8B2BE2"};
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
 const PRICE=149;
@@ -13,30 +13,68 @@ const PRICE=149;
 const css=`
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;500;600;700;800;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Inter,sans-serif;background:${T.bg};color:${T.tx};font-size:13px}
-@keyframes spk{0%,100%{transform:translate(0,0) scale(1);opacity:.9}35%{transform:translate(4px,-6px) scale(1.3);opacity:.4}70%{transform:translate(-3px,-2px) scale(.8);opacity:.3}}
-@keyframes fup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+html{height:100%}
+body{font-family:Inter,sans-serif;background:#050008;color:#FFFFFF;font-size:13px;min-height:100vh;background-image:radial-gradient(ellipse at 20% 50%,rgba(138,43,226,0.15) 0%,transparent 50%),radial-gradient(ellipse at 80% 20%,rgba(168,85,247,0.1) 0%,transparent 45%)}
+
+@keyframes fup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes sp2{to{transform:rotate(360deg)}}
-.fup{animation:fup .3s ease both}.fup1{animation:fup .3s .06s ease both}.fup2{animation:fup .3s .12s ease both}.fup3{animation:fup .3s .18s ease both}
-.nb{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:500;border:none;background:transparent;width:100%;color:${T.sec};transition:all .18s;text-align:left;font-family:Inter,sans-serif}
-.nb:hover{background:rgba(127,0,255,.1);color:${T.acc}}.nb.on{background:rgba(127,0,255,.15);color:${T.acc};position:relative}
-.nb.on::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:2px;background:${T.acc};border-radius:0 2px 2px 0}
-.btn{background:linear-gradient(135deg,${T.acc},#B060FF);color:#fff;border:none;border-radius:9px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:Inter,sans-serif;transition:all .2s}
-.btn:hover{box-shadow:0 4px 18px rgba(127,0,255,.4);transform:translateY(-1px)}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
-.btng{background:transparent;color:${T.sec};border:1px solid ${T.b};border-radius:8px;padding:4px 10px;font-size:11px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:Inter,sans-serif;transition:all .18s}
-.btng:hover{background:rgba(127,0,255,.1);color:${T.acc};border-color:rgba(127,0,255,.3)}
-.tag{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}
-.cr{display:grid;align-items:center;padding:9px 14px;border-bottom:1px solid ${T.b};transition:background .15s}
-.cr:last-child{border-bottom:none}.cr:hover{background:rgba(127,0,255,.04)}
-input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:20px;background:rgba(255,255,255,.1);outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:${T.acc};cursor:pointer}
-.inp{width:100%;padding:8px 11px;border-radius:8px;border:1px solid ${T.b};background:rgba(255,255,255,.04);color:${T.tx};font-size:12.5px;outline:none;font-family:Inter,sans-serif;transition:border .18s}
-.inp:focus{border-color:${T.acc};box-shadow:0 0 0 3px rgba(127,0,255,.1)}.inp::placeholder{color:${T.sec}}
-select.inp option{background:#1A1035;color:#F0EAFF}
-.card{background:${T.card};border-radius:12px;border:1px solid ${T.b}}
-.glow{background:${T.card};border-radius:12px;border:1px solid rgba(127,0,255,.3)}
-.tog{width:38px;height:20px;border-radius:10px;cursor:pointer;border:none;position:relative;flex-shrink:0;transition:background .2s}
-.tog .kn{position:absolute;top:3px;width:14px;height:14px;border-radius:50%;background:white;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 rgba(138,43,226,0)}50%{box-shadow:0 0 0 6px rgba(138,43,226,0)}}
+@keyframes border-flow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+.fup{animation:fup .3s ease both}
+.fup1{animation:fup .3s .06s ease both}
+.fup2{animation:fup .3s .12s ease both}
+
+/* NAV */
+.nb{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:500;border:none;background:transparent;width:100%;color:#8B6BAE;transition:all .2s;text-align:left;font-family:Inter,sans-serif;position:relative}
+.nb:hover{background:rgba(138,43,226,0.12);color:#FFFFFF}
+.nb.on{background:rgba(138,43,226,0.2);color:#FFFFFF;font-weight:600}
+.nb.on::before{content:'';position:absolute;left:0;top:18%;bottom:18%;width:3px;background:linear-gradient(180deg,#A855F7,#7C3AED);border-radius:0 3px 3px 0;box-shadow:0 0 12px rgba(168,85,247,0.8)}
+
+/* BUTTONS */
+.btn{background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border:none;border-radius:10px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-family:Inter,sans-serif;transition:all .25s;position:relative;overflow:hidden;letter-spacing:.01em}
+.btn::after{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);transition:left .4s}
+.btn:hover::after{left:100%}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(138,43,226,0.5),0 2px 10px rgba(138,43,226,0.3)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+
+.btng{background:transparent;color:#8B6BAE;border:1px solid rgba(138,43,226,0.25);border-radius:9px;padding:5px 12px;font-size:11px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-family:Inter,sans-serif;transition:all .2s}
+.btng:hover{background:rgba(138,43,226,0.1);color:#FFFFFF;border-color:rgba(138,43,226,0.5)}
+
+/* TAGS */
+.tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.02em}
+
+/* TABLE ROWS */
+.cr{display:grid;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(138,43,226,0.1);transition:background .15s}
+.cr:last-child{border-bottom:none}
+.cr:hover{background:rgba(138,43,226,0.06)}
+
+/* RANGE */
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:20px;background:rgba(138,43,226,0.2);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#A855F7);cursor:pointer;box-shadow:0 0 8px rgba(138,43,226,0.6)}
+
+/* INPUTS */
+.inp{width:100%;padding:9px 13px;border-radius:10px;border:1px solid rgba(138,43,226,0.2);background:rgba(138,43,226,0.06);color:#FFFFFF;font-size:12.5px;outline:none;font-family:Inter,sans-serif;transition:all .2s}
+.inp:focus{border-color:rgba(168,85,247,0.6);background:rgba(138,43,226,0.1);box-shadow:0 0 0 3px rgba(138,43,226,0.15)}
+.inp::placeholder{color:#8B6BAE}
+select.inp option{background:#0D0015;color:#FFFFFF}
+
+/* CARDS */
+.card{background:rgba(138,43,226,0.07);border-radius:14px;border:1px solid rgba(138,43,226,0.18);backdrop-filter:blur(10px);transition:all .25s}
+.card:hover{border-color:rgba(138,43,226,0.35);background:rgba(138,43,226,0.1)}
+.glow{background:rgba(138,43,226,0.12);border-radius:14px;border:1px solid rgba(168,85,247,0.45);backdrop-filter:blur(10px);box-shadow:0 0 30px rgba(138,43,226,0.2),inset 0 1px 0 rgba(255,255,255,0.05)}
+
+/* TOGGLE */
+.tog{width:42px;height:22px;border-radius:11px;cursor:pointer;border:none;position:relative;flex-shrink:0;transition:background .2s}
+.tog .kn{position:absolute;top:3px;width:16px;height:16px;border-radius:50%;background:white;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,0.4)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(138,43,226,0.3);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(168,85,247,0.5)}
 `;
 
 /* ─── UTILS ─────────────────────────────── */
@@ -1420,7 +1458,7 @@ export default function App(){
   if(auth.loading) return(
     <>
       <style>{css}</style>
-      <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{minHeight:"100vh",background:"#050008",display:"flex",alignItems:"center",justifyContent:"center"}}>
         <div style={{textAlign:"center"}}><div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Brand big={true}/></div>
           <div style={{width:28,height:28,borderRadius:"50%",border:"3px solid rgba(127,0,255,.2)",borderTop:`3px solid ${T.acc}`,animation:"sp2 .8s linear infinite",margin:"0 auto"}}/></div>
       </div>
@@ -1451,7 +1489,7 @@ export default function App(){
       <style>{css}</style>
       {isBlocked&&<BlockedScreen agencyName={ag?.name}/>}
       <div style={{minHeight:"100vh",background:T.bg,display:"flex",fontFamily:"Inter,sans-serif"}}>
-        <div style={{width:195,flexShrink:0,background:T.card,borderRight:`1px solid ${T.b}`,display:"flex",flexDirection:"column"}}>
+        <div style={{width:195,flexShrink:0,background:"rgba(138,43,226,0.05)",borderRight:"1px solid rgba(138,43,226,0.15)",display:"flex",flexDirection:"column"}}>
           <div style={{padding:"14px 10px 16px",cursor:"pointer"}} onClick={()=>setTab("dash")}><Brand/></div>
           <div style={{padding:"0 8px",flex:1,overflowY:"auto"}}>
             {nav.map(n=><button key={n.id} className={`nb${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.l}</button>)}
