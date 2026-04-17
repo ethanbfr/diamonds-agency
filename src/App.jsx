@@ -359,6 +359,7 @@ function LoginPage(){
   const [mode,setMode]=useState("login");
   const [err,setErr]=useState("");
   const [load,setLoad]=useState(false);
+  const [agencyMode,setAgencyMode]=useState(false);
 
   const login=async()=>{
     setErr("");setLoad(true);
@@ -391,6 +392,47 @@ function LoginPage(){
     setLoad(false);setMode("confirm");
   };
 
+  const registerAgency=async()=>{
+    setErr("");setLoad(true);
+    if(!sb){setErr("Supabase non configur");setLoad(false);return;}
+    if(!email||!pw){setErr("Email et mot de passe requis");setLoad(false);return;}
+    if(!code){setErr("Code d'agence requis");setLoad(false);return;}
+    
+    // Vérifier si le code d'agence existe
+    const {data: codeData, error: codeError} = await sb.from("invite_codes")
+      .select("*")
+      .eq("code", code.trim())
+      .single();
+    
+    if(codeError || !codeData){
+      setErr("Code d'agence invalide");setLoad(false);return;
+    }
+    
+    if(codeData.uses >= codeData.max_uses){
+      setErr("Code d'agence déjà utilisé");setLoad(false);return;
+    }
+    
+    const {data,error}=await sb.auth.signUp({email,password:pw});
+    if(error){setErr(error.message);setLoad(false);return;}
+    
+    // Créer le profil pour l'agence
+    if(sb && data.user) {
+      await sb.from("profiles").insert({
+        id: data.user.id,
+        email: email,
+        tiktok_handle: "",
+        role: "agency"
+      });
+      
+      // Marquer le code comme utilisé
+      await sb.from("invite_codes")
+        .update({ uses: codeData.uses + 1 })
+        .eq("id", codeData.id);
+    }
+    
+    setLoad(false);setMode("confirm");
+  };
+
   if(mode==="confirm") return(
     <div style={{minHeight:"100vh",background:`radial-gradient(ellipse at 50% 0%,rgba(127,0,255,.15) 0%,transparent 55%),${T.bg}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{textAlign:"center",maxWidth:360,padding:20}} className="fup">
@@ -408,6 +450,20 @@ function LoginPage(){
         <div style={{textAlign:"center",marginBottom:24}} className="fup">
           <div style={{display:"flex",justifyContent:"center",marginBottom:14}}><Brand big={true}/></div>
           <div style={{fontSize:12.5,color:T.sec,marginTop:10}}>La plateforme des agences TikTok Live</div>
+          <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:12}}>
+            <button 
+              onClick={()=>setAgencyMode(false)} 
+              style={{padding:"6px 12px",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",border:"none",background:!agencyMode?T.acc:"transparent",color:!agencyMode?"white":T.sec,fontFamily:"Inter,sans-serif",transition:"all .18s"}}
+            >
+              Créateur
+            </button>
+            <button 
+              onClick={()=>setAgencyMode(true)} 
+              style={{padding:"6px 12px",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",border:"none",background:agencyMode?T.acc:"transparent",color:agencyMode?"white":T.sec,fontFamily:"Inter,sans-serif",transition:"all .18s"}}
+            >
+              Agence
+            </button>
+          </div>
         </div>
         <div className="card fup1" style={{padding:22,marginBottom:10}}>
           <div style={{display:"flex",gap:4,marginBottom:18,background:"rgba(255,255,255,.04)",padding:4,borderRadius:10}}>
@@ -424,15 +480,19 @@ function LoginPage(){
               <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())} placeholder=""/></div>
             {mode==="register"&&(
               <>
-                <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Code d'invitation</label>
-                  <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="NOVA-AGENT-XXXXXX" style={{fontFamily:"monospace",letterSpacing:".08em"}}/>
-                  <div style={{fontSize:11,color:T.sec,marginTop:4}}>Code fourni par votre agence</div>
+                <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>
+                  {agencyMode?"Code d'agence":"Code d'invitation"}
+                </label>
+                  <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder={agencyMode?"AGENCE-CODE-XXXXXX":"NOVA-AGENT-XXXXXX"} style={{fontFamily:"monospace",letterSpacing:".08em"}}/>
+                  <div style={{fontSize:11,color:T.sec,marginTop:4}}>
+                    {agencyMode?"Code fourni par Diamond's pour votre agence":"Code fourni par votre agence"}
+                  </div>
                 </div>
               </>
             )}
             {err&&<div style={{padding:"7px 10px",borderRadius:8,background:"rgba(244,67,54,.1)",border:"1px solid rgba(244,67,54,.2)",fontSize:11.5,color:T.ng}}>{err}</div>}
-            <button className="btn" style={{width:"100%",justifyContent:"center",padding:"9px",marginTop:4}} onClick={mode==="login"?login:register} disabled={load}>
-              {load?<><Spin/>{mode==="login"?"Connexion":"Inscription"}</>:(mode==="login"?"Se connecter":"Crer mon compte")}
+            <button className="btn" style={{width:"100%",justifyContent:"center",padding:"9px",marginTop:4}} onClick={mode==="login"?login:(agencyMode?registerAgency:register)} disabled={load}>
+              {load?<><Spin/>{mode==="login"?"Connexion":"Inscription"}</>:(mode==="login"?"Se connecter":(agencyMode?"Créer agence":"Créer mon compte"))}
             </button>
           </div>
         </div>
@@ -558,9 +618,6 @@ function AdminAgencies(){
     if(!name.trim()||!slug.trim()||!email.trim()){setErr("Nom, slug et email obligatoires");return;}
     setCreating(true);setErr("");
     
-    // Récupérer l'ID utilisateur actuel
-    const { data: { user } } = await sb.auth.getUser();
-    
     // Créer l'agence
     const agencyData = {
       name: name.trim(),
@@ -568,8 +625,7 @@ function AdminAgencies(){
       color: color,
       email: email.trim(),
       billing_status: "essai",
-      is_offered: false,
-      created_by: user?.id
+      is_offered: false
     };
     
     const {data, error} = await sb.from("agencies").insert([agencyData]).select();
