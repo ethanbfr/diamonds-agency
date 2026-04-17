@@ -79,7 +79,7 @@ const getProfile=async(uid)=>{
   if(data.agency_id){const {data:ag}=await sb.from("agencies").select("*").eq("id",data.agency_id).single();data.agencies=ag||null;}
   return data;
 };
-const fetchTeam=async(agId)=>{
+const fetchTeam=async(agId,profileId,role)=>{
   if(!sb||!agId) return {creators:[],agents:[],managers:[],directors:[]};
   const [cr,ag,mg,dr]=await Promise.all([
     sb.from("creators").select("*").eq("agency_id",agId),
@@ -87,7 +87,22 @@ const fetchTeam=async(agId)=>{
     sb.from("managers").select("*").eq("agency_id",agId),
     sb.from("directors").select("*").eq("agency_id",agId),
   ]);
-  return {creators:cr.data||[],agents:ag.data||[],managers:mg.data||[],directors:dr.data||[]};
+  let creators=cr.data||[];
+  // If creator role, filter to only their own record
+  if(role==="creator"&&profileId){
+    creators=creators.filter(c=>c.profile_id===profileId);
+    // If not linked yet, try to link by handle
+    if(creators.length===0){
+      const {data:prof}=await sb.from("profiles").select("tiktok_handle").eq("id",profileId).single();
+      if(prof?.tiktok_handle){
+        const handle=prof.tiktok_handle.replace("@","").toLowerCase();
+        creators=(cr.data||[]).filter(c=>(c.pseudo||"").replace("@","").toLowerCase()===handle);
+        // Auto-link
+        if(creators.length>0) await sb.from("creators").update({profile_id:profileId}).eq("id",creators[0].id);
+      }
+    }
+  }
+  return {creators,agents:ag.data||[],managers:mg.data||[],directors:dr.data||[]};
 };
 const fetchAllAgencies=async()=>{if(!sb) return [];const {data}=await sb.from("agencies").select("*").order("created_at",{ascending:false});return data||[];};
 const doCreateAgency=async(name,slug,color)=>{
@@ -199,9 +214,9 @@ const billingTag=(s,isOffered)=>{
 const NAVS={
   admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"invite_agencies",l:"Inviter agences"},{id:"all_users",l:"Utilisateurs"},{id:"all_creators",l:"Créateurs"},{id:"all_staff",l:"Staff"},{id:"all_matches",l:"Matchs"},{id:"all_schedules",l:"Plannings"},{id:"all_lives",l:"Lives"},{id:"poster_templates",l:"Templates affiches"}],
   agency:  [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Liens d'invitation"},{id:"matches",l:"Matchs"},{id:"settings",l:"Paramètres"}],
-  director:[{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"}],
-  manager: [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"}],
-  agent:   [{id:"dash",l:"Dashboard"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mon lien"}],
+  director:[{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
+  manager: [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
+  agent:   [{id:"dash",l:"Dashboard"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mon lien"},{id:"settings",l:"Paramètres"}],
   creator: [{id:"dash",l:"Mon espace"},{id:"planning",l:"Mon planning"},{id:"my_lives",l:"Mes lives"},{id:"matches",l:"Mes matchs"}],
 };
 
@@ -263,13 +278,8 @@ function LoginPage(){
     const clean=code.trim().toUpperCase();
     const {data:cd,error}=await sb.from("invite_codes").select("*").eq("code",clean).single();
     if(error||!cd){setErr("Code invalide ou expiré");setLoad(false);return;}
-    if(cd.target_role==="agency"){
-      setPendingCode(clean);
-      setStep("payment");
-      setLoad(false);
-    } else {
-      await doRegister(clean);
-    }
+    // Always register first — payment is optional (admin can offer access later)
+    await doRegister(clean);
   };
 
   const doRegister=async(cleanCode)=>{
@@ -278,14 +288,20 @@ function LoginPage(){
     if(error){setErr(error.message);setLoad(false);return;}
     const isAgency=cleanCode.startsWith("AGENCE-");
     if(isAgency){
+      // Create agency immediately — admin can offer/activate access later
+      const agName=email.split("@")[0];
       const {data:ag}=await sb.from("agencies").insert({
-        name:email.split("@")[0],
+        name:agName,
         slug:"AG"+Date.now().toString(36).toUpperCase().slice(-6),
         billing_status:"essai",is_offered:false,
         pct_director:3,pct_manager:5,pct_agent:10,pct_creator:55,
-        min_days:20,min_hours:40,accept_inter_agency:true
+        min_days:20,min_hours:40,accept_inter_agency:true,
+        director_can_import:false,manager_can_import:false,
+        can_agent_delete_creator:false,can_manager_delete_agent:false,can_director_delete_all:true
       }).select().single();
-      await sb.from("profiles").update({role:"agency",agency_id:ag?.id}).eq("id",data.user.id);
+      if(ag?.id){
+        await sb.from("profiles").update({role:"agency",agency_id:ag.id}).eq("id",data.user.id);
+      }
       await sb.from("invite_codes").update({uses:1}).eq("code",cleanCode);
     } else {
       const {error:cErr}=await sb.rpc("use_invite_code",{p_code:cleanCode,p_user_id:data.user?.id});
@@ -984,7 +1000,7 @@ function MatchesView({profile,creators}){
 
   const statusColor={pending:T.go,confirmed:T.ok,done:T.cy,cancelled:T.ng};
   const statusLabel={pending:"En attente",confirmed:"Confirmé",done:"Terminé",cancelled:"Annulé"};
-  const canCreate=["agency","director","manager","agent"].includes(role);
+  const canCreate=["agency","director","manager","agent","admin"].includes(role);
 
   return(
     <div className="fup">
@@ -1080,7 +1096,7 @@ function MatchesView({profile,creators}){
               <span className="tag" style={{background:`${statusColor[m.status]||T.go}18`,color:statusColor[m.status]||T.go}}>
                 {statusLabel[m.status]||"En attente"}
               </span>
-              <button className="btng" style={{fontSize:10.5}} onClick={()=>setPoster(m)}>Affiche 🖼</button>
+              <button className="btng" style={{fontSize:10.5,color:"#9333EA",borderColor:"rgba(147,51,234,0.3)"}} onClick={()=>setPoster(m)}>🖼 Affiche</button>
             </div>
           ))}
         </div>
@@ -1101,6 +1117,14 @@ function CreatorsView({profile,creators,agents,reload}){
   const canName=["admin","agency"].includes(role);
   const canTransfer=["admin","agency"].includes(role);
   const canTogglePayout=role==="agency";
+  // Delete permissions based on agency settings
+  const canDeleteCreator=(role==="agency"||role==="admin")||(role==="agent"&&ag?.can_agent_delete_creator)||(role==="manager"&&ag?.can_manager_delete_agent)||(role==="director"&&ag?.can_director_delete_all);
+  const canDeleteAgent=(role==="agency"||role==="admin")||(role==="manager"&&ag?.can_manager_delete_agent)||(role==="director"&&ag?.can_director_delete_all);
+  const deleteCreator=async(creatorId)=>{
+    if(!sb||!confirm("Supprimer ce créateur ? Cette action est irréversible.")) return;
+    await sb.from("creators").delete().eq("id",creatorId);
+    reload?.();
+  };
 
   const doTransfer=async(creatorId)=>{
     const agentId=sel[creatorId];if(!agentId) return;
@@ -1205,7 +1229,27 @@ function ImportView({profile,reload}){
     let p=0;const iv=setInterval(()=>{p=Math.min(p+Math.random()*14+5,90);setProg(Math.round(p));},110);
     const res=await importBackstage(ag?.id,profile?.id,rows.length?rows:[]);
     clearInterval(iv);setProg(100);
-    setTimeout(()=>{if(res?.error){setErr(res.error);setPhase("idle");}else{setRes(res);setPhase("done");reload?.();}},300);
+    setTimeout(async()=>{
+      if(res?.error){setErr(res.error);setPhase("idle");}
+      else{
+        // Link profiles by tiktok_handle to their creator record
+        if(sb&&ag?.id){
+          const {data:creatorsData}=await sb.from("creators").select("id,tiktok_id,pseudo").eq("agency_id",ag.id);
+          const {data:profilesData}=await sb.from("profiles").select("id,tiktok_handle").eq("agency_id",ag.id);
+          if(creatorsData&&profilesData){
+            for(const prof of profilesData){
+              if(!prof.tiktok_handle) continue;
+              const handle=prof.tiktok_handle.replace("@","").toLowerCase();
+              const match=creatorsData.find(c=>(c.pseudo||"").replace("@","").toLowerCase()===handle||(c.tiktok_id||"").toLowerCase()===handle);
+              if(match&&!match.profile_id){
+                await sb.from("creators").update({profile_id:prof.id}).eq("id",match.id);
+              }
+            }
+          }
+        }
+        setRes(res);setPhase("done");reload?.();
+      }
+    },300);
   };
   const expiry=()=>{const d=new Date();d.setMonth(d.getMonth()+1);d.setDate(15);return d.toLocaleDateString("fr-FR");};
   if(!canImport()) return <div style={{padding:"20px 16px",borderRadius:13,background:"rgba(244,67,54,.08)",border:"1px solid rgba(244,67,54,.2)",fontSize:13.5,color:T.ng}}>⛔ Permission refusée.</div>;
@@ -1248,14 +1292,24 @@ function SettingsView({profile,reload}){
   const [pcts,setPcts]=useState({director:ag?.pct_director||3,manager:ag?.pct_manager||5,agent:ag?.pct_agent||10,creator:ag?.pct_creator||55});
   const [minD,setMinD]=useState(ag?.min_days||20);
   const [minH,setMinH]=useState(ag?.min_hours||40);
-  const [perms,setPerms]=useState({dir:ag?.director_can_import||false,mgr:ag?.manager_can_import||false,inter:ag?.accept_inter_agency!==false});
+  const [perms,setPerms]=useState({dir:ag?.director_can_import||false,mgr:ag?.manager_can_import||false,inter:ag?.accept_inter_agency!==false,agentDel:ag?.can_agent_delete_creator||false,mgrDel:ag?.can_manager_delete_agent||false,dirDel:ag?.can_director_delete_all!==false});
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
+  const [tiktokHandle,setTiktokHandle]=useState((profile?.tiktok_handle||"").replace(/^@/,""));
+  const [avatarPreview,setAvatarPreview]=useState(profile?.tiktok_avatar_url||null);
   const ROLES=[{k:"creator",l:"Part créateur",c:T.ok},{k:"agent",l:"Commission agent",c:T.cy},{k:"manager",l:"Commission manager",c:T.pu},{k:"director",l:"Commission directeur",c:T.acc}];
   const total=Object.values(pcts).reduce((s,v)=>s+v,0);
   const save=async()=>{
-    if(!sb||!ag?.id) return;setSaving(true);
-    await sb.from("agencies").update({pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter}).eq("id",ag.id);
+    if(!sb) return;setSaving(true);
+    // Save TikTok handle for non-agency/admin
+    if(!["agency","admin"].includes(profile?.role)&&profile?.id){
+      const handleVal=tiktokHandle.trim()?"@"+tiktokHandle.trim().replace(/^@/,""):"";
+      await sb.from("profiles").update({tiktok_handle:handleVal}).eq("id",profile.id);
+    }
+    // Save agency settings if applicable
+    if(ag?.id){
+      await sb.from("agencies").update({pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel}).eq("id",ag.id);
+    }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
   return(
@@ -1291,7 +1345,7 @@ function SettingsView({profile,reload}){
       </div>
       <div className="card" style={{padding:18,marginBottom:14}}>
         <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Permissions & Matchs</div>
-        {[{k:"dir",l:"Directeurs peuvent importer",c:T.acc},{k:"mgr",l:"Managers peuvent importer",c:T.pu},{k:"inter",l:"Accepter les matchs inter-agences",c:T.cy}].map(p=>(
+        {[{k:"dir",l:"Directeurs peuvent importer",c:T.acc},{k:"mgr",l:"Managers peuvent importer",c:T.pu},{k:"inter",l:"Matchs inter-agences acceptés",c:"#00C853"},{k:"agentDel",l:"Agents peuvent supprimer des créateurs",c:"#FF9800"},{k:"mgrDel",l:"Managers peuvent supprimer agents & créateurs",c:T.pu},{k:"dirDel",l:"Directeurs peuvent tout supprimer",c:T.acc}].map(p=>(
           <div key={p.k} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:9,background:perms[p.k]?`${p.c}08`:"rgba(255,255,255,.02)",border:`1px solid ${perms[p.k]?p.c+"25":T.b}`,marginBottom:7}}>
             <div style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{p.l}</div>
             <Tog on={perms[p.k]} onChange={v=>setPerms(t=>({...t,[p.k]:v}))} color={p.c}/>
@@ -2089,10 +2143,10 @@ export default function App(){
   const agencyId=auth.profile?.agency_id;
   const ag=auth.profile?.agencies;
 
-  useEffect(()=>{if(agencyId){setLT(true);fetchTeam(agencyId).then(d=>{setTeam(d);setLT(false);})};},[agencyId]);
+  useEffect(()=>{if(agencyId){setLT(true);fetchTeam(agencyId,auth.profile?.id,role).then(d=>{setTeam(d);setLT(false);})};},[agencyId]);
   useEffect(()=>{setTab("dash");},[role]);
 
-  const reload=()=>{auth.reload();if(agencyId) fetchTeam(agencyId).then(setTeam);};
+  const reload=()=>{auth.reload();if(agencyId) fetchTeam(agencyId,auth.profile?.id,role).then(setTeam);};
 
   if(auth.loading) return(
     <>
