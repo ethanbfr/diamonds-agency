@@ -273,14 +273,16 @@ function LoginPage(){
       if(error){setErr(error.message);setLoad(false);return;}
       if(data.user){
         // Create agency
-        const {data:agData}=await sb.from("agencies").insert({
+        const {data:agData,error:agError}=await sb.from("agencies").insert({
           name:email.split("@")[0],slug:cleanCode.split("-")[1]||"AG",
           billing_status:"essai",is_offered:false,
           pct_director:3,pct_manager:5,pct_agent:10,pct_creator:55,
           min_days:20,min_hours:40,accept_inter_agency:true
         }).select().single();
+        if(agError||!agData){setErr("Erreur création agence: "+(agError?.message||"données invalides"));setLoad(false);return;}
         // Set profile as agency role - permanent, code deletion won't affect this
-        await sb.from("profiles").update({role:"agency",agency_id:agData?.id}).eq("id",data.user.id);
+        const {error:profError}=await sb.from("profiles").update({role:"agency",agency_id:agData.id}).eq("id",data.user.id);
+        if(profError){setErr("Erreur profil: "+profError.message);setLoad(false);return;}
         // Mark code used but profile role is permanent in profiles table
         await sb.from("invite_codes").update({uses:1}).eq("code",cleanCode);
       }
