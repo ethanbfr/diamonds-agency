@@ -9,45 +9,55 @@ const T={bg:"#080808",card:"rgba(255,255,255,0.03)",cardH:"rgba(255,255,255,0.05
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
 const PRICE=149;
+const STRIPE_PAYMENT_LINK="https://buy.stripe.com/REMPLACER_PAR_TON_LIEN";
+const STRIPE_PK="pk_live_REMPLACER_PAR_TA_CLE";
 
 const css=`
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{font-family:Inter,sans-serif;background:#0A0A0A;color:#FFF;font-size:13px;min-height:100vh}
-@keyframes fup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+html,body{height:100%;font-family:Inter,sans-serif}
+body{background:#0F0F0F;color:#fff;font-size:14px;min-height:100vh;-webkit-font-smoothing:antialiased}
+@keyframes fup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes sp2{to{transform:rotate(360deg)}}
-@keyframes shimmer{0%{transform:translateX(-100%) skewX(-20deg)}100%{transform:translateX(200%) skewX(-20deg)}}
-.fup{animation:fup .25s ease both}.fup1{animation:fup .25s .06s ease both}.fup2{animation:fup .25s .12s ease both}
-.nb{display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:400;border:none;background:transparent;width:100%;color:#525252;transition:all .15s;text-align:left;font-family:Inter,sans-serif;letter-spacing:.01em}
-.nb:hover{color:#FFF;background:rgba(255,255,255,0.05)}
-.nb.on{color:#FFF;font-weight:600;position:relative}
+.fup{animation:fup .22s ease both}.fup1{animation:fup .22s .05s ease both}.fup2{animation:fup .22s .1s ease both}
+/* NAV */
+.nb{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:400;border:none;background:transparent;width:100%;color:#555;transition:color .1s,background .1s;text-align:left;font-family:inherit;letter-spacing:.01em}
+.nb:hover{color:#fff;background:rgba(255,255,255,.05)}
+.nb.on{color:#fff;font-weight:500;position:relative}
 .nb.on::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:2px;background:#9333EA;border-radius:0 2px 2px 0}
-.btn{background:#9333EA;color:#fff;border:none;border-radius:10px;padding:11px 20px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-family:Inter,sans-serif;transition:all .2s;position:relative;overflow:hidden;letter-spacing:.01em}
-.btn::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.15) 50%,transparent 60%);transform:translateX(-100%);transition:transform .5s}
-.btn:hover::after{transform:translateX(100%)}
-.btn:hover{background:#7C3AED;box-shadow:0 4px 20px rgba(147,51,234,0.45)}
-.btn:active{transform:scale(0.98)}
-.btn:disabled{opacity:.38;cursor:not-allowed;box-shadow:none}
-.btng{background:transparent;color:#525252;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 13px;font-size:11.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:Inter,sans-serif;transition:all .15s}
-.btng:hover{color:#FFF;border-color:rgba(255,255,255,0.2)}
-.tag{display:inline-flex;align-items:center;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
-.cr{display:grid;align-items:center;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,0.05);transition:background .12s}
+/* BUTTONS */
+.btn{background:#9333EA;color:#fff;border:none;border-radius:8px;padding:12px 20px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .15s,box-shadow .15s;position:relative;overflow:hidden}
+.btn:hover{background:#7C3AED;box-shadow:0 0 0 3px rgba(147,51,234,.25)}
+.btn:active{transform:scale(.99)}
+.btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.btng{background:transparent;color:#555;border:1px solid #222;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:inherit;transition:all .12s}
+.btng:hover{color:#fff;border-color:#333;background:#1a1a1a}
+/* TAGS */
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+/* TABLE ROWS */
+.cr{display:grid;align-items:center;padding:10px 16px;border-bottom:1px solid #1a1a1a;transition:background .1s}
 .cr:last-child{border-bottom:none}
-.cr:hover{background:rgba(255,255,255,0.025)}
-input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:20px;background:rgba(255,255,255,0.1);outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#9333EA;cursor:pointer}
-.inp{width:100%;padding:11px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.09);background:rgba(255,255,255,0.04);color:#FFF;font-size:13.5px;outline:none;font-family:Inter,sans-serif;transition:all .15s}
-.inp:focus{border-color:rgba(147,51,234,0.6);background:rgba(147,51,234,0.07);box-shadow:0 0 0 3px rgba(147,51,234,0.12)}
-.inp::placeholder{color:#3D3D3D}
-select.inp option{background:#111;color:#FFF}
-.card{background:rgba(255,255,255,0.03);border-radius:14px;border:1px solid rgba(255,255,255,0.07);transition:border-color .15s}
-.card:hover{border-color:rgba(255,255,255,0.12)}
-.glow{background:rgba(147,51,234,0.07);border-radius:14px;border:1px solid rgba(147,51,234,0.22);box-shadow:0 0 30px rgba(147,51,234,0.08)}
-.tog{width:40px;height:22px;border-radius:11px;cursor:pointer;border:none;position:relative;flex-shrink:0;transition:background .2s}
-.tog .kn{position:absolute;top:3px;width:16px;height:16px;border-radius:50%;background:white;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,0.4)}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(147,51,234,0.3);border-radius:4px}
+.cr:hover{background:#151515}
+/* RANGE */
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:20px;background:#222;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#9333EA;cursor:pointer}
+/* INPUTS */
+.inp{width:100%;padding:11px 14px;border-radius:8px;border:1px solid #222;background:#1a1a1a;color:#fff;font-size:14px;outline:none;font-family:inherit;transition:border .12s}
+.inp:focus{border-color:#9333EA}
+.inp::placeholder{color:#444}
+select.inp option{background:#111;color:#fff}
+/* CARDS */
+.card{background:#151515;border-radius:12px;border:1px solid #1e1e1e}
+.card:hover{border-color:#2a2a2a}
+.glow{background:#151515;border-radius:12px;border:1px solid rgba(147,51,234,.3);box-shadow:0 0 20px rgba(147,51,234,.08)}
+/* TOGGLE */
+.tog{width:38px;height:20px;border-radius:10px;cursor:pointer;border:none;position:relative;flex-shrink:0;transition:background .2s}
+.tog .kn{position:absolute;top:2px;width:16px;height:16px;border-radius:50%;background:white;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+/* SC STAT CARDS */
+.sc{background:#151515;border-radius:10px;border:1px solid #1e1e1e;padding:16px 18px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:4px}
 `;
+
 
 
 
@@ -234,8 +244,10 @@ function LoginPage(){
   const [pw,setPw]=useState("");
   const [code,setCode]=useState("");
   const [mode,setMode]=useState("login");
+  const [step,setStep]=useState("auth"); // auth | payment | confirm
   const [err,setErr]=useState("");
   const [load,setLoad]=useState(false);
+  const [pendingCode,setPendingCode]=useState("");
 
   const login=async()=>{
     setErr("");setLoad(true);
@@ -243,117 +255,179 @@ function LoginPage(){
     const {error}=await sb.auth.signInWithPassword({email,password:pw});
     if(error){setErr(error.message);setLoad(false);}
   };
-  const register=async()=>{
-    if(!code.trim()){setErr("Code d'invitation requis");return;}
+
+  const checkCode=async()=>{
+    if(!code.trim()){setErr("Code requis");return;}
     setErr("");setLoad(true);
     if(!sb){setErr("Supabase non configuré");setLoad(false);return;}
-    const cleanCode=code.trim().toUpperCase();
-    const isAgency=cleanCode.startsWith("AGENCE-");
-    if(isAgency){
-      const {data:cd}=await sb.from("invite_codes").select("*").eq("code",cleanCode).single();
-      if(!cd){setErr("Code agence invalide");setLoad(false);return;}
-      const {data,error}=await sb.auth.signUp({email,password:pw});
-      if(error){setErr(error.message);setLoad(false);return;}
-      if(data.user){
-        const {data:ag}=await sb.from("agencies").insert({
-          name:email.split("@")[0],slug:"AG"+Date.now().toString(36).toUpperCase().slice(-6),
-          billing_status:"essai",is_offered:false,pct_director:3,pct_manager:5,pct_agent:10,pct_creator:55,min_days:20,min_hours:40,accept_inter_agency:true
-        }).select().single();
-        await sb.from("profiles").update({role:"agency",agency_id:ag?.id}).eq("id",data.user.id);
-        await sb.from("invite_codes").update({uses:1}).eq("code",cleanCode);
-      }
-      setMode("confirm");setLoad(false);return;
+    const clean=code.trim().toUpperCase();
+    const {data:cd,error}=await sb.from("invite_codes").select("*").eq("code",clean).single();
+    if(error||!cd){setErr("Code invalide ou expiré");setLoad(false);return;}
+    if(cd.target_role==="agency"){
+      setPendingCode(clean);
+      setStep("payment");
+      setLoad(false);
+    } else {
+      await doRegister(clean);
     }
-    const {data,error}=await sb.auth.signUp({email,password:pw});
-    if(error){setErr(error.message);setLoad(false);return;}
-    const {error:cErr}=await sb.rpc("use_invite_code",{p_code:cleanCode,p_user_id:data.user?.id});
-    if(cErr){setErr("Code invalide ou expiré");setLoad(false);return;}
-    setMode("confirm");setLoad(false);
   };
 
-  if(mode==="confirm") return(
-    <div style={{minHeight:"100vh",background:"#080808",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{textAlign:"center",maxWidth:380,padding:32}}>
-        <div style={{width:72,height:72,borderRadius:20,background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.35)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 24px",fontSize:32}}>✓</div>
-        <h1 style={{fontSize:28,fontWeight:800,color:"#FFF",marginBottom:12,letterSpacing:"-.03em"}}>Compte créé !</h1>
-        <p style={{fontSize:15,color:"#525252",marginBottom:28,lineHeight:1.65}}>Vérifie ta boîte mail pour confirmer ton compte, puis connecte-toi.</p>
-        <button className="btn" style={{fontSize:15,padding:"14px 32px",margin:"0 auto",display:"flex"}} onClick={()=>setMode("login")}>Se connecter →</button>
+  const doRegister=async(cleanCode)=>{
+    setLoad(true);
+    const {data,error}=await sb.auth.signUp({email,password:pw});
+    if(error){setErr(error.message);setLoad(false);return;}
+    const isAgency=cleanCode.startsWith("AGENCE-");
+    if(isAgency){
+      const {data:ag}=await sb.from("agencies").insert({
+        name:email.split("@")[0],
+        slug:"AG"+Date.now().toString(36).toUpperCase().slice(-6),
+        billing_status:"essai",is_offered:false,
+        pct_director:3,pct_manager:5,pct_agent:10,pct_creator:55,
+        min_days:20,min_hours:40,accept_inter_agency:true
+      }).select().single();
+      await sb.from("profiles").update({role:"agency",agency_id:ag?.id}).eq("id",data.user.id);
+      await sb.from("invite_codes").update({uses:1}).eq("code",cleanCode);
+    } else {
+      const {error:cErr}=await sb.rpc("use_invite_code",{p_code:cleanCode,p_user_id:data.user?.id});
+      if(cErr){setErr("Erreur code invitation");setLoad(false);return;}
+    }
+    setStep("confirm");setLoad(false);
+  };
+
+  const goStripe=()=>{
+    // Redirect to Stripe Payment Link with metadata
+    const url=`${STRIPE_PAYMENT_LINK}?prefilled_email=${encodeURIComponent(email)}&client_reference_id=${pendingCode}`;
+    window.open(url,"_blank");
+  };
+
+  // Payment success check (Stripe redirects back with ?payment=success&code=XXXX)
+  const params=new URLSearchParams(window.location.search);
+  if(params.get("payment")==="success"&&params.get("code")&&step==="auth"){
+    const c=params.get("code");
+    if(c&&email&&pw) doRegister(c);
+  }
+
+  if(step==="confirm") return(
+    <div style={{minHeight:"100vh",background:"#0F0F0F",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{textAlign:"center",maxWidth:400}}>
+        <div style={{width:56,height:56,borderRadius:16,background:"rgba(147,51,234,.15)",border:"1px solid rgba(147,51,234,.3)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",fontSize:24,color:"#9333EA"}}>✓</div>
+        <h2 style={{fontSize:24,fontWeight:700,marginBottom:8,letterSpacing:"-.02em"}}>Compte créé !</h2>
+        <p style={{color:"#555",marginBottom:24,lineHeight:1.6}}>Vérifie ta boîte mail pour confirmer, puis connecte-toi.</p>
+        <button className="btn" style={{margin:"0 auto"}} onClick={()=>{setStep("auth");setMode("login");}}>Se connecter →</button>
+      </div>
+    </div>
+  );
+
+  if(step==="payment") return(
+    <div style={{minHeight:"100vh",background:"#0F0F0F",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{width:"100%",maxWidth:480}}>
+        {/* Header */}
+        <div style={{textAlign:"center",marginBottom:32}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Brand big={true}/></div>
+        </div>
+        {/* Price card */}
+        <div style={{background:"#151515",borderRadius:16,border:"1px solid #222",padding:28,marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:20}}>
+            <span style={{background:"rgba(147,51,234,.15)",border:"1px solid rgba(147,51,234,.3)",borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:600,color:"#9333EA",letterSpacing:".04em"}}>✦ ABONNEMENT MENSUEL</span>
+          </div>
+          <div style={{marginBottom:20}}>
+            <span style={{fontSize:64,fontWeight:800,color:"#fff",letterSpacing:"-.04em"}}>{PRICE}</span>
+            <span style={{fontSize:24,fontWeight:400,color:"#555",marginLeft:4}}>€<span style={{fontSize:14}}>/mois</span></span>
+          </div>
+          <p style={{fontSize:14,color:"#555",marginBottom:24}}>Accès complet · Sans engagement · Résiliable à tout moment</p>
+          {[
+            "Gestion illimitée de créateurs",
+            "Génération de matchs TikTok Live",
+            "Affiches de match personnalisées",
+            "Import Backstage automatisé",
+            "Calcul des reversements diamants",
+            "Support prioritaire Diamond's"
+          ].map((f,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+              <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(147,51,234,.12)",border:"1px solid rgba(147,51,234,.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <div style={{width:6,height:6,borderRadius:"50%",background:"#9333EA"}}/>
+              </div>
+              <span style={{fontSize:14,color:"#ccc"}}>{f}</span>
+            </div>
+          ))}
+          <div style={{marginTop:24}}>
+            <label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".08em"}}>Email de paiement</label>
+            <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="vous@email.com" style={{marginBottom:12}}/>
+            <button className="btn" style={{width:"100%",fontSize:15,padding:"14px",marginBottom:12}} onClick={goStripe}>
+              💳 Payer {PRICE}€/mois
+            </button>
+            <div style={{textAlign:"center",fontSize:12,color:"#333",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+              🔒 SÉCURISÉ PAR STRIPE · CHIFFREMENT 256-BIT
+            </div>
+          </div>
+        </div>
+        <button className="btng" onClick={()=>setStep("auth")} style={{fontSize:12}}>← Retour</button>
+        <p style={{fontSize:12,color:"#333",marginTop:8}}>Après paiement, revenez ici pour finaliser votre inscription avec le code <strong style={{color:"#555",fontFamily:"monospace"}}>{pendingCode}</strong></p>
       </div>
     </div>
   );
 
   return(
-    <div style={{minHeight:"100vh",background:"#080808",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,position:"relative",overflow:"hidden"}}>
-      {/* Purple ambient glow */}
-      <div style={{position:"absolute",top:"-20%",left:"50%",transform:"translateX(-50%)",width:700,height:700,borderRadius:"50%",background:"radial-gradient(circle,rgba(147,51,234,0.1) 0%,transparent 65%)",pointerEvents:"none"}}/>
+    <div style={{minHeight:"100vh",background:"#0F0F0F",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      {/* Ambient */}
+      <div style={{position:"fixed",top:0,left:"50%",transform:"translateX(-50%)",width:600,height:400,background:"radial-gradient(ellipse,rgba(147,51,234,.08) 0%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
 
-      {/* Brand */}
-      <div style={{textAlign:"center",marginBottom:40}}>
-        <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Brand big={true}/></div>
-        <p style={{fontSize:15,color:"#525252"}}>La plateforme des agences TikTok Live</p>
-      </div>
-
-      {/* Card */}
-      <div style={{width:"100%",maxWidth:430,background:"rgba(255,255,255,0.03)",borderRadius:24,border:"1px solid rgba(255,255,255,0.07)",padding:32,marginBottom:16}}>
-
-        {/* Tabs */}
-        <div style={{display:"flex",background:"rgba(255,255,255,0.05)",borderRadius:14,padding:4,marginBottom:28}}>
-          {["login","register"].map(m=>(
-            <button key={m} onClick={()=>{setMode(m);setErr("");}} style={{flex:1,padding:"11px",borderRadius:11,fontSize:13.5,fontWeight:600,cursor:"pointer",border:"none",background:mode===m?"#9333EA":"transparent",color:mode===m?"#FFF":"#525252",fontFamily:"Inter,sans-serif",transition:"all .2s"}}>
-              {m==="login"?"Connexion":"Inscription"}
-            </button>
-          ))}
+      <div style={{width:"100%",maxWidth:420,position:"relative",zIndex:1}}>
+        <div style={{textAlign:"center",marginBottom:32}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:14}}><Brand big={true}/></div>
+          <p style={{fontSize:15,color:"#555"}}>La plateforme des agences TikTok Live</p>
         </div>
 
-        <div style={{display:"flex",flexDirection:"column",gap:16}}>
-          <div>
-            <label style={{fontSize:11,fontWeight:600,color:"#525252",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Email</label>
-            <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)}
-              onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())}
-              placeholder="vous@email.com"/>
+        <div style={{background:"#151515",borderRadius:16,border:"1px solid #222",padding:28,marginBottom:12}}>
+          {/* Tabs */}
+          <div style={{display:"flex",background:"#111",borderRadius:10,padding:3,marginBottom:24}}>
+            {["login","register"].map(m=>(
+              <button key={m} onClick={()=>{setMode(m);setErr("");}} style={{flex:1,padding:"10px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",border:"none",background:mode===m?"#9333EA":"transparent",color:mode===m?"#fff":"#555",fontFamily:"inherit",transition:"all .15s"}}>
+                {m==="login"?"Connexion":"Inscription"}
+              </button>
+            ))}
           </div>
-          <div>
-            <label style={{fontSize:11,fontWeight:600,color:"#525252",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Mot de passe</label>
-            <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)}
-              onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())}
-              placeholder="••••••••"/>
-          </div>
-          {mode==="register"&&(
+
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
             <div>
-              <label style={{fontSize:11,fontWeight:600,color:"#525252",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Code d'invitation</label>
-              <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="NOVA-AGENT-XXXXXX" style={{fontFamily:"monospace",letterSpacing:".08em"}}/>
-              <p style={{fontSize:11,color:"#333",marginTop:5}}>Fourni par votre agence · AGENCE-XXXX si vous êtes une agence</p>
+              <label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".08em"}}>Email</label>
+              <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():checkCode())} placeholder="vous@email.com"/>
             </div>
-          )}
-
-          {err&&<div style={{padding:"11px 14px",borderRadius:10,background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.18)",fontSize:13,color:"#EF4444",display:"flex",gap:8,alignItems:"flex-start"}}><span style={{flexShrink:0}}>⚠</span>{err}</div>}
-
-          <button className="btn" style={{width:"100%",justifyContent:"center",padding:"14px",fontSize:15,marginTop:4}} onClick={mode==="login"?login:register} disabled={load}>
-            {load?<><Spin/>{mode==="login"?"Connexion…":"Création…"}</>:(mode==="login"?"Se connecter →":"Créer mon compte →")}
-          </button>
-        </div>
-      </div>
-
-      {/* Features - inscription only */}
-      {mode==="register"&&(
-        <div style={{width:"100%",maxWidth:430,background:"rgba(147,51,234,0.05)",borderRadius:16,border:"1px solid rgba(147,51,234,0.12)",padding:20,marginBottom:16}}>
-          <p style={{fontSize:11,fontWeight:700,color:"#9333EA",textTransform:"uppercase",letterSpacing:".08em",marginBottom:12}}>✦ Ce que vous obtenez</p>
-          {["Espace agence complet","Gestion créateurs & staff","Matchs TikTok Live","Affiches personnalisées","Suivi diamants & reversements"].map((f,i)=>(
-            <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:i<4?8:0}}>
-              <div style={{width:18,height:18,borderRadius:"50%",background:"rgba(147,51,234,0.12)",border:"1px solid rgba(147,51,234,0.35)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <div style={{width:6,height:6,borderRadius:"50%",background:"#9333EA"}}/>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".08em"}}>Mot de passe</label>
+              <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():checkCode())} placeholder="••••••••"/>
+            </div>
+            {mode==="register"&&(
+              <div>
+                <label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".08em"}}>Code d'invitation</label>
+                <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="NOVA-AGENT-XXXXXX · ou AGENCE-XXXXXX" style={{fontFamily:"monospace",letterSpacing:".06em"}}/>
               </div>
-              <span style={{fontSize:13,color:"#A3A3A3"}}>{f}</span>
-            </div>
-          ))}
-        </div>
-      )}
+            )}
 
-      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-        <p style={{fontSize:12,color:"#2A2A2A",textAlign:"center"}}>
-          Problème ? <a href={`mailto:${CONTACT}`} style={{color:"#9333EA",textDecoration:"none"}}>Contacter Diamond's</a>
-        </p>
-        <p style={{fontSize:11,color:"#1F1F1F",letterSpacing:".05em"}}>🔒 SÉCURISÉ · DONNÉES CHIFFRÉES</p>
+            {err&&<div style={{padding:"10px 12px",borderRadius:8,background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.15)",fontSize:13,color:"#EF4444"}}>⚠ {err}</div>}
+
+            <button className="btn" style={{width:"100%",padding:"13px",fontSize:15}} onClick={mode==="login"?login:checkCode} disabled={load}>
+              {load?<><Spin/>{mode==="login"?"Connexion…":"Vérification…"}</>:(mode==="login"?"Se connecter →":"Continuer →")}
+            </button>
+          </div>
+        </div>
+
+        {mode==="register"&&(
+          <div style={{background:"rgba(147,51,234,.05)",borderRadius:12,border:"1px solid rgba(147,51,234,.12)",padding:16,marginBottom:12}}>
+            <p style={{fontSize:11,fontWeight:700,color:"#9333EA",textTransform:"uppercase",letterSpacing:".08em",marginBottom:10}}>✦ Ce que vous obtenez</p>
+            {["Espace agence complet","Gestion créateurs & staff","Matchs TikTok Live & affiches","Suivi diamants & reversements"].map((f,i)=>(
+              <div key={i} style={{display:"flex",gap:8,alignItems:"center",marginBottom:i<3?6:0}}>
+                <div style={{width:16,height:16,borderRadius:"50%",background:"rgba(147,51,234,.12)",border:"1px solid rgba(147,51,234,.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><div style={{width:5,height:5,borderRadius:"50%",background:"#9333EA"}}/></div>
+                <span style={{fontSize:13,color:"#888"}}>{f}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{textAlign:"center"}}>
+          <p style={{fontSize:12,color:"#333"}}>Problème ? <a href={`mailto:${CONTACT}`} style={{color:"#9333EA",textDecoration:"none"}}>Contacter Diamond's</a></p>
+          <p style={{fontSize:11,color:"#2a2a2a",marginTop:6,letterSpacing:".05em"}}>🔒 SÉCURISÉ · DONNÉES CHIFFRÉES</p>
+        </div>
       </div>
     </div>
   );
@@ -2043,25 +2117,21 @@ export default function App(){
             <div style={{textAlign:"center",marginBottom:32}}>
               <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Brand big={true}/></div>
             </div>
-            <div style={{background:"rgba(255,255,255,0.03)",borderRadius:24,border:"1px solid rgba(255,255,255,0.07)",padding:32}}>
-              <div style={{width:60,height:60,borderRadius:16,background:"rgba(147,51,234,0.12)",border:"1px solid rgba(147,51,234,0.3)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20,fontSize:28}}>📱</div>
-              <h1 style={{fontSize:24,fontWeight:800,color:"#FFF",marginBottom:10,letterSpacing:"-.02em"}}>Complète ton profil</h1>
-              <p style={{fontSize:14,color:"#525252",marginBottom:24,lineHeight:1.65}}>Avant d'accéder à Diamond's, ajoute ton <strong style={{color:"#FFF"}}>@ TikTok</strong> et ta <strong style={{color:"#FFF"}}>photo de profil</strong>. Ils doivent être identiques à ton compte TikTok.</p>
-              <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
-                {["Ton @ TikTok exact (ex: @mon_pseudo)","Ta photo de profil TikTok","Ces infos apparaîtront sur tes affiches de match"].map((f,i)=>(
-                  <div key={i} style={{display:"flex",alignItems:"center",gap:10}}>
-                    <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(147,51,234,0.12)",border:"1px solid rgba(147,51,234,0.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      <div style={{width:7,height:7,borderRadius:"50%",background:"#9333EA"}}/>
-                    </div>
-                    <span style={{fontSize:13,color:"#A3A3A3"}}>{f}</span>
+            <div style={{background:"#151515",borderRadius:16,border:"1px solid #222",padding:28}}>
+              <div style={{fontSize:28,marginBottom:16}}>📱</div>
+              <h1 style={{fontSize:24,fontWeight:700,marginBottom:8,letterSpacing:"-.02em"}}>Complète ton profil</h1>
+              <p style={{fontSize:14,color:"#555",marginBottom:24,lineHeight:1.65}}>Ajoute ton <strong style={{color:"#fff"}}>@ TikTok</strong> et ta <strong style={{color:"#fff"}}>photo de profil</strong> pour accéder à Diamond's.</p>
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
+                {["@ TikTok exact (identique à ton compte)","Ta photo de profil TikTok","Apparaîtront sur tes affiches de match"].map((f,i)=>(
+                  <div key={i} style={{display:"flex",gap:10,alignItems:"center"}}>
+                    <div style={{width:6,height:6,borderRadius:"50%",background:"#9333EA",flexShrink:0}}/>
+                    <span style={{fontSize:13,color:"#888"}}>{f}</span>
                   </div>
                 ))}
               </div>
-              <button className="btn" style={{width:"100%",justifyContent:"center",padding:"14px",fontSize:15}} onClick={()=>setTab("settings")}>
-                Compléter mon profil →
-              </button>
+              <button className="btn" style={{width:"100%",padding:"13px",fontSize:14}} onClick={()=>setTab("settings")}>Compléter mon profil →</button>
             </div>
-            <div style={{textAlign:"right",marginTop:12}}>
+            <div style={{textAlign:"right",marginTop:10}}>
               <button className="btng" onClick={auth.signOut} style={{fontSize:11}}>Se déconnecter</button>
             </div>
           </div>
@@ -2099,21 +2169,21 @@ export default function App(){
     <>
       <style>{css}</style>
       {isBlocked&&<BlockedScreen agencyName={ag?.name}/>}
-      <div style={{minHeight:"100vh",background:"#080808",display:"flex",fontFamily:"Inter,sans-serif"}}>
+      <div style={{minHeight:"100vh",background:"#0F0F0F",display:"flex",fontFamily:"Inter,sans-serif"}}>
         {/* SIDEBAR */}
-        <div style={{width:220,flexShrink:0,background:"#0D0D0D",borderRight:"1px solid rgba(255,255,255,0.05)",display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:10}}>
+        <div style={{width:220,flexShrink:0,background:"#111",borderRight:"1px solid #1a1a1a",display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:10}}>
           {/* Brand */}
-          <div style={{padding:"20px 16px 16px",borderBottom:"1px solid rgba(255,255,255,0.05)",cursor:"pointer"}} onClick={()=>setTab("dash")}>
+          <div style={{padding:"18px 16px 14px",borderBottom:"1px solid #1a1a1a",cursor:"pointer"}} onClick={()=>setTab("dash")}>
             <Brand/>
           </div>
           {/* Nav */}
           <div style={{padding:"10px 10px",flex:1,overflowY:"auto"}}>
-            <div style={{fontSize:10,fontWeight:600,color:"#2A2A2A",textTransform:"uppercase",letterSpacing:".09em",padding:"8px 12px 4px",marginBottom:2}}>Navigation</div>
+            <div style={{fontSize:10,fontWeight:600,color:"#333",textTransform:"uppercase",letterSpacing:".09em",padding:"8px 12px 4px",marginBottom:2}}>Navigation</div>
             {nav.map(n=><button key={n.id} className={`nb${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.l}</button>)}
           </div>
           {/* User footer */}
-          <div style={{padding:"12px 14px",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.03)",marginBottom:8}}>
+          <div style={{padding:"12px 14px",borderTop:"1px solid #1a1a1a"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:10,background:"#191919",marginBottom:8}}>
               <AV name={(auth.profile?.tiktok_handle||auth.profile?.email||"?").replace("@","")[0]?.toUpperCase()||"?"} color="#9333EA" size={30}/>
               <div style={{overflow:"hidden",minWidth:0,flex:1}}>
                 <div style={{fontSize:12,fontWeight:600,color:"#FFF",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{auth.profile?.tiktok_handle||auth.profile?.email}</div>
@@ -2127,7 +2197,7 @@ export default function App(){
             </button>
           </div>
         </div>
-        <main style={{flex:1,overflowY:"auto",padding:"28px 32px",background:"#080808",marginLeft:220,minHeight:"100vh"}}>
+        <main style={{flex:1,overflowY:"auto",padding:"28px 32px",background:"#0F0F0F",marginLeft:220,minHeight:"100vh"}}>
           {loadT?<div style={{textAlign:"center",padding:40,color:T.sec}}>Chargement…</div>:<View/>}
         </main>
       </div>
