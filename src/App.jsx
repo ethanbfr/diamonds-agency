@@ -11,58 +11,43 @@ const CONTACT="diamonds.saas@gmail.com";
 const PRICE=149;
 
 const css=`
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{font-family:Inter,sans-serif;background:#080808;color:#FFFFFF;font-size:13px;min-height:100vh}
-
-@keyframes fup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+body{font-family:Inter,sans-serif;background:#080808;color:#FFF;font-size:13px;min-height:100vh}
+@keyframes fup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes sp2{to{transform:rotate(360deg)}}
-@keyframes shine{0%{transform:translateX(-100%) skewX(-15deg)}100%{transform:translateX(200%) skewX(-15deg)}}
-
-.fup{animation:fup .25s ease both}
-.fup1{animation:fup .25s .05s ease both}
-.fup2{animation:fup .25s .1s ease both}
-
-.nb{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:400;border:none;background:transparent;width:100%;color:#6B7280;transition:color .15s,background .15s;text-align:left;font-family:Inter,sans-serif;letter-spacing:.01em}
-.nb:hover{color:#FFFFFF;background:rgba(255,255,255,0.04)}
-.nb.on{color:#FFFFFF;background:transparent;font-weight:500;position:relative}
-.nb.on::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:2px;background:#9333EA;border-radius:0 2px 2px 0}
-
-.btn{background:#9333EA;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:Inter,sans-serif;transition:all .2s;position:relative;overflow:hidden;letter-spacing:.02em}
-.btn::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent);transform:skewX(-15deg);transition:left .5s}
+@keyframes shine{0%{transform:translateX(-100%) skewX(-15deg)}100%{transform:translateX(250%) skewX(-15deg)}}
+.fup{animation:fup .28s ease both}.fup1{animation:fup .28s .06s ease both}.fup2{animation:fup .28s .12s ease both}
+.nb{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:500;border:none;background:transparent;width:100%;color:#6B7280;transition:color .15s,background .15s;text-align:left;font-family:Inter,sans-serif}
+.nb:hover{color:#FFF;background:rgba(255,255,255,0.04)}
+.nb.on{color:#FFF;font-weight:600;background:transparent;position:relative}
+.nb.on::before{content:'';position:absolute;left:0;top:18%;bottom:18%;width:2px;background:#9333EA;border-radius:0 2px 2px 0;box-shadow:0 0 8px rgba(147,51,234,0.7)}
+.btn{background:#9333EA;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-family:Inter,sans-serif;transition:all .2s;position:relative;overflow:hidden}
+.btn::after{content:'';position:absolute;top:0;left:-100%;width:55%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent);transform:skewX(-15deg);transition:left .45s}
 .btn:hover::after{left:160%}
-.btn:hover{background:#7C3AED;box-shadow:0 4px 20px rgba(147,51,234,0.35)}
+.btn:hover{background:#7C3AED;box-shadow:0 6px 24px rgba(147,51,234,0.4)}
 .btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
-
-.btng{background:transparent;color:#6B7280;border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:5px 11px;font-size:11px;font-weight:400;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:Inter,sans-serif;transition:all .15s;letter-spacing:.01em}
-.btng:hover{color:#FFFFFF;border-color:rgba(255,255,255,0.2)}
-
-.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
-
-.cr{display:grid;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.04);transition:background .1s}
+.btng{background:transparent;color:#6B7280;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:Inter,sans-serif;transition:all .15s}
+.btng:hover{color:#FFF;border-color:rgba(255,255,255,0.22);background:rgba(255,255,255,0.04)}
+.tag{display:inline-flex;align-items:center;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.cr{display:grid;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.05);transition:background .12s}
 .cr:last-child{border-bottom:none}
-.cr:hover{background:rgba(255,255,255,0.02)}
-
-input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:20px;background:rgba(255,255,255,0.1);outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#9333EA;cursor:pointer}
-
-.inp{width:100%;padding:9px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:#FFFFFF;font-size:12.5px;outline:none;font-family:Inter,sans-serif;transition:border .15s}
-.inp:focus{border-color:rgba(147,51,234,0.5);background:rgba(255,255,255,0.04)}
-.inp::placeholder{color:#4B5563}
-select.inp option{background:#111111;color:#FFFFFF}
-
-.card{background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.06)}
-.card:hover{border-color:rgba(255,255,255,0.1)}
-.glow{background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(147,51,234,0.3);box-shadow:0 0 0 1px rgba(147,51,234,0.1)}
-
-.tog{width:38px;height:20px;border-radius:10px;cursor:pointer;border:none;position:relative;flex-shrink:0;transition:background .2s}
-.tog .kn{position:absolute;top:2px;width:16px;height:16px;border-radius:50%;background:white;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,0.5)}
-
-::-webkit-scrollbar{width:3px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(147,51,234,0.3);border-radius:3px}
+.cr:hover{background:rgba(255,255,255,0.025)}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:20px;background:rgba(255,255,255,0.1);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#9333EA;cursor:pointer;box-shadow:0 0 6px rgba(147,51,234,0.6)}
+.inp{width:100%;padding:10px 13px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#FFF;font-size:13px;outline:none;font-family:Inter,sans-serif;transition:border .15s,background .15s}
+.inp:focus{border-color:rgba(147,51,234,0.55);background:rgba(147,51,234,0.07)}
+.inp::placeholder{color:#374151}
+select.inp option{background:#111;color:#FFF}
+.card{background:rgba(255,255,255,0.03);border-radius:14px;border:1px solid rgba(255,255,255,0.07)}
+.card:hover{border-color:rgba(255,255,255,0.12)}
+.glow{background:rgba(147,51,234,0.08);border-radius:14px;border:1px solid rgba(147,51,234,0.25);box-shadow:0 0 30px rgba(147,51,234,0.1)}
+.tog{width:40px;height:22px;border-radius:11px;cursor:pointer;border:none;position:relative;flex-shrink:0;transition:background .2s}
+.tog .kn{position:absolute;top:3px;width:16px;height:16px;border-radius:50%;background:white;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,0.4)}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(147,51,234,0.25);border-radius:4px}
 `;
+
 
 /* ─── UTILS ─────────────────────────────── */
 const calcPayout=(ag,c)=>{
@@ -258,106 +243,154 @@ function LoginPage(){
     const {error}=await sb.auth.signInWithPassword({email,password:pw});
     if(error){setErr(error.message);setLoad(false);}
   };
+
   const register=async()=>{
     if(!code.trim()){setErr("Code d'invitation requis");return;}
     setErr("");setLoad(true);
     if(!sb){setErr("Supabase non configuré");setLoad(false);return;}
-    // Check if it's an agency code (starts with AGENCE-)
     const cleanCode=code.trim().toUpperCase();
-    const isAgencyCode=cleanCode.startsWith("AGENCE-");
-    if(isAgencyCode){
-      // Agency registration flow
-      const {data:codeData}=await sb.from("invite_codes").select("*").eq("code",cleanCode).single();
-      if(!codeData){setErr("Code agence invalide");setLoad(false);return;}
+    const isAgency=cleanCode.startsWith("AGENCE-");
+    if(isAgency){
+      const {data:cd}=await sb.from("invite_codes").select("*").eq("code",cleanCode).single();
+      if(!cd){setErr("Code agence invalide");setLoad(false);return;}
       const {data,error}=await sb.auth.signUp({email,password:pw});
       if(error){setErr(error.message);setLoad(false);return;}
       if(data.user){
-        // Create agency
-        const {data:agData,error:agError}=await sb.from("agencies").insert({
-          name:email.split("@")[0],slug:cleanCode.split("-")[1]||"AG",
+        const {data:ag}=await sb.from("agencies").insert({
+          name:email.split("@")[0],
+          slug:"AG"+Date.now().toString(36).toUpperCase().slice(-6),
           billing_status:"essai",is_offered:false,
           pct_director:3,pct_manager:5,pct_agent:10,pct_creator:55,
           min_days:20,min_hours:40,accept_inter_agency:true
         }).select().single();
-        if(agError||!agData){setErr("Erreur création agence: "+(agError?.message||"données invalides"));setLoad(false);return;}
-        // Set profile as agency role - permanent, code deletion won't affect this
-        const {error:profError}=await sb.from("profiles").update({role:"agency",agency_id:agData.id}).eq("id",data.user.id);
-        if(profError){setErr("Erreur profil: "+profError.message);setLoad(false);return;}
-        // Mark code used but profile role is permanent in profiles table
+        await sb.from("profiles").update({role:"agency",agency_id:ag?.id}).eq("id",data.user.id);
         await sb.from("invite_codes").update({uses:1}).eq("code",cleanCode);
       }
       setMode("confirm");setLoad(false);return;
     }
-    // Regular member registration
     const {data,error}=await sb.auth.signUp({email,password:pw});
     if(error){setErr(error.message);setLoad(false);return;}
     const {error:cErr}=await sb.rpc("use_invite_code",{p_code:cleanCode,p_user_id:data.user?.id});
     if(cErr){setErr("Code invalide ou expiré");setLoad(false);return;}
-    // Save TikTok handle
-    if(handle.trim()) await sb.from("profiles").update({tiktok_handle:"@"+handle.trim()}).eq("id",data.user?.id);
-    // Upload avatar if provided
-    if(avatar&&sb){
+    if(handle.trim()) await sb.from("profiles").update({tiktok_handle:"@"+handle.trim().replace(/^@/,"")}).eq("id",data.user?.id);
+    if(avatar){
       const ext=avatar.name.split(".").pop();
       const path=`avatars/${data.user?.id}.${ext}`;
       await sb.storage.from("avatars").upload(path,avatar,{upsert:true});
-      const {data:urlData}=sb.storage.from("avatars").getPublicUrl(path);
-      if(urlData?.publicUrl) await sb.from("profiles").update({tiktok_avatar_url:urlData.publicUrl}).eq("id",data.user?.id);
+      const {data:u}=sb.storage.from("avatars").getPublicUrl(path);
+      if(u?.publicUrl) await sb.from("profiles").update({tiktok_avatar_url:u.publicUrl}).eq("id",data.user?.id);
     }
     setMode("confirm");setLoad(false);
   };
 
   if(mode==="confirm") return(
     <div style={{minHeight:"100vh",background:"#080808",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{textAlign:"center",maxWidth:360,padding:20}} className="fup">
-        <div style={{fontSize:40,marginBottom:14}}>✅</div>
-        <h1 style={{fontSize:22,fontWeight:800,color:T.tx,marginBottom:8}}>Compte créé !</h1>
-        <p style={{fontSize:13,color:T.sec,marginBottom:20}}>Vérifie ta boîte mail pour confirmer, puis connecte-toi.</p>
-        <button className="btn" style={{fontSize:13,padding:"9px 20px"}} onClick={()=>setMode("login")}>Se connecter</button>
+      <div style={{textAlign:"center",maxWidth:380,padding:32}} className="fup">
+        <div style={{width:72,height:72,borderRadius:20,background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.4)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 24px",fontSize:30,color:"#A855F7"}}>✓</div>
+        <h1 style={{fontSize:26,fontWeight:800,color:"#FFF",marginBottom:10,letterSpacing:"-.025em"}}>Compte créé !</h1>
+        <p style={{fontSize:14,color:"#6B7280",marginBottom:28,lineHeight:1.65}}>Vérifie ta boîte mail pour confirmer ton compte, puis connecte-toi.</p>
+        <button className="btn" style={{fontSize:14,padding:"13px 32px",margin:"0 auto",display:"flex"}} onClick={()=>setMode("login")}>Se connecter →</button>
       </div>
     </div>
   );
 
   return(
-    <div style={{minHeight:"100vh",background:"#080808",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-      <div style={{width:"100%",maxWidth:360}}>
-        <div style={{textAlign:"center",marginBottom:24}} className="fup">
+    <div style={{minHeight:"100vh",background:"#080808",display:"flex",alignItems:"center",justifyContent:"center",padding:20,position:"relative",overflow:"hidden"}}>
+      {/* BG glow */}
+      <div style={{position:"absolute",top:"-30%",left:"50%",transform:"translateX(-50%)",width:600,height:600,borderRadius:"50%",background:"radial-gradient(circle,rgba(147,51,234,0.12) 0%,transparent 70%)",pointerEvents:"none"}}/>
+
+      <div style={{width:"100%",maxWidth:420,position:"relative"}}>
+
+        {/* Brand top */}
+        <div style={{textAlign:"center",marginBottom:36}} className="fup">
           <div style={{display:"flex",justifyContent:"center",marginBottom:14}}><Brand big={true}/></div>
-          <div style={{fontSize:12.5,color:T.sec,marginTop:10}}>La plateforme des agences TikTok Live</div>
+          <p style={{fontSize:14,color:"#6B7280"}}>La plateforme des agences TikTok Live</p>
         </div>
-        <div className="card fup1" style={{padding:22,marginBottom:10}}>
-          <div style={{display:"flex",gap:4,marginBottom:18,background:"rgba(255,255,255,.04)",padding:4,borderRadius:10}}>
+
+        {/* Main card */}
+        <div className="fup1" style={{background:"rgba(255,255,255,0.03)",borderRadius:24,border:"1px solid rgba(255,255,255,0.08)",padding:32,marginBottom:14,backdropFilter:"blur(20px)"}}>
+
+          {/* Mode tabs */}
+          <div style={{display:"flex",gap:0,marginBottom:28,background:"rgba(255,255,255,0.05)",padding:4,borderRadius:14}}>
             {["login","register"].map(m=>(
-              <button key={m} onClick={()=>setMode(m)} style={{flex:1,padding:"7px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",border:"none",background:mode===m?T.acc:"transparent",color:mode===m?"white":T.sec,fontFamily:"Inter,sans-serif",transition:"all .18s"}}>
+              <button key={m} onClick={()=>{setMode(m);setErr("");}} style={{flex:1,padding:"11px",borderRadius:11,fontSize:13,fontWeight:600,cursor:"pointer",border:"none",background:mode===m?"#9333EA":"transparent",color:mode===m?"#FFF":"#6B7280",fontFamily:"Inter,sans-serif",transition:"all .2s",letterSpacing:".01em"}}>
                 {m==="login"?"Connexion":"Inscription"}
               </button>
             ))}
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:11}}>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Email</label>
-              <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())} placeholder="vous@email.com"/></div>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Mot de passe</label>
-              <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())} placeholder="••••••••"/></div>
-            {mode==="register"&&(
-              <>
-                <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Code d'invitation</label>
-                  <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="NOVA-AGENT-XXXXXX" style={{fontFamily:"monospace",letterSpacing:".08em"}}/>
-                  <div style={{fontSize:11,color:T.sec,marginTop:4}}>Code fourni par votre agence</div>
-                </div>
-              </>
+
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:"#6B7280",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Email</label>
+              <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())}
+                placeholder="vous@email.com" style={{fontSize:14,padding:"13px 15px"}}/>
+            </div>
+
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:"#6B7280",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Mot de passe</label>
+              <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())}
+                placeholder="••••••••" style={{fontSize:14,padding:"13px 15px"}}/>
+            </div>
+
+            {mode==="register"&&(<>
+              <div>
+                <label style={{fontSize:11,fontWeight:600,color:"#6B7280",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>@ TikTok</label>
+                <input className="inp" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))}
+                  placeholder="mon_pseudo_tiktok" style={{fontSize:14,padding:"13px 15px",fontFamily:"monospace"}}/>
+                <p style={{fontSize:11,color:"#4B5563",marginTop:5}}>Identique à votre compte TikTok</p>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:600,color:"#6B7280",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Photo de profil</label>
+                <input className="inp" type="file" accept="image/*" onChange={e=>setAvatar(e.target.files[0])} style={{fontSize:12,padding:"10px 15px",cursor:"pointer"}}/>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:600,color:"#6B7280",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Code d'invitation</label>
+                <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())}
+                  placeholder="NOVA-AGENT-XXXXXX" style={{fontSize:13,padding:"13px 15px",fontFamily:"monospace",letterSpacing:".08em"}}/>
+                <p style={{fontSize:11,color:"#4B5563",marginTop:5}}>Code fourni par votre agence · Commence par AGENCE- si vous êtes une agence</p>
+              </div>
+            </>)}
+
+            {err&&(
+              <div style={{padding:"11px 14px",borderRadius:10,background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",fontSize:13,color:"#EF4444",display:"flex",alignItems:"center",gap:8}}>
+                <span>⚠</span>{err}
+              </div>
             )}
-            {err&&<div style={{padding:"7px 10px",borderRadius:8,background:"rgba(244,67,54,.1)",border:"1px solid rgba(244,67,54,.2)",fontSize:11.5,color:T.ng}}>{err}</div>}
-            <button className="btn" style={{width:"100%",justifyContent:"center",padding:"9px",marginTop:4}} onClick={mode==="login"?login:register} disabled={load}>
-              {load?<><Spin/>{mode==="login"?"Connexion…":"Inscription…"}</>:(mode==="login"?"Se connecter":"Créer mon compte")}
+
+            <button className="btn" style={{width:"100%",justifyContent:"center",padding:"14px",fontSize:15,marginTop:4,letterSpacing:".01em"}} onClick={mode==="login"?login:register} disabled={load}>
+              {load?<><Spin/>{mode==="login"?"Connexion…":"Création…"}</>:(mode==="login"?"Se connecter →":"Créer mon compte →")}
             </button>
           </div>
         </div>
-        <div style={{textAlign:"center",fontSize:11.5,color:T.sec}}>
-          Problème ? <a href={`mailto:${CONTACT}`} style={{color:T.acc,textDecoration:"none"}}>{CONTACT}</a>
+
+        {/* Features list - only on register */}
+        {mode==="register"&&(
+          <div className="fup2" style={{background:"rgba(147,51,234,0.06)",borderRadius:16,border:"1px solid rgba(147,51,234,0.15)",padding:20,marginBottom:14}}>
+            <p style={{fontSize:11,fontWeight:600,color:"#9333EA",textTransform:"uppercase",letterSpacing:".08em",marginBottom:12}}>✦ Ce que vous obtenez</p>
+            {["Accès à votre espace agence","Gestion de vos créateurs et staff","Génération de matchs TikTok Live","Affiches de match personnalisées","Suivi des diamants et reversements"].map((f,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:i<4?8:0}}>
+                <div style={{width:18,height:18,borderRadius:"50%",background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.4)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:"#9333EA"}}/>
+                </div>
+                <span style={{fontSize:13,color:"#D1D5DB"}}>{f}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{textAlign:"center",fontSize:12,color:"#374151"}}>
+          Problème ? <a href={`mailto:${CONTACT}`} style={{color:"#9333EA",textDecoration:"none"}}>Contacter Diamond's</a>
+        </div>
+        <div style={{textAlign:"center",marginTop:10,fontSize:11,color:"#1F2937",letterSpacing:".04em"}}>
+          🔒 SÉCURISÉ · DONNÉES CHIFFRÉES
         </div>
       </div>
     </div>
   );
 }
+
 
 /* ─── ADMIN DASH ────────────────────────── */
 function AdminDash({setTab}){
@@ -1376,7 +1409,8 @@ function PosterCanvas({tmpl,cA,cB,matchDate,matchTime,isInter}){
       // Background image
       const bg=new Image();
       bg.crossOrigin="anonymous";
-      bg.src=POSTER_BG[tmpl.id];
+      bg.setAttribute("crossorigin","anonymous");
+      bg.src=POSTER_BG[tmpl.id]+"?w=800";
       bg.onload=()=>{
         // Draw bg image cover
         const ratio=Math.max(W/bg.width,H/bg.height);
@@ -2021,21 +2055,17 @@ function AdminPosterTemplatesView(){
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14}}>
         {POSTER_TEMPLATES.map(tmpl=>(
           <div key={tmpl.id} onClick={()=>setSelected(selected===tmpl.id?null:tmpl.id)} style={{cursor:"pointer"}}>
-            <div style={{position:"relative",paddingBottom:"120%",overflow:"hidden",background:"#111",borderRadius:10,border:`2px solid ${selected===tmpl.id?tmpl.accent:"rgba(255,255,255,0.08)"}`}}>
-              <img src={POSTER_BG[tmpl.id]} crossOrigin="anonymous" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:.55}} alt=""/>
-              <div style={{position:"absolute",inset:0,background:`linear-gradient(180deg,${tmpl.overlay} 0%,rgba(0,0,0,.85) 100%)`}}/>
-              <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",padding:8}}>
-                <div style={{display:"flex",alignItems:"center",gap:6,width:"100%",justifyContent:"center",marginBottom:8}}>
-                  <div style={{width:34,height:34,borderRadius:"50%",border:`2px solid ${tmpl.accent}`,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,color:tmpl.text}}>{(demoA?.pseudo||"A").replace("@","")[0]?.toUpperCase()||"A"}</div>
-                  <div style={{fontSize:11,fontWeight:900,color:tmpl.accent,padding:"3px 7px",border:`1px solid ${tmpl.accent}`,borderRadius:"50%",background:"rgba(0,0,0,.7)"}}>VS</div>
-                  <div style={{width:34,height:34,borderRadius:"50%",border:`2px solid ${tmpl.accent}`,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,color:tmpl.text}}>{(demoB?.pseudo||"B").replace("@","")[0]?.toUpperCase()||"B"}</div>
-                </div>
-                <div style={{width:"100%",border:`1px solid ${tmpl.accent}`,borderRadius:6,background:"rgba(0,0,0,.6)",padding:"5px",textAlign:"center"}}>
-                  <div style={{fontSize:9,fontWeight:900,color:tmpl.text}}>LE {demoMatch.match_date?new Date(demoMatch.match_date).toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}):"??/??"} · {demoMatch.match_time||"20:00"}</div>
-                </div>
-              </div>
+            <PosterCard tmpl={tmpl} cA={demoA} cB={demoB}
+              matchDate={demoMatch.match_date} matchTime={demoMatch.match_time}
+              isInter={false} selected={selected===tmpl.id} onSelect={()=>{}}/>
+            <div style={{marginTop:8,fontSize:11,color:T.sec,textAlign:"center",lineHeight:1.5}}>
+              {tmpl.id==="dark_gold"&&"Fond noir · Accents dorés · Couronne"}
+              {tmpl.id==="purple_magic"&&"Fond violet · Accents violet clair"}
+              {tmpl.id==="black_marble"&&"Marbre noir · Accents blancs · Couronne"}
+              {tmpl.id==="neon_space"&&"Fond spatial · Accents cyan néon"}
+              {tmpl.id==="rose_gold"&&"Fond sombre rosé · Accents pink · Couronne"}
+              {tmpl.id==="emerald"&&"Fond vert sombre · Accents émeraude"}
             </div>
-            <div style={{background:"#0D0D0D",padding:"6px 8px",textAlign:"center",fontSize:9,fontWeight:700,color:selected===tmpl.id?tmpl.accent:"#666",letterSpacing:".06em",textTransform:"uppercase"}}>{tmpl.label}</div>
           </div>
         ))}
       </div>
@@ -2048,12 +2078,12 @@ export default function App(){
   const auth=useAuth();
   const [tab,setTab]=useState("dash");
   const [team,setTeam]=useState({creators:[],agents:[],managers:[],directors:[]});
-  const [loadT,setLoadT]=useState(false);
+  const [loadT,setLT]=useState(false);
   const role=auth.profile?.role;
   const agencyId=auth.profile?.agency_id;
   const ag=auth.profile?.agencies;
 
-  useEffect(()=>{if(agencyId){setLoadT(true);fetchTeam(agencyId).then(d=>{setTeam(d);setLoadT(false);})};},[agencyId]);
+  useEffect(()=>{if(agencyId){setLT(true);fetchTeam(agencyId).then(d=>{setTeam(d);setLT(false);})};},[agencyId]);
   useEffect(()=>{setTab("dash");},[role]);
 
   const reload=()=>{auth.reload();if(agencyId) fetchTeam(agencyId).then(setTeam);};
