@@ -369,6 +369,18 @@ function LoginPage(){
     setLoad(false);
   };
 
+  const register=async()=>{
+    setErr("");setLoad(true);
+    if(!sb){setErr("Supabase non configur");setLoad(false);return;}
+    if(!email||!pw){setErr("Email et mot de passe requis");setLoad(false);return;}
+    if(!code){setErr("Code d'invitation requis");setLoad(false);return;}
+    
+    const {data,error}=await sb.auth.signUp({email,password:pw});
+    if(error){setErr(error.message);setLoad(false);return;}
+    
+    setLoad(false);setMode("confirm");
+  };
+
   if(mode==="confirm") return(
     <div style={{minHeight:"100vh",background:`radial-gradient(ellipse at 50% 0%,rgba(127,0,255,.15) 0%,transparent 55%),${T.bg}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{textAlign:"center",maxWidth:360,padding:20}} className="fup">
