@@ -367,15 +367,6 @@ function LoginPage(){
     const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
     if(error){setErr(error.message);setLoad(false);return;}
     
-    // Vérifier si l'utilisateur a un @ TikTok dans son profil
-    const {data:profile} = await sb.from("profiles").select("tiktok_handle, role").eq("id",data.user.id).single();
-    if(profile && profile.role !== "admin" && profile.role !== "agency" && !profile.tiktok_handle) {
-      setErr("Veuillez compléter votre profil avec votre @ TikTok pour accéder à l'application");
-      await sb.auth.signOut();
-      setLoad(false);
-      return;
-    }
-    
     setLoad(false);
   };
 
@@ -408,10 +399,6 @@ function LoginPage(){
           <div style={{display:"flex",flexDirection:"column",gap:11}}>
             <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Email</label>
               <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())} placeholder="vous@email.com"/></div>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>@ TikTok * <span style={{color:T.acc}}>(OBLIGATOIRE)</span></label>
-              <input className="inp" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} placeholder="@votre_pseudo_tiktok" style={{fontFamily:"monospace",borderColor:!handle.trim()?T.ng:T.b}}/>
-              <div style={{fontSize:11,color:!handle.trim()?T.ng:T.sec,marginTop:3}}>Doit tre EXACTEMENT identique  votre pseudo TikTok (avec @)</div>
-            </div>
             <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Mot de passe</label>
               <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())} placeholder=""/></div>
             {mode==="register"&&(
@@ -1948,12 +1935,14 @@ function SettingsView({profile,reload}){
   const [minD,setMinD]=useState(ag?.min_days||20);
   const [minH,setMinH]=useState(ag?.min_hours||40);
   const [perms,setPerms]=useState({dir:ag?.director_can_import||false,mgr:ag?.manager_can_import||false,inter:ag?.accept_inter_agency!==false});
+  const [tiktokHandle,setTiktokHandle]=useState(profile?.tiktok_handle||"");
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
   const ROLES=[{k:"creator",l:"Part crateur",c:T.ok},{k:"agent",l:"Commission agent",c:T.cy},{k:"manager",l:"Commission manager",c:T.pu},{k:"director",l:"Commission directeur",c:T.acc}];
   const total=Object.values(pcts).reduce((s,v)=>s+v,0);
   const save=async()=>{
     if(!sb||!ag?.id) return;setSaving(true);
+    await sb.from("profiles").update({tiktok_handle:tiktokHandle.trim()}).eq("id",profile.id);
     await sb.from("agencies").update({pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter}).eq("id",ag.id);
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
@@ -1988,6 +1977,16 @@ function SettingsView({profile,reload}){
           </div>
         </div>
       </div>
+      {profile?.role !== "agency" && (
+        <div className="card" style={{padding:18,marginBottom:14}}>
+          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>@ TikTok</div>
+          <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Votre pseudo TikTok exact (avec @)</div>
+          <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>@ TikTok *</label>
+            <input className="inp" value={tiktokHandle} onChange={e=>setTiktokHandle(e.target.value)} placeholder="@votre_pseudo_tiktok" style={{fontFamily:"monospace"}}/>
+            <div style={{fontSize:11,color:T.sec,marginTop:3}}>Doit être EXACTEMENT identique à votre pseudo TikTok</div>
+          </div>
+        </div>
+      )}
       <div className="card" style={{padding:18,marginBottom:14}}>
         <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Permissions & Matchs</div>
         {[{k:"dir",l:"Directeurs peuvent importer",c:T.acc},{k:"mgr",l:"Managers peuvent importer",c:T.pu},{k:"inter",l:"Accepter les matchs inter-agences",c:T.cy}].map(p=>(
