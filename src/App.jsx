@@ -140,31 +140,90 @@ const fetchAllLiveEntries=async()=>{if(!sb) return [];const {data}=await sb.from
 
 /* ─── SHARED UI ─────────────────────────── */
 const DiamondSVG=({size=40})=>(
-  <svg width={size} height={size} viewBox="0 0 44 44" style={{overflow:"visible"}}>
+  <svg width={size} height={size} viewBox="0 0 48 52" style={{overflow:"visible",display:"block"}}>
     <defs>
-      <linearGradient id="dg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#F5D0FE"/>
-        <stop offset="30%" stopColor="#C084FC"/>
-        <stop offset="65%" stopColor="#8B30D4"/>
-        <stop offset="100%" stopColor="#E879F9"/>
+      {/* Vrai diamant : table + couronne + pavilion - coupe brillant */}
+      <linearGradient id="dgTable" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#E8F4FF"/>
+        <stop offset="40%" stopColor="#BFE0FF"/>
+        <stop offset="100%" stopColor="#7EC8FF"/>
       </linearGradient>
-      <linearGradient id="dg2" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="rgba(255,255,255,0.92)"/>
-        <stop offset="100%" stopColor="rgba(168,85,247,0.1)"/>
+      <linearGradient id="dgLeft" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#CCEEFF"/>
+        <stop offset="100%" stopColor="#99DDFF"/>
       </linearGradient>
-      <linearGradient id="dg3" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#6B21A8"/>
-        <stop offset="100%" stopColor="#9333EA"/>
+      <linearGradient id="dgRight" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#88CCEE"/>
+        <stop offset="100%" stopColor="#55AADD"/>
       </linearGradient>
+      <linearGradient id="dgPavL" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#AADDFF"/>
+        <stop offset="100%" stopColor="#5599CC"/>
+      </linearGradient>
+      <linearGradient id="dgPavR" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#77BBEE"/>
+        <stop offset="100%" stopColor="#336699"/>
+      </linearGradient>
+      <linearGradient id="dgPavC" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#99CCFF"/>
+        <stop offset="100%" stopColor="#4488BB"/>
+      </linearGradient>
+      {/* Reflets arc-en-ciel */}
+      <linearGradient id="dgFire1" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#FF6B9D" stopOpacity="0.4"/>
+        <stop offset="50%" stopColor="#A78BFA" stopOpacity="0.3"/>
+        <stop offset="100%" stopColor="#34D399" stopOpacity="0.4"/>
+      </linearGradient>
+      <filter id="dgGlow">
+        <feGaussianBlur stdDeviation="2" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
     </defs>
-    <polygon points="22,2 41,16 22,42 3,16" fill="url(#dg)" stroke="#D8B4FE" strokeWidth="0.8" style={{filter:"drop-shadow(0 0 16px rgba(168,85,247,0.95))"}}/>
-    <polygon points="22,2 41,16 22,16 3,16" fill="url(#dg2)" opacity=".85"/>
-    <polygon points="22,16 41,16 22,42" fill="url(#dg3)" opacity=".45"/>
-    <line x1="3" y1="16" x2="41" y2="16" stroke="rgba(255,255,255,0.55)" strokeWidth="1.2"/>
-    <line x1="22" y1="2" x2="22" y2="16" stroke="rgba(255,255,255,0.4)" strokeWidth="0.8"/>
-    <circle cx="22" cy="2" r="2" fill="white" opacity="0.95"/>
-    <circle cx="41" cy="16" r="1.5" fill="#E879F9" opacity="0.85"/>
-    <circle cx="3" cy="16" r="1.5" fill="#E879F9" opacity="0.85"/>
+
+    {/* === COURONNE (crown) — partie haute === */}
+    {/* Table (facette centrale plate du dessus) */}
+    <polygon points="17,8 31,8 36,16 12,16" fill="url(#dgTable)" stroke="rgba(180,220,255,0.8)" strokeWidth="0.4"/>
+    {/* Facette couronne gauche haut */}
+    <polygon points="8,18 12,16 17,8 12,14" fill="url(#dgLeft)" stroke="rgba(150,200,255,0.6)" strokeWidth="0.3"/>
+    {/* Facette couronne droite haut */}
+    <polygon points="40,18 36,16 31,8 36,14" fill="url(#dgRight)" stroke="rgba(100,170,220,0.6)" strokeWidth="0.3"/>
+    {/* Facette couronne gauche bas */}
+    <polygon points="4,20 8,18 12,16 7,21" fill="url(#dgLeft)" stroke="rgba(150,200,255,0.5)" strokeWidth="0.3"/>
+    {/* Facette couronne droite bas */}
+    <polygon points="44,20 40,18 36,16 41,21" fill="url(#dgRight)" stroke="rgba(100,170,220,0.5)" strokeWidth="0.3"/>
+
+    {/* Ligne girdle (ceinture) */}
+    <line x1="4" y1="20" x2="44" y2="20" stroke="rgba(255,255,255,0.9)" strokeWidth="0.7"/>
+
+    {/* === PAVILION — partie basse effilée === */}
+    {/* Facette pavilion gauche */}
+    <polygon points="4,20 24,50 14,36" fill="url(#dgPavL)" stroke="rgba(100,170,220,0.5)" strokeWidth="0.3"/>
+    {/* Facette pavilion centre-gauche */}
+    <polygon points="14,36 24,50 19,28" fill="url(#dgPavC)" stroke="rgba(120,180,230,0.5)" strokeWidth="0.3"/>
+    {/* Facette pavilion centre */}
+    <polygon points="19,28 24,50 29,28" fill="url(#dgPavL)" stroke="rgba(140,190,240,0.5)" strokeWidth="0.3"/>
+    {/* Facette pavilion centre-droit */}
+    <polygon points="29,28 24,50 34,36" fill="url(#dgPavC)" stroke="rgba(100,160,210,0.5)" strokeWidth="0.3"/>
+    {/* Facette pavilion droit */}
+    <polygon points="34,36 24,50 44,20" fill="url(#dgPavR)" stroke="rgba(80,140,190,0.5)" strokeWidth="0.3"/>
+
+    {/* Lignes structurelles du pavilion */}
+    <line x1="4" y1="20" x2="14" y2="36" stroke="rgba(200,230,255,0.6)" strokeWidth="0.4"/>
+    <line x1="14" y1="36" x2="24" y2="50" stroke="rgba(180,215,245,0.7)" strokeWidth="0.4"/>
+    <line x1="24" y1="50" x2="34" y2="36" stroke="rgba(160,200,235,0.6)" strokeWidth="0.4"/>
+    <line x1="34" y1="36" x2="44" y2="20" stroke="rgba(140,185,225,0.6)" strokeWidth="0.4"/>
+    <line x1="4" y1="20" x2="19" y2="28" stroke="rgba(200,230,255,0.4)" strokeWidth="0.3"/>
+    <line x1="44" y1="20" x2="29" y2="28" stroke="rgba(200,230,255,0.4)" strokeWidth="0.3"/>
+
+    {/* Reflet arc-en-ciel (feu du diamant) */}
+    <polygon points="17,8 24,12 19,16 12,16" fill="url(#dgFire1)" opacity="0.7"/>
+    <polygon points="14,36 20,32 24,50" fill="#7EC8FF" opacity="0.2"/>
+
+    {/* Éclat blanc sur la table */}
+    <polygon points="20,9 26,9 28,13 22,14 18,12" fill="white" opacity="0.55"/>
+
+    {/* Contour global */}
+    <polygon points="17,8 31,8 36,16 44,20 34,36 24,50 14,36 4,20 12,16" fill="none" stroke="rgba(150,210,255,0.9)" strokeWidth="0.6" filter="url(#dgGlow)"/>
   </svg>
 );
 const Spk=({x,y,d})=>(
@@ -213,11 +272,11 @@ const billingTag=(s,isOffered)=>{
 /* ─── NAV ───────────────────────────────── */
 const NAVS={
   admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"invite_agencies",l:"Inviter agences"},{id:"all_users",l:"Utilisateurs"},{id:"all_creators",l:"Créateurs"},{id:"all_staff",l:"Staff"},{id:"all_matches",l:"Matchs"},{id:"all_schedules",l:"Plannings"},{id:"all_lives",l:"Lives"},{id:"poster_templates",l:"Templates affiches"}],
-  agency:  [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Liens d'invitation"},{id:"matches",l:"Matchs"},{id:"settings",l:"Paramètres"}],
+  agency:  [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Liens d'invitation"},{id:"matches",l:"Matchs"},{id:"settings",l:"Paramètres"},{id:"coach",l:"Coach IA 🤖"}],
   director:[{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
   manager: [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
   agent:   [{id:"dash",l:"Dashboard"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mon lien"},{id:"settings",l:"Paramètres"}],
-  creator: [{id:"dash",l:"Mon espace"},{id:"planning",l:"Mon planning"},{id:"my_lives",l:"Mes lives"},{id:"matches",l:"Mes matchs"}],
+  creator: [{id:"dash",l:"Mon espace"},{id:"planning",l:"Mon planning"},{id:"my_lives",l:"Mes lives"},{id:"matches",l:"Mes matchs"},{id:"coach",l:"Coach IA 🤖"}],
 };
 
 /* ─── AUTH ──────────────────────────────── */
@@ -286,11 +345,13 @@ function LoginPage(){
     setLoad(true);
     const {data,error}=await sb.auth.signUp({email,password:pw});
     if(error){setErr(error.message);setLoad(false);return;}
+    const userId=data.user?.id;
+    if(!userId){setErr("Erreur création compte");setLoad(false);return;}
     const isAgency=cleanCode.startsWith("AGENCE-");
     if(isAgency){
-      // Create agency immediately — admin can offer/activate access later
+      // Create agency
       const agName=email.split("@")[0];
-      const {data:ag}=await sb.from("agencies").insert({
+      const {data:ag,error:agErr}=await sb.from("agencies").insert({
         name:agName,
         slug:"AG"+Date.now().toString(36).toUpperCase().slice(-6),
         billing_status:"essai",is_offered:false,
@@ -299,13 +360,26 @@ function LoginPage(){
         director_can_import:false,manager_can_import:false,
         can_agent_delete_creator:false,can_manager_delete_agent:false,can_director_delete_all:true
       }).select().single();
+      if(agErr){setErr("Erreur création agence: "+agErr.message);setLoad(false);return;}
+      // Upsert profile (trigger may not have run yet)
       if(ag?.id){
-        await sb.from("profiles").update({role:"agency",agency_id:ag.id}).eq("id",data.user.id);
+        const {error:pErr}=await sb.from("profiles").upsert({
+          id:userId,
+          email:email,
+          role:"agency",
+          agency_id:ag.id
+        },{onConflict:"id"});
+        if(pErr){
+          // Try update as fallback
+          await sb.from("profiles").update({role:"agency",agency_id:ag.id}).eq("id",userId);
+        }
       }
       await sb.from("invite_codes").update({uses:1}).eq("code",cleanCode);
     } else {
-      const {error:cErr}=await sb.rpc("use_invite_code",{p_code:cleanCode,p_user_id:data.user?.id});
-      if(cErr){setErr("Erreur code invitation");setLoad(false);return;}
+      // For non-agency: upsert profile first then use code
+      await sb.from("profiles").upsert({id:userId,email:email},{onConflict:"id"});
+      const {error:cErr}=await sb.rpc("use_invite_code",{p_code:cleanCode,p_user_id:userId});
+      if(cErr){setErr("Code invalide ou expiré");setLoad(false);return;}
     }
     setStep("confirm");setLoad(false);
   };
@@ -1113,6 +1187,7 @@ function CreatorsView({profile,creators,agents,reload}){
   const [tr,setTr]=useState(null);
   const [sel,setSel]=useState({});
   const [doing,setDoing]=useState(null);
+  const [targetCreator,setTargetCreator]=useState(null);
   const canPhone=["admin","agency","director","manager","agent"].includes(role);
   const canName=["admin","agency"].includes(role);
   const canTransfer=["admin","agency"].includes(role);
@@ -1185,6 +1260,7 @@ function CreatorsView({profile,creators,agents,reload}){
                         {canTogglePayout&&<button className="btng" style={{fontSize:9.5,padding:"2px 6px",color:c.disable_creator_payout?T.ok:T.ng}} onClick={()=>togglePayout(c.profile_id,c.disable_creator_payout)} title="Activer/désactiver reversement créateur">
                           {c.disable_creator_payout?"Rev ✓":"Rev ✕"}
                         </button>}
+                        {canTogglePayout&&<button className="btng" style={{fontSize:9.5,padding:"2px 6px",color:"#9333EA",borderColor:"rgba(147,51,234,0.3)"}} onClick={()=>setTargetCreator(c)} title="Objectifs personnalisés">🎯</button>}
                       </div>
                     )}
                   </div>
@@ -1292,7 +1368,7 @@ function SettingsView({profile,reload}){
   const [pcts,setPcts]=useState({director:ag?.pct_director||3,manager:ag?.pct_manager||5,agent:ag?.pct_agent||10,creator:ag?.pct_creator||55});
   const [minD,setMinD]=useState(ag?.min_days||20);
   const [minH,setMinH]=useState(ag?.min_hours||40);
-  const [perms,setPerms]=useState({dir:ag?.director_can_import||false,mgr:ag?.manager_can_import||false,inter:ag?.accept_inter_agency!==false,agentDel:ag?.can_agent_delete_creator||false,mgrDel:ag?.can_manager_delete_agent||false,dirDel:ag?.can_director_delete_all!==false});
+  const [perms,setPerms]=useState({dir:ag?.director_can_import||false,mgr:ag?.manager_can_import||false,inter:ag?.accept_inter_agency!==false,coachEnabled:ag?.coach_enabled!==false,agentDel:ag?.can_agent_delete_creator||false,mgrDel:ag?.can_manager_delete_agent||false,dirDel:ag?.can_director_delete_all!==false});
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
   const [tiktokHandle,setTiktokHandle]=useState((profile?.tiktok_handle||"").replace(/^@/,""));
@@ -1308,7 +1384,7 @@ function SettingsView({profile,reload}){
     }
     // Save agency settings if applicable
     if(ag?.id){
-      await sb.from("agencies").update({pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel}).eq("id",ag.id);
+      await sb.from("agencies").update({pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel}).eq("id",ag.id);
     }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
@@ -1345,7 +1421,7 @@ function SettingsView({profile,reload}){
       </div>
       <div className="card" style={{padding:18,marginBottom:14}}>
         <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Permissions & Matchs</div>
-        {[{k:"dir",l:"Directeurs peuvent importer",c:T.acc},{k:"mgr",l:"Managers peuvent importer",c:T.pu},{k:"inter",l:"Matchs inter-agences acceptés",c:"#00C853"},{k:"agentDel",l:"Agents peuvent supprimer des créateurs",c:"#FF9800"},{k:"mgrDel",l:"Managers peuvent supprimer agents & créateurs",c:T.pu},{k:"dirDel",l:"Directeurs peuvent tout supprimer",c:T.acc}].map(p=>(
+        {[{k:"dir",l:"Directeurs peuvent importer",c:T.acc},{k:"mgr",l:"Managers peuvent importer",c:T.pu},{k:"inter",l:"Matchs inter-agences acceptés",c:"#00C853"},{k:"coachEnabled",l:"Coach IA activé pour tout le monde",c:"#9333EA"},{k:"agentDel",l:"Agents peuvent supprimer des créateurs",c:"#FF9800"},{k:"mgrDel",l:"Managers peuvent supprimer agents & créateurs",c:T.pu},{k:"dirDel",l:"Directeurs peuvent tout supprimer",c:T.acc}].map(p=>(
           <div key={p.k} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:9,background:perms[p.k]?`${p.c}08`:"rgba(255,255,255,.02)",border:`1px solid ${perms[p.k]?p.c+"25":T.b}`,marginBottom:7}}>
             <div style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{p.l}</div>
             <Tog on={perms[p.k]} onChange={v=>setPerms(t=>({...t,[p.k]:v}))} color={p.c}/>
@@ -2133,6 +2209,286 @@ function AdminPosterTemplatesView(){
   );
 }
 
+
+/* ─── COACH IA ──────────────────────────── */
+const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_KEY||"";
+const TIKTOK_RATE = 0.017; // ~0.017€ par diamant (taux TikTok officiel)
+
+function diamondsToEuros(diamonds) {
+  // TikTok paie ~0.017€ par diamant au créateur (net, après commission TikTok ~50%)
+  return (diamonds * TIKTOK_RATE).toFixed(2);
+}
+
+function CoachView({profile,creators,ag}){
+  const [messages,setMessages]=useState([
+    {role:"assistant",content:"Bonjour 👋 Je suis ton Coach TikTok Live ! Je suis là pour t'aider à progresser, booster tes performances et répondre à toutes tes questions sur le live TikTok. Que veux-tu savoir ?"}
+  ]);
+  const [input,setInput]=useState("");
+  const [loading,setLoading]=useState(false);
+  const endRef=useRef();
+  const role=profile?.role;
+  
+  // Find creator data for context
+  const myCreator=creators?.[0];
+  const minDays=myCreator?.custom_min_days||ag?.min_days||20;
+  const minHours=myCreator?.custom_min_hours||ag?.min_hours||40;
+  const days=myCreator?.days_live||0;
+  const hours=myCreator?.hours_live||0;
+  const diamonds=myCreator?.diamonds||0;
+
+  useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[messages]);
+
+  const SYSTEM_PROMPT = `Tu es Diamond Coach, l'assistant IA expert TikTok LIVE de Diamond's by Belive Academy.
+Tu as accès aux dernières informations TikTok Live 2026 et tu te mets à jour en permanence.
+
+━━━ RÈGLES ABSOLUES ━━━
+• JAMAIS mention agences / reversements agence / commissions agence / organisation interne
+• Argent = uniquement taux TikTok officiel 2026 : ~0.017€/diamant versé directement par TikTok au créateur
+• Toujours préciser "TikTok te verse directement X€"
+• Rester 100% sur l'univers TikTok Live
+
+━━━ STATS DU CRÉATEUR ━━━
+Jours live : ${days}/${minDays} · Heures : ${hours}h/${minHours}h · Diamants : ${diamonds.toLocaleString()} 💎 ≈ ${diamondsToEuros(diamonds)}€
+${days<minDays?"⚠️ "+(minDays-days)+" jours manquants pour l'objectif":"✅ Objectif jours atteint"}
+${hours<minHours?"⚠️ "+(minHours-hours)+"h manquantes pour l'objectif":"✅ Objectif heures atteint"}
+
+━━━ CONVERSIONS DIAMANTS → EUROS ━━━
+100💎=1.70€ · 500💎=8.50€ · 1k💎=17€ · 5k💎=85€ · 10k💎=170€ · 50k💎=850€ · 100k💎=1700€ · 1M💎=17 000€
+
+━━━ CONNAISSANCES TIKTOK LIVE 2026 ━━━
+
+ALGORITHME 2026:
+- Boost initial les 3 premières minutes sont cruciales (plus de viewers = plus de reach)
+- La régularité prime sur la durée (algorithme favorise les lives quotidiens 30-60min)
+- Les PK Battles boostent massivement la visibilité si tu gagnes
+- Les "LIVE Tasks" (missions en live) augmentent le reach de 30-50%
+- TikTok favorise les créateurs avec un taux d'engagement élevé (dons/viewers)
+
+NOUVELLES FONCTIONNALITÉS 2026:
+- LIVE Shopping intégré avec panier d'achat en direct
+- Multi-guest jusqu'à 5 personnes en simultané
+- LIVE Subscription v2 avec badges exclusifs personnalisés
+- Creator Awards mensuels avec bonus diamants
+- TikTok LIVE Studio desktop amélioré (overlays, scènes)
+- "Series" : enchaîner plusieurs lives thématiques
+- Analytics LIVE temps réel améliorés
+
+CADEAUX 2026 (les plus populaires):
+- Rose 1💎 · Finger Heart 5💎 · TikTok 9💎 · Sun Cream 50💎 · Drama Queen 1000💎
+- Interstellar 3000💎 · Planet 15000💎 · TikTok Universe 34999💎 · Lion 29999💎
+- Galaxy 1000💎 · Motorcycle 5000💎
+
+STRATÉGIES AVANCÉES 2026:
+- "Warm-up" : commencer par interagir dans d'autres lives avant de lancer le sien
+- Utiliser les trending sounds/hashtags dans le titre du live
+- Programmation hebdomadaire fixe = fidélisation audience
+- Collaborations PK Battle avec créateurs du même niveau (+/- 30% de diamants)
+- Lives de "niche" convertissent mieux (cuisine, sport, gaming, beauté, humour)
+- Peak hours France : 19h-22h semaine · 14h-18h weekend
+
+LEVEL UP & BADGES:
+- Niveau LIVE basé sur heures totales + diamants reçus
+- Badge créateur visible pendant le live (boost confiance)
+- Paliers : Bronze → Silver → Gold → Platinum → Diamond
+- Level Diamond = accès aux features exclusives
+
+Tu utilises des recherches web récentes pour rester à jour. Si on te demande une nouveauté 2026, recherche et donne la meilleure réponse possible.
+Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un conseil actionnable.`
+
+
+
+  const send=async()=>{
+    if(!input.trim()||loading) return;
+    const userMsg={role:"user",content:input.trim()};
+    const newMessages=[...messages,userMsg];
+    setMessages(newMessages);
+    setInput("");
+    setLoading(true);
+    try{
+      // Use Anthropic API with web search for real-time TikTok 2026 updates
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "x-api-key":ANTHROPIC_KEY,
+          "anthropic-version":"2023-06-01",
+          "anthropic-beta":"web-search-2025-03-05"
+        },
+        body:JSON.stringify({
+          model:"claude-opus-4-5",
+          max_tokens:800,
+          system:SYSTEM_PROMPT,
+          tools:[{type:"web_search_20250305",name:"web_search",max_uses:2}],
+          messages:newMessages.map(m=>({role:m.role,content:m.content}))
+        })
+      });
+      const data=await res.json();
+      // Extract text from content blocks (may include tool_use blocks)
+      const textBlocks=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text);
+      const reply=textBlocks.join(" ")||"Désolé, je n'ai pas pu répondre. Réessaie !";
+      setMessages(m=>[...m,{role:"assistant",content:reply}]);
+    }catch(e){
+      setMessages(m=>[...m,{role:"assistant",content:"⚠️ Erreur de connexion. Vérifiez la configuration."}]);
+    }
+    setLoading(false);
+  };
+;
+
+  const suggestions=[
+    "Comment augmenter mes diamants ?",
+    `J'ai ${diamonds} 💎, combien ça fait en euros ?`,
+    "Quels sont les meilleurs horaires pour lancer un live ?",
+    "Comment attirer plus de viewers ?",
+    "Conseils pour mon objectif ce mois ?",
+  ];
+
+  // Check if coach is enabled for this agency
+  if(ag&&ag.coach_enabled===false) return(
+    <div style={{textAlign:"center",padding:"60px 20px"}}>
+      <div style={{fontSize:40,marginBottom:16}}>🤖</div>
+      <h2 style={{fontSize:20,fontWeight:700,color:"#fff",marginBottom:8}}>Coach IA désactivé</h2>
+      <p style={{fontSize:14,color:"#555"}}>Votre agence n'a pas encore activé le Coach IA.<br/>Contactez votre responsable.</p>
+    </div>
+  );
+
+  return(
+    <div className="fup" style={{height:"calc(100vh - 80px)",display:"flex",flexDirection:"column"}}>
+      <div style={{marginBottom:16,flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:4}}>
+          <div style={{width:40,height:40,borderRadius:12,background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🤖</div>
+          <div>
+            <h1 style={{fontSize:20,fontWeight:700,color:"#fff",letterSpacing:"-.02em"}}>Coach IA TikTok Live</h1>
+            <p style={{fontSize:12,color:"#555"}}>Propulsé par Groq · Spécialisé TikTok Live</p>
+          </div>
+        </div>
+        {/* Creator stats banner */}
+        {myCreator&&(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginTop:10}}>
+            <div style={{background:"#151515",border:"1px solid #1e1e1e",borderRadius:8,padding:"8px 12px"}}>
+              <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:".06em",marginBottom:2}}>Jours live</div>
+              <div style={{fontSize:16,fontWeight:700,color:days>=minDays?"#22C55E":"#9333EA"}}>{days}<span style={{fontSize:11,color:"#444"}}>/{minDays}</span></div>
+            </div>
+            <div style={{background:"#151515",border:"1px solid #1e1e1e",borderRadius:8,padding:"8px 12px"}}>
+              <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:".06em",marginBottom:2}}>Heures live</div>
+              <div style={{fontSize:16,fontWeight:700,color:hours>=minHours?"#22C55E":"#9333EA"}}>{hours}h<span style={{fontSize:11,color:"#444"}}>/{minHours}h</span></div>
+            </div>
+            <div style={{background:"#151515",border:"1px solid #1e1e1e",borderRadius:8,padding:"8px 12px"}}>
+              <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:".06em",marginBottom:2}}>💎 Diamants</div>
+              <div style={{fontSize:16,fontWeight:700,color:"#fff"}}>{diamonds>=1000?(diamonds/1000).toFixed(1)+"k":diamonds}</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Messages */}
+      <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:12,marginBottom:12,paddingRight:4}}>
+        {messages.map((m,i)=>(
+          <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+            {m.role==="assistant"&&<div style={{width:28,height:28,borderRadius:8,background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,marginRight:8,marginTop:2}}>🤖</div>}
+            <div style={{maxWidth:"75%",padding:"10px 14px",borderRadius:m.role==="user"?"12px 12px 2px 12px":"12px 12px 12px 2px",background:m.role==="user"?"#9333EA":"#1a1a1a",border:m.role==="user"?"none":"1px solid #222",fontSize:13.5,lineHeight:1.65,color:"#fff",whiteSpace:"pre-wrap"}}>
+              {m.content}
+            </div>
+          </div>
+        ))}
+        {loading&&(
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <div style={{width:28,height:28,borderRadius:8,background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🤖</div>
+            <div style={{padding:"10px 14px",background:"#1a1a1a",border:"1px solid #222",borderRadius:"12px 12px 12px 2px",display:"flex",gap:6,alignItems:"center"}}>
+              {[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:"#9333EA",animation:`sp2 1s ${i*0.15}s ease-in-out infinite`}}/>)}
+            </div>
+          </div>
+        )}
+        <div ref={endRef}/>
+      </div>
+
+      {/* Suggestions */}
+      {messages.length<=1&&(
+        <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10,flexShrink:0}}>
+          {suggestions.map((s,i)=>(
+            <button key={i} onClick={()=>setInput(s)} style={{padding:"6px 12px",borderRadius:20,border:"1px solid #222",background:"#151515",color:"#888",fontSize:12,cursor:"pointer",fontFamily:"inherit",transition:"all .12s"}}
+              onMouseEnter={e=>{e.target.style.borderColor="#9333EA";e.target.style.color="#fff";}}
+              onMouseLeave={e=>{e.target.style.borderColor="#222";e.target.style.color="#888";}}>
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Input */}
+      <div style={{display:"flex",gap:8,flexShrink:0}}>
+        <input className="inp" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()} placeholder="Pose ta question sur TikTok Live…" style={{flex:1,fontSize:14}}/>
+        <button className="btn" onClick={send} disabled={loading||!input.trim()} style={{padding:"11px 18px",flexShrink:0}}>
+          {loading?<Spin/>:"→"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── INDIVIDUAL CREATOR TARGETS ────────── */
+function CreatorTargetsModal({creator,ag,onClose,onSave}){
+  const [days,setDays]=useState(creator?.custom_min_days||ag?.min_days||20);
+  const [hours,setHours]=useState(creator?.custom_min_hours||ag?.min_hours||40);
+  const [saving,setSaving]=useState(false);
+
+  const save=async()=>{
+    if(!sb||!creator?.id) return;
+    setSaving(true);
+    await sb.from("creators").update({custom_min_days:days,custom_min_hours:hours}).eq("id",creator.id);
+    setSaving(false);
+    onSave?.();
+    onClose();
+  };
+  const reset=async()=>{
+    if(!sb||!creator?.id) return;
+    setSaving(true);
+    await sb.from("creators").update({custom_min_days:null,custom_min_hours:null}).eq("id",creator.id);
+    setSaving(false);
+    onSave?.();
+    onClose();
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(8px)"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#151515",border:"1px solid #222",borderRadius:16,padding:28,width:"100%",maxWidth:380}}>
+        <h2 style={{fontSize:18,fontWeight:700,color:"#fff",marginBottom:4,letterSpacing:"-.02em"}}>Objectifs personnalisés</h2>
+        <p style={{fontSize:13,color:"#555",marginBottom:20}}>Pour <strong style={{color:"#9333EA"}}>{creator?.pseudo||"ce créateur"}</strong></p>
+
+        <div style={{background:"rgba(147,51,234,0.06)",border:"1px solid rgba(147,51,234,0.12)",borderRadius:10,padding:"10px 14px",marginBottom:20,fontSize:12,color:"#666"}}>
+          Objectifs généraux : {ag?.min_days||20}j / {ag?.min_hours||40}h · Si non défini ici, les objectifs généraux s'appliquent
+        </div>
+
+        <div style={{display:"flex",flexDirection:"column",gap:16,marginBottom:24}}>
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+              <label style={{fontSize:12,fontWeight:600,color:"#888",textTransform:"uppercase",letterSpacing:".06em"}}>Jours de live minimum</label>
+              <span style={{fontSize:16,fontWeight:700,color:"#9333EA"}}>{days}j</span>
+            </div>
+            <input type="range" min={1} max={31} step={1} value={days} onChange={e=>setDays(+e.target.value)}/>
+          </div>
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+              <label style={{fontSize:12,fontWeight:600,color:"#888",textTransform:"uppercase",letterSpacing:".06em"}}>Heures de live minimum</label>
+              <span style={{fontSize:16,fontWeight:700,color:"#9333EA"}}>{hours}h</span>
+            </div>
+            <input type="range" min={1} max={200} step={1} value={hours} onChange={e=>setHours(+e.target.value)}/>
+          </div>
+        </div>
+
+        <div style={{display:"flex",gap:8}}>
+          <button className="btn" style={{flex:1,justifyContent:"center"}} onClick={save} disabled={saving}>
+            {saving?<Spin/>:"Enregistrer"}
+          </button>
+          <button className="btng" onClick={reset} disabled={saving} title="Revenir aux objectifs généraux">
+            Réinitialiser
+          </button>
+          <button className="btng" onClick={onClose}>Annuler</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── APP ROOT ──────────────────────────── */
 export default function App(){
   const auth=useAuth();
@@ -2208,6 +2564,7 @@ export default function App(){
     matches: ()=><MatchesView profile={auth.profile} creators={team.creators} agents={team.agents}/>,
     planning:()=><PlanningView profile={auth.profile}/>,
     my_lives:()=><MyLivesView profile={auth.profile}/>,
+    coach:   ()=><CoachView profile={auth.profile} creators={team.creators} ag={auth.profile?.agencies}/>,
     invite_agencies:()=><AdminInviteAgencies/>,
     all_users:()=><AdminAllUsersView/>,
     all_creators:()=><AdminAllCreatorsView/>,
