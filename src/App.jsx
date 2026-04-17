@@ -2339,22 +2339,54 @@ function AdminInviteAgencies(){
 
   const loadCodes=async()=>{
     if(!sb) return;
-    const {data}=await sb.from("invite_codes").select("*").eq("target_role","agency").order("created_at",{ascending:false});
-    setCodes(data||[]);
+    try {
+      console.log("Chargement des codes agence...");
+      const {data, error} = await sb.from("invite_codes").select("*").eq("target_role","agency").order("created_at",{ascending:false});
+      
+      if(error) {
+        console.error("Erreur chargement codes:", error);
+        return;
+      }
+      
+      console.log("Codes chargés:", data);
+      setCodes(data||[]);
+    } catch(err) {
+      console.error("Erreur chargement:", err);
+    }
   };
 
   const generateCode=async()=>{
-    if(!sb) return;
+    if(!sb) {
+      alert("Supabase non configuré");
+      return;
+    }
     setGenerating(true);
-    const code=`AGENCE-${Math.random().toString(36).slice(-6).toUpperCase()}`;
-    await sb.from("invite_codes").insert([{
-      code,
-      target_role:"agency",
-      uses:0,
-      max_uses:1
-    }]);
-    await loadCodes();
-    setGenerating(false);
+    try {
+      const code=`AGENCE-${Math.random().toString(36).slice(-6).toUpperCase()}`;
+      console.log("Génération du code:", code);
+      
+      const {data, error} = await sb.from("invite_codes").insert([{
+        code,
+        target_role:"agency",
+        uses:0,
+        max_uses:1
+      }]);
+      
+      if(error) {
+        console.error("Erreur insertion:", error);
+        alert("Erreur lors de la génération: " + error.message);
+        setGenerating(false);
+        return;
+      }
+      
+      console.log("Code inséré:", data);
+      await loadCodes();
+      setGenerating(false);
+    } catch(err) {
+      console.error("Erreur:", err);
+      alert("Erreur: " + err.message);
+      setGenerating(false);
+    }
   };
 
   const copyCode=(code)=>{
