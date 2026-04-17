@@ -608,6 +608,7 @@ function AdminAgencies(){
     await loadCodes(ag.id);setGenning(null);
   };
   const updateBilling=async(id,field,value)=>{if(!sb) return;await sb.from("agencies").update({[field]:value}).eq("id",id);load();};
+  const deleteAgency=async(id)=>{if(!sb) return;if(!confirm("Êtes-vous sûr de vouloir supprimer cette agence ? Cette action est irréversible.")) return;await sb.from("agencies").delete().eq("id",id);load();};
   const cp=(k)=>{setCopied(k);setTimeout(()=>setCopied(null),2000);};
 
   if(viewDash) return(
@@ -724,6 +725,7 @@ function AdminAgencies(){
                 {!ag.is_offered&&<button style={{padding:"4px 9px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.cy}30`,background:`${T.cy}10`,color:T.cy,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>updateBilling(ag.id,"is_offered",true)}>Offrir </button>}
                 {ag.is_offered&&<button className="btng" style={{fontSize:10.5,color:T.ng}} onClick={()=>updateBilling(ag.id,"is_offered",false)}>Retirer</button>}
                 {ag.billing_status==="actif"&&!ag.is_offered&&<button style={{padding:"4px 9px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.ng}30`,background:`${T.ng}10`,color:T.ng,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>updateBilling(ag.id,"billing_status","impay")}>Impay</button>}
+                <button className="btng" style={{fontSize:10.5,color:T.ng,borderColor:T.ng+"30"}} onClick={()=>deleteAgency(ag.id)}>Supprimer</button>
               </div>
             </div>
           ))}
