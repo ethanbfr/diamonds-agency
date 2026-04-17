@@ -69,7 +69,7 @@ const calcPayout=(ag,c)=>{
   const b=(c.diamonds||0)*0.017;
   return {eligible:true,creator:Math.round(b*(ag?.pct_creator||55)/100),agent:Math.round(b*(ag?.pct_agent||10)/100),manager:Math.round(b*(ag?.pct_manager||5)/100),director:Math.round(b*(ag?.pct_director||3)/100)};
 };
-const billingOk=(ag)=>!ag||ag.is_offered||ag.billing_status==="actif"||(ag.billing_status==="essai");
+const billingOk=(ag)=>!ag||ag.is_offered||ag.billing_status==="actif";
 
 /* ─── SUPABASE ──────────────────────────── */
 const getProfile=async(uid)=>{
@@ -263,8 +263,8 @@ const Tog=({on,onChange,color=T.acc})=>(
   </button>
 );
 const billingTag=(s,isOffered)=>{
-  if(isOffered) return <span className="tag" style={{background:`${T.cy}18`,color:T.cy}}>Offert ♥</span>;
-  const m={actif:{bg:`${T.ok}18`,c:T.ok,l:"Abonné"},impayé:{bg:`${T.ng}18`,c:T.ng,l:"Impayé"},essai:{bg:`${T.go}18`,c:T.go,l:"Essai"}};
+  if(isOffered) return <span className="tag" style={{background:"rgba(37,99,235,0.15)",color:"#60A5FA",border:"1px solid rgba(37,99,235,0.25)"}}>♥ Offert</span>;
+  const m={actif:{bg:"rgba(34,197,94,0.1)",c:"#22C55E",l:"Abonné"},impayé:{bg:"rgba(239,68,68,0.1)",c:"#EF4444",l:"Impayé"},essai:{bg:"rgba(239,68,68,0.1)",c:"#EF4444",l:"Non abonné"}};
   const v=m[s]||m.essai;
   return <span className="tag" style={{background:v.bg,color:v.c}}>{v.l}</span>;
 };
@@ -321,12 +321,26 @@ function LoginPage(){
   const [step,setStep]=useState("auth"); // auth | payment | confirm
   const [err,setErr]=useState("");
   const [load,setLoad]=useState(false);
+  const [showPw,setShowPw]=useState(false);
+  const [forgotMode,setForgotMode]=useState(false);
+  const [resetSent,setResetSent]=useState(false);
 
   const login=async()=>{
     setErr("");setLoad(true);
     if(!sb){setErr("Supabase non configuré");setLoad(false);return;}
+    if(!email||!pw){setErr("Email et mot de passe requis");setLoad(false);return;}
     const {error}=await sb.auth.signInWithPassword({email,password:pw});
-    if(error){setErr(error.message);setLoad(false);}
+    if(error){
+      const msg=error.message;
+      if(msg.includes("Invalid login credentials")||msg.includes("invalid_credentials"))
+        setErr("Email ou mot de passe incorrect");
+      else if(msg.includes("Email not confirmed"))
+        setErr("Compte non confirmé — contactez le support");
+      else if(msg.includes("Too many requests"))
+        setErr("Trop de tentatives, attendez quelques minutes");
+      else setErr("Erreur de connexion : "+msg);
+      setLoad(false);
+    }
   };
 
   const checkCode=async()=>{
@@ -349,7 +363,7 @@ function LoginPage(){
     const isAgency=cleanCode.startsWith("AGENCE-");
     if(isAgency){
       // Create agency
-      const agName=email.split("@")[0];
+      const agName="Mon Agence"; // L'agence configure son nom dans Paramètres
       const {data:ag,error:agErr}=await sb.from("agencies").insert({
         name:agName,
         slug:"AG"+Date.now().toString(36).toUpperCase().slice(-6),
@@ -483,7 +497,12 @@ function LoginPage(){
             </div>
             <div>
               <label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".08em"}}>Mot de passe</label>
-              <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():checkCode())} placeholder="••••••••"/>
+              <div style={{position:"relative"}}>
+                <input className="inp" type={showPw?"text":"password"} value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():checkCode())} placeholder="••••••••" style={{paddingRight:42}}/>
+                <button onClick={()=>setShowPw(s=>!s)} type="button" style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#555",fontSize:16,padding:0,fontFamily:"inherit"}}>
+                  {showPw?"🙈":"👁"}
+                </button>
+              </div>
             </div>
             {mode==="register"&&(
               <div>
@@ -493,6 +512,27 @@ function LoginPage(){
             )}
 
             {err&&<div style={{padding:"10px 12px",borderRadius:8,background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.15)",fontSize:13,color:"#EF4444"}}>⚠ {err}</div>}
+
+            {mode==="login"&&(
+              <div style={{textAlign:"right",marginTop:-8}}>
+                {!forgotMode
+                  ? <button onClick={()=>setForgotMode(true)} style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Mot de passe oublié ?</button>
+                  : <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                      {resetSent
+                        ? <span style={{fontSize:12,color:"#22C55E"}}>✓ Email envoyé !</span>
+                        : <><input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="votre@email.com" style={{flex:1,fontSize:12,padding:"7px 10px"}}/>
+                          <button className="btn" style={{fontSize:12,padding:"7px 12px",flexShrink:0}} onClick={async()=>{
+                            if(!email){setErr("Entrez votre email");return;}
+                            const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+"/reset"});
+                            if(error) setErr("Erreur: "+error.message);
+                            else setResetSent(true);
+                          }}>Envoyer</button></>
+                      }
+                      <button onClick={()=>{setForgotMode(false);setResetSent(false);}} style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>✕</button>
+                    </div>
+                }
+              </div>
+            )}
 
             <button className="btn" style={{width:"100%",padding:"13px",fontSize:15}} onClick={mode==="login"?login:checkCode} disabled={load}>
               {load?<><Spin/>{mode==="login"?"Connexion…":"Vérification…"}</>:(mode==="login"?"Se connecter →":"Continuer →")}
@@ -642,7 +682,17 @@ function AdminAgencies(){
     await genCode(ag.id,user.id,"admin",targetRole);
     await loadCodes(ag.id);setGenning(null);
   };
-  const updateBilling=async(id,field,value)=>{if(!sb) return;await sb.from("agencies").update({[field]:value}).eq("id",id);load();};
+  const updateBilling=async(id,field,value)=>{
+    if(!sb) return;
+    if(field==="is_offered"&&value===true){
+      await sb.from("agencies").update({is_offered:true,billing_status:"actif"}).eq("id",id);
+    } else if(field==="is_offered"&&value===false){
+      await sb.from("agencies").update({is_offered:false,billing_status:"impayé"}).eq("id",id);
+    } else {
+      await sb.from("agencies").update({[field]:value}).eq("id",id);
+    }
+    load();
+  };
   const cp=(k)=>{setCopied(k);setTimeout(()=>setCopied(null),2000);};
 
   if(viewDash) return(
@@ -765,7 +815,17 @@ function AdminAgencies(){
 function AdminBilling(){
   const [agencies,setAgencies]=useState([]);
   useEffect(()=>{fetchAllAgencies().then(setAgencies);},[]);
-  const update=async(id,field,val)=>{if(!sb) return;await sb.from("agencies").update({[field]:val}).eq("id",id);fetchAllAgencies().then(setAgencies);};
+  const update=async(id,field,val)=>{
+  if(!sb) return;
+  if(field==="is_offered"&&val===true){
+    await sb.from("agencies").update({is_offered:true,billing_status:"actif"}).eq("id",id);
+  } else if(field==="is_offered"&&val===false){
+    await sb.from("agencies").update({is_offered:false,billing_status:"impayé"}).eq("id",id);
+  } else {
+    await sb.from("agencies").update({[field]:val}).eq("id",id);
+  }
+  fetchAllAgencies().then(setAgencies);
+};
   const paying=agencies.filter(a=>a.billing_status==="actif"&&!a.is_offered);
   const mrr=paying.length*PRICE;
   const offertCount=agencies.filter(a=>a.is_offered).length;
@@ -1366,6 +1426,7 @@ function ImportView({profile,reload}){
 /* ─── SETTINGS ──────────────────────────── */
 function SettingsView({profile,reload}){
   const ag=profile?.agencies;
+  const [agName,setAgName]=useState(ag?.name||"");
   const [pcts,setPcts]=useState({director:ag?.pct_director||3,manager:ag?.pct_manager||5,agent:ag?.pct_agent||10,creator:ag?.pct_creator||55});
   const [minD,setMinD]=useState(ag?.min_days||20);
   const [minH,setMinH]=useState(ag?.min_hours||40);
@@ -1385,13 +1446,23 @@ function SettingsView({profile,reload}){
     }
     // Save agency settings if applicable
     if(ag?.id){
-      await sb.from("agencies").update({pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel}).eq("id",ag.id);
+      await sb.from("agencies").update({name:agName.trim()||ag.name,pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel}).eq("id",ag.id);
     }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
   return(
     <div className="fup">
       <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Paramètres agence</h1>
+      {profile?.role==="agency"&&(
+        <div className="card" style={{padding:18,marginBottom:12}}>
+          <div style={{fontWeight:600,fontSize:13,color:T.tx,marginBottom:12}}>Informations de l'agence</div>
+          <div>
+            <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".07em"}}>Nom de l'agence</label>
+            <input className="inp" value={agName} onChange={e=>setAgName(e.target.value)} placeholder="Nom de votre agence" style={{fontSize:14}}/>
+            <p style={{fontSize:11,color:"#555",marginTop:4}}>Ce nom sera visible par tout votre staff et vos créateurs</p>
+          </div>
+        </div>
+      )}
       <div className="card" style={{padding:20,marginBottom:12}}>
         <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Répartition des revenus</div>
         <div style={{borderRadius:8,overflow:"hidden",height:28,display:"flex",marginBottom:12}}>
