@@ -1347,131 +1347,248 @@ function TeamView({agents,managers,directors}){
 
 
 /* ─── MATCH POSTER ──────────────────────── */
+const POSTER_BG = {
+  lion:    "https://images.unsplash.com/photo-1614027164847-1b28cfe1df60?w=800&q=85",
+  galaxy:  "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=800&q=85",
+  roses:   "https://images.unsplash.com/photo-1490750967868-88df5691cc8f?w=800&q=85",
+  fire:    "https://images.unsplash.com/photo-1486551937199-baf066a6485b?w=800&q=85",
+  marble:  "https://images.unsplash.com/photo-1566041510639-8d95a2490bfb?w=800&q=85",
+  jungle:  "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=800&q=85",
+};
+
 const POSTER_TEMPLATES = [
-  {id:"dark_gold",label:"Dark Gold",bg:"linear-gradient(160deg,#0A0A0A,#1A1200)",border:"#C9A84C",accent:"#FFD700",crown:true},
-  {id:"purple_magic",label:"Purple Magic",bg:"linear-gradient(160deg,#0D0020,#2D0060)",border:"#8B2BE2",accent:"#A855F7",crown:false},
-  {id:"black_marble",label:"Black Marble",bg:"linear-gradient(135deg,#111,#222,#111)",border:"#555",accent:"#FFFFFF",crown:true},
-  {id:"neon_space",label:"Neon Space",bg:"linear-gradient(160deg,#000510,#001030)",border:"#00E5FF",accent:"#00E5FF",crown:false},
-  {id:"rose_gold",label:"Rose Gold",bg:"linear-gradient(160deg,#1A0A10,#2A0A00)",border:"#E8937A",accent:"#FFB6C1",crown:true},
-  {id:"emerald",label:"Emerald",bg:"linear-gradient(160deg,#001A0A,#002A10)",border:"#00C853",accent:"#69F0AE",crown:false},
+  {id:"lion",   label:"Lion King",    accent:"#D4A017", text:"#FFE066", overlay:"rgba(10,5,0,.55)"},
+  {id:"galaxy", label:"Galaxy",       accent:"#A855F7", text:"#E879F9", overlay:"rgba(10,0,30,.55)"},
+  {id:"roses",  label:"Rose Queen",   accent:"#FF69B4", text:"#FFB3C1", overlay:"rgba(40,0,20,.55)"},
+  {id:"fire",   label:"Fire",         accent:"#FF4500", text:"#FF8C42", overlay:"rgba(30,5,0,.55)"},
+  {id:"marble", label:"Black Marble", accent:"#CCCCCC", text:"#FFFFFF", overlay:"rgba(0,0,0,.58)"},
+  {id:"jungle", label:"Jungle",       accent:"#00C853", text:"#69F0AE", overlay:"rgba(0,10,3,.55)"},
 ];
 
-function PosterCard({tmpl,cA,cB,matchDate,matchTime,isInter,onDownload,selected,onSelect}){
-  const date = matchDate ? new Date(matchDate).toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}) : "??/??";
-  const time = matchTime || "20:00";
-  return(
-    <div onClick={onSelect} style={{cursor:"pointer",borderRadius:12,overflow:"hidden",border:`2px solid ${selected?tmpl.border:"rgba(255,255,255,0.1)"}`,transition:"all .2s",transform:selected?"scale(1.02)":"scale(1)",boxShadow:selected?`0 8px 30px ${tmpl.border}40`:""}} >
-      {/* Poster preview */}
-      <div style={{background:tmpl.bg,padding:16,aspectRatio:"9/16",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",position:"relative",overflow:"hidden"}}>
-        {/* Top bar */}
-        <div style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontSize:9,fontWeight:800,color:tmpl.accent,letterSpacing:".1em",textTransform:"uppercase",opacity:.8}}>LIVE</div>
-          <div style={{fontSize:9,fontWeight:800,color:tmpl.accent,letterSpacing:".1em",textTransform:"uppercase",opacity:.8}}>VS</div>
-          <div style={{fontSize:9,fontWeight:800,color:tmpl.accent,letterSpacing:".1em",textTransform:"uppercase",opacity:.8}}>LIVE</div>
-        </div>
-        {/* Crown decoration */}
-        {tmpl.crown&&<div style={{fontSize:18,opacity:.7,lineHeight:1}}>👑</div>}
-        {/* Avatars */}
-        <div style={{display:"flex",alignItems:"center",gap:8,width:"100%",justifyContent:"center"}}>
-          {/* Creator A */}
-          <div style={{textAlign:"center",flex:1}}>
-            {cA?.tiktok_avatar_url
-              ? <img src={cA.tiktok_avatar_url} style={{width:50,height:50,borderRadius:"50%",border:`2px solid ${tmpl.border}`,objectFit:"cover",display:"block",margin:"0 auto 4px"}} alt=""/>
-              : <div style={{width:50,height:50,borderRadius:"50%",background:`${tmpl.border}30`,border:`2px solid ${tmpl.border}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 4px",fontSize:16,color:tmpl.accent,fontWeight:800}}>{(cA?.pseudo||"?")[0]}</div>
-            }
-            <div style={{fontSize:8,color:tmpl.accent,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>@{cA?.pseudo||"NOM1"}</div>
-          </div>
-          {/* VS */}
-          <div style={{fontSize:16,fontWeight:900,color:tmpl.accent,textShadow:`0 0 15px ${tmpl.accent}`}}>VS</div>
-          {/* Creator B */}
-          <div style={{textAlign:"center",flex:1}}>
-            {cB?.tiktok_avatar_url
-              ? <img src={cB.tiktok_avatar_url} style={{width:50,height:50,borderRadius:"50%",border:`2px solid ${tmpl.border}`,objectFit:"cover",display:"block",margin:"0 auto 4px"}} alt=""/>
-              : <div style={{width:50,height:50,borderRadius:"50%",background:`${tmpl.border}30`,border:`2px solid ${tmpl.border}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 4px",fontSize:16,color:tmpl.accent,fontWeight:800}}>{(cB?.pseudo||"?")[0]}</div>
-            }
-            <div style={{fontSize:8,color:tmpl.accent,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>@{cB?.pseudo||"NOM2"}</div>
-          </div>
-        </div>
-        {/* Date badge */}
-        <div style={{border:`1px solid ${tmpl.border}`,borderRadius:6,padding:"5px 12px",textAlign:"center",background:`${tmpl.border}15`,backdropFilter:"blur(4px)"}}>
-          <div style={{fontSize:10,fontWeight:800,color:tmpl.accent,letterSpacing:".05em"}}>RENDEZ-VOUS</div>
-          <div style={{fontSize:9,fontWeight:600,color:"rgba(255,255,255,0.9)",marginTop:2}}>LE {date} · {time}</div>
-        </div>
-        {/* Type badge */}
-        <div style={{fontSize:8,color:tmpl.border,opacity:.7}}>{isInter?"INTER-AGENCES":"LIVE MATCH"}</div>
-      </div>
-      {/* Template name */}
-      <div style={{background:"#0D0D0D",padding:"8px 10px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div style={{fontSize:10,fontWeight:600,color:"rgba(255,255,255,0.6)",letterSpacing:".04em"}}>{tmpl.label}</div>
-        {selected&&<div style={{fontSize:9,color:tmpl.accent,fontWeight:700}}>✓ Sélectionné</div>}
-      </div>
-    </div>
-  );
+function PosterCanvas({tmpl,cA,cB,matchDate,matchTime,isInter}){
+  const canvasRef=useRef();
+  const date=matchDate?new Date(matchDate).toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}):"??/??";
+  const time=matchTime||"20:00";
+
+  useEffect(()=>{
+    const canvas=canvasRef.current;
+    if(!canvas) return;
+    const ctx=canvas.getContext("2d");
+    const W=540,H=960;
+    canvas.width=W;canvas.height=H;
+
+    const draw=()=>{
+      // Background image
+      const bg=new Image();
+      bg.crossOrigin="anonymous";
+      bg.src=POSTER_BG[tmpl.id];
+      bg.onload=()=>{
+        // Draw bg image cover
+        const ratio=Math.max(W/bg.width,H/bg.height);
+        const bw=bg.width*ratio,bh=bg.height*ratio;
+        ctx.drawImage(bg,(W-bw)/2,(H-bh)/2,bw,bh);
+        // Dark overlay
+        ctx.fillStyle=tmpl.overlay;
+        ctx.fillRect(0,0,W,H);
+        // Gradient bottom
+        const grad=ctx.createLinearGradient(0,H*0.45,0,H);
+        grad.addColorStop(0,"transparent");
+        grad.addColorStop(1,"rgba(0,0,0,0.92)");
+        ctx.fillStyle=grad;
+        ctx.fillRect(0,0,W,H);
+
+        drawContent(ctx,W,H);
+      };
+      bg.onerror=()=>{
+        ctx.fillStyle="#0A0A0A";
+        ctx.fillRect(0,0,W,H);
+        drawContent(ctx,W,H);
+      };
+    };
+
+    const roundRect=(ctx,x,y,w,h,r)=>{
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);
+      ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
+      ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+      ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);
+      ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);
+      ctx.closePath();
+    };
+
+    const drawAvatar=(ctx,x,y,r,img,initials)=>{
+      ctx.save();
+      ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.clip();
+      if(img&&img.complete&&img.naturalWidth){ctx.drawImage(img,x-r,y-r,r*2,r*2);}
+      else{
+        ctx.fillStyle="rgba(0,0,0,0.5)";ctx.fillRect(x-r,y-r,r*2,r*2);
+        ctx.fillStyle=tmpl.text;ctx.font=`bold ${r*0.9}px Arial Black,Arial`;
+        ctx.textAlign="center";ctx.textBaseline="middle";
+        ctx.fillText((initials||"?")[0].toUpperCase(),x,y+2);
+      }
+      ctx.restore();
+      // Ring
+      ctx.strokeStyle=tmpl.accent;ctx.lineWidth=4;
+      ctx.shadowColor=tmpl.accent;ctx.shadowBlur=20;
+      ctx.beginPath();ctx.arc(x,y,r+2,0,Math.PI*2);ctx.stroke();
+      ctx.shadowBlur=0;
+    };
+
+    const drawContent=(ctx,W,H)=>{
+      // TOP LINE deco
+      ctx.strokeStyle=tmpl.accent;ctx.lineWidth=1;ctx.globalAlpha=0.5;
+      ctx.beginPath();ctx.moveTo(40,55);ctx.lineTo(W/2-40,55);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(W/2+40,55);ctx.lineTo(W-40,55);ctx.stroke();
+      ctx.globalAlpha=1;
+
+      // LIVE badges
+      const liveStyle=()=>{
+        ctx.fillStyle=`${tmpl.accent}22`;
+        ctx.strokeStyle=tmpl.accent;ctx.lineWidth=1.5;
+      };
+      liveStyle();
+      roundRect(ctx,30,68,80,28,5);ctx.fill();ctx.stroke();
+      ctx.fillStyle=tmpl.text;ctx.font="bold 13px Arial";ctx.textAlign="center";
+      ctx.fillText("LIVE",70,87);
+      liveStyle();
+      roundRect(ctx,W-110,68,80,28,5);ctx.fill();ctx.stroke();
+      ctx.fillStyle=tmpl.text;ctx.fillText("LIVE",W-70,87);
+
+      // TITLE
+      ctx.fillStyle=tmpl.text;
+      ctx.font="bold 58px Arial Black,Arial";ctx.textAlign="center";
+      ctx.shadowColor=tmpl.accent;ctx.shadowBlur=25;
+      ctx.fillText("LIVE",W/2,175);ctx.shadowBlur=0;
+      ctx.fillStyle=`${tmpl.accent}99`;
+      ctx.font="15px Arial";ctx.letterSpacing="8px";
+      ctx.fillText("B A T T L E  M A T C H",W/2,205);
+
+      // divider
+      ctx.strokeStyle=`${tmpl.accent}55`;ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(60,225);ctx.lineTo(W-60,225);ctx.stroke();
+
+      // AVATARS
+      const drawAv=(url,initials,x,y)=>{
+        if(url){
+          const img=new Image();img.crossOrigin="anonymous";
+          img.onload=()=>{drawAvatar(ctx,x,y,95,img,initials);};
+          img.onerror=()=>{drawAvatar(ctx,x,y,95,null,initials);};
+          img.src=url;
+        } else {
+          drawAvatar(ctx,x,y,95,null,initials);
+        }
+      };
+      drawAv(cA?.tiktok_avatar_url,(cA?.pseudo||"A").replace("@",""),W/4,390);
+      drawAv(cB?.tiktok_avatar_url,(cB?.pseudo||"B").replace("@",""),W*3/4,390);
+
+      // VS circle
+      ctx.fillStyle="rgba(0,0,0,0.8)";ctx.strokeStyle=tmpl.accent;ctx.lineWidth=3;
+      ctx.shadowColor=tmpl.accent;ctx.shadowBlur=15;
+      ctx.beginPath();ctx.arc(W/2,390,46,0,Math.PI*2);ctx.fill();ctx.stroke();
+      ctx.shadowBlur=0;
+      ctx.fillStyle=tmpl.accent;ctx.font="bold 28px Arial Black,Arial";ctx.textAlign="center";
+      ctx.fillText("VS",W/2,400);
+
+      // @pseudo
+      ctx.fillStyle=tmpl.accent;ctx.font="bold 20px Arial";ctx.textAlign="center";
+      ctx.fillText(cA?.pseudo||"@nom1",W/4,510);
+      ctx.fillText(cB?.pseudo||"@nom2",W*3/4,510);
+
+      // DATE BOX
+      ctx.fillStyle=`${tmpl.accent}18`;ctx.strokeStyle=tmpl.accent;ctx.lineWidth=2;
+      roundRect(ctx,60,560,W-120,130,16);ctx.fill();ctx.stroke();
+      ctx.fillStyle=`${tmpl.accent}88`;ctx.font="12px Arial";ctx.letterSpacing="4px";
+      ctx.fillText("R E N D E Z - V O U S",W/2,595);
+      ctx.fillStyle=tmpl.text;ctx.font="bold 42px Arial Black,Arial";ctx.letterSpacing="2px";
+      ctx.shadowColor=tmpl.accent;ctx.shadowBlur=12;
+      ctx.fillText(`LE ${date}`,W/2,650);ctx.shadowBlur=0;
+      ctx.fillStyle=tmpl.accent;ctx.font="bold 26px Arial";ctx.letterSpacing="1px";
+      ctx.fillText(time,W/2,685);
+
+      // TYPE badge
+      if(isInter){
+        ctx.fillStyle=`${tmpl.accent}22`;ctx.strokeStyle=`${tmpl.accent}66`;ctx.lineWidth=1;
+        roundRect(ctx,W/2-80,715,160,26,13);ctx.fill();ctx.stroke();
+        ctx.fillStyle=`${tmpl.accent}cc`;ctx.font="10px Arial";ctx.letterSpacing="2px";
+        ctx.fillText("INTER-AGENCES",W/2,732);
+      }
+
+      // Bottom branding
+      ctx.fillStyle=`${tmpl.accent}44`;ctx.font="11px Arial";ctx.letterSpacing="3px";
+      ctx.fillText("DIAMOND'S BY BELIVE ACADEMY",W/2,900);
+    };
+
+    draw();
+  },[tmpl,cA,cB,matchDate,matchTime]);
+
+  return <canvas ref={canvasRef} style={{width:"100%",borderRadius:10,display:"block"}}/>;
 }
 
 function MatchPoster({matchData,creators,onClose}){
   const cA=creators.find(c=>c.id===matchData.creator_a||c.profile_id===matchData.creator_a);
   const cB=creators.find(c=>c.id===matchData.creator_b||c.profile_id===matchData.creator_b);
-  const [selected,setSelected]=useState("dark_gold");
-  const [downloading,setDownloading]=useState(false);
+  const [selected,setSelected]=useState("lion");
+  const canvasRef=useRef();
+  const tmpl=POSTER_TEMPLATES.find(t=>t.id===selected)||POSTER_TEMPLATES[0];
 
-  const handleDownload=()=>{
-    setDownloading(true);
-    // Open in new tab for screenshot/save
-    const tmpl=POSTER_TEMPLATES.find(t=>t.id===selected);
-    const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:transparent;width:540px;height:960px;display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif}</style></head><body>
-    <div style="width:540px;height:960px;background:${tmpl.bg};display:flex;flex-direction:column;align-items:center;justify-content:space-around;padding:40px 30px;position:relative">
-      <div style="font-size:14px;font-weight:800;color:${tmpl.accent};letter-spacing:.15em">DIAMOND'S · LIVE MATCH</div>
-      ${tmpl.crown?'<div style="font-size:48px">👑</div>':''}
-      <div style="display:flex;align-items:center;gap:30px;width:100%;justify-content:center">
-        <div style="text-align:center"><div style="width:140px;height:140px;border-radius:50%;background:${tmpl.border}30;border:3px solid ${tmpl.border};display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:40px;color:${tmpl.accent};font-weight:800">${(cA?.pseudo||"?")[0].toUpperCase()}</div><div style="color:${tmpl.accent};font-weight:700;font-size:16px">@${cA?.pseudo||"NOM1"}</div></div>
-        <div style="font-size:52px;font-weight:900;color:${tmpl.accent}">VS</div>
-        <div style="text-align:center"><div style="width:140px;height:140px;border-radius:50%;background:${tmpl.border}30;border:3px solid ${tmpl.border};display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:40px;color:${tmpl.accent};font-weight:800">${(cB?.pseudo||"?")[0].toUpperCase()}</div><div style="color:${tmpl.accent};font-weight:700;font-size:16px">@${cB?.pseudo||"NOM2"}</div></div>
-      </div>
-      <div style="border:2px solid ${tmpl.border};border-radius:12px;padding:16px 40px;text-align:center;background:${tmpl.border}15">
-        <div style="font-size:18px;font-weight:800;color:${tmpl.accent};letter-spacing:.1em">RENDEZ-VOUS</div>
-        <div style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);margin-top:6px">LE ${matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}):"??/??"} · ${matchData.match_time||"20:00"}</div>
-      </div>
-      <div style="font-size:12px;color:${tmpl.border};opacity:.6">Diamond's by Belive Academy</div>
-    </div></body></html>`;
-    const blob=new Blob([html],{type:"text/html"});
-    const url=URL.createObjectURL(blob);
+  const download=()=>{
+    // Find the canvas element
+    const canvas=document.querySelector("#poster-dl canvas");
+    if(!canvas) return;
     const a=document.createElement("a");
-    a.href=url;a.download=`match-poster-${selected}.html`;a.click();
-    setTimeout(()=>{URL.revokeObjectURL(url);setDownloading(false);},1000);
+    a.download=`match-${cA?.pseudo||"A"}-vs-${cB?.pseudo||"B"}-${selected}.png`;
+    a.href=canvas.toDataURL("image/png");
+    a.click();
   };
 
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",zIndex:300,display:"flex",flexDirection:"column",backdropFilter:"blur(8px)"}} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{flex:1,display:"flex",flexDirection:"column",maxWidth:800,margin:"0 auto",width:"100%",padding:20}}>
-        {/* Header */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-          <div>
-            <div style={{fontWeight:700,fontSize:16,color:"#FFFFFF"}}>Choisir une affiche</div>
-            <div style={{fontSize:12,color:"#6B7280",marginTop:2}}>{cA?.pseudo||"?"} VS {cB?.pseudo||"?"} · {matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR"):""} {matchData.match_time||""}</div>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.96)",zIndex:300,display:"flex",backdropFilter:"blur(8px)",overflowY:"auto"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{margin:"auto",width:"100%",maxWidth:860,padding:20,display:"flex",gap:20,alignItems:"flex-start"}}>
+
+        {/* LEFT — template grid */}
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:700,fontSize:16,color:"#FFF",marginBottom:4}}>Choisir un template</div>
+          <div style={{fontSize:12,color:"#666",marginBottom:14}}>Les vraies photos des créateurs s'affichent automatiquement si uploadées</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+            {POSTER_TEMPLATES.map(t=>(
+              <div key={t.id} onClick={()=>setSelected(t.id)} style={{cursor:"pointer",borderRadius:10,overflow:"hidden",border:`2px solid ${selected===t.id?t.accent:"rgba(255,255,255,0.08)"}`,transition:"all .2s",transform:selected===t.id?"scale(1.04)":"scale(1)",boxShadow:selected===t.id?`0 0 20px ${t.accent}50`:"none"}}>
+                <div style={{position:"relative",paddingBottom:"120%",overflow:"hidden",background:"#111"}}>
+                  <img src={POSTER_BG[t.id]} crossOrigin="anonymous" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:.55}} alt=""/>
+                  <div style={{position:"absolute",inset:0,background:`linear-gradient(180deg,${t.overlay} 0%,rgba(0,0,0,.85) 100%)`}}/>
+                  <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",padding:8}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,width:"100%",justifyContent:"center",marginBottom:8}}>
+                      <div style={{width:34,height:34,borderRadius:"50%",border:`2px solid ${t.accent}`,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,color:t.text}}>{(cA?.pseudo||"A").replace("@","")[0]?.toUpperCase()||"A"}</div>
+                      <div style={{fontSize:11,fontWeight:900,color:t.accent,padding:"3px 7px",border:`1px solid ${t.accent}`,borderRadius:"50%",background:"rgba(0,0,0,.7)"}}>VS</div>
+                      <div style={{width:34,height:34,borderRadius:"50%",border:`2px solid ${t.accent}`,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,color:t.text}}>{(cB?.pseudo||"B").replace("@","")[0]?.toUpperCase()||"B"}</div>
+                    </div>
+                    <div style={{width:"100%",border:`1px solid ${t.accent}`,borderRadius:6,background:"rgba(0,0,0,.6)",padding:"5px",textAlign:"center"}}>
+                      <div style={{fontSize:9,fontWeight:900,color:t.text}}>LE {matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}):"??/??"} · {matchData.match_time||"20:00"}</div>
+                    </div>
+                  </div>
+                </div>
+                <div style={{background:"#0D0D0D",padding:"6px 8px",textAlign:"center",fontSize:9,fontWeight:700,color:selected===t.id?t.accent:"#666",letterSpacing:".06em",textTransform:"uppercase"}}>{t.label}</div>
+              </div>
+            ))}
           </div>
-          <button className="btng" onClick={onClose}>✕ Fermer</button>
         </div>
-        {/* Note about photos */}
-        {(!cA?.tiktok_avatar_url||!cB?.tiktok_avatar_url)&&(
-          <div style={{padding:"9px 13px",borderRadius:9,background:"rgba(147,51,234,0.1)",border:"1px solid rgba(147,51,234,0.25)",fontSize:12,color:"#A78BFA",marginBottom:14}}>
-            💡 Les créateurs sans photo de profil affichent leurs initiales. Demandez-leur d'ajouter leur photo dans leur profil pour des affiches avec photos.
+
+        {/* RIGHT — canvas preview + download */}
+        <div style={{width:200,flexShrink:0,position:"sticky",top:20}}>
+          <div style={{fontWeight:700,fontSize:15,color:"#FFF",marginBottom:4}}>Aperçu HD</div>
+          <div style={{fontSize:11,color:"#555",marginBottom:10}}>{cA?.pseudo||"Créateur A"} vs {cB?.pseudo||"Créateur B"}</div>
+          {(!cA?.tiktok_avatar_url||!cB?.tiktok_avatar_url)&&(
+            <div style={{padding:"8px 10px",borderRadius:8,background:"rgba(147,51,234,0.1)",border:"1px solid rgba(147,51,234,0.2)",fontSize:11,color:"#A78BFA",marginBottom:10}}>
+              💡 Ajoutez des photos TikTok dans les profils pour qu'elles apparaissent sur l'affiche
+            </div>
+          )}
+          <div id="poster-dl" style={{borderRadius:10,overflow:"hidden",marginBottom:12}}>
+            <PosterCanvas tmpl={tmpl} cA={cA} cB={cB} matchDate={matchData.match_date} matchTime={matchData.match_time} isInter={matchData.is_inter_agency}/>
           </div>
-        )}
-        {/* Grid of templates */}
-        <div style={{flex:1,overflowY:"auto",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16}}>
-          {POSTER_TEMPLATES.map(tmpl=>(
-            <PosterCard key={tmpl.id} tmpl={tmpl} cA={cA} cB={cB}
-              matchDate={matchData.match_date} matchTime={matchData.match_time}
-              isInter={matchData.is_inter_agency}
-              selected={selected===tmpl.id}
-              onSelect={()=>setSelected(tmpl.id)}/>
-          ))}
+          <button className="btn" style={{width:"100%",justifyContent:"center",fontSize:13,padding:"10px",marginBottom:8}} onClick={download}>
+            ⬇ Télécharger PNG
+          </button>
+          <button className="btng" style={{width:"100%",justifyContent:"center"}} onClick={onClose}>Fermer</button>
         </div>
-        {/* Download button */}
-        <button className="btn" style={{width:"100%",justifyContent:"center",fontSize:13,padding:"11px"}} onClick={handleDownload} disabled={downloading}>
-          {downloading?<><Spin/>Génération…</>:"⬇ Télécharger cette affiche"}
-        </button>
       </div>
     </div>
   );
