@@ -1314,52 +1314,136 @@ function TeamView({agents,managers,directors}){
 
 
 /* ─── MATCH POSTER ──────────────────────── */
-function MatchPoster({matchData,creators,onClose}){
-  const cA=creators.find(c=>(c.id===matchData.creator_a||c.profile_id===matchData.creator_a));
-  const cB=creators.find(c=>(c.id===matchData.creator_b||c.profile_id===matchData.creator_b));
-  const date=matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR","DD/MM/YYYY"):"Date TBD";
-  const time=matchData.match_time||"20:00";
+const POSTER_TEMPLATES = [
+  {id:"dark_gold",label:"Dark Gold",bg:"linear-gradient(160deg,#0A0A0A,#1A1200)",border:"#C9A84C",accent:"#FFD700",crown:true},
+  {id:"purple_magic",label:"Purple Magic",bg:"linear-gradient(160deg,#0D0020,#2D0060)",border:"#8B2BE2",accent:"#A855F7",crown:false},
+  {id:"black_marble",label:"Black Marble",bg:"linear-gradient(135deg,#111,#222,#111)",border:"#555",accent:"#FFFFFF",crown:true},
+  {id:"neon_space",label:"Neon Space",bg:"linear-gradient(160deg,#000510,#001030)",border:"#00E5FF",accent:"#00E5FF",crown:false},
+  {id:"rose_gold",label:"Rose Gold",bg:"linear-gradient(160deg,#1A0A10,#2A0A00)",border:"#E8937A",accent:"#FFB6C1",crown:true},
+  {id:"emerald",label:"Emerald",bg:"linear-gradient(160deg,#001A0A,#002A10)",border:"#00C853",accent:"#69F0AE",crown:false},
+];
+
+function PosterCard({tmpl,cA,cB,matchDate,matchTime,isInter,onDownload,selected,onSelect}){
+  const date = matchDate ? new Date(matchDate).toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}) : "??/??";
+  const time = matchTime || "20:00";
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(10,5,25,.9)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(6px)"}} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{background:"linear-gradient(135deg,#0F0A1E,#1A1035)",border:"1px solid rgba(127,0,255,.4)",borderRadius:20,padding:28,width:360,boxShadow:"0 0 60px rgba(127,0,255,.3)"}}>
-        <div style={{textAlign:"center",marginBottom:20}}>
-          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:11,color:T.cy,letterSpacing:".15em",textTransform:"uppercase",marginBottom:6}}>Diamond's · TikTok Live Match</div>
-          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:28,color:T.tx,letterSpacing:"-0.02em"}}>BATTLE LIVE</div>
+    <div onClick={onSelect} style={{cursor:"pointer",borderRadius:12,overflow:"hidden",border:`2px solid ${selected?tmpl.border:"rgba(255,255,255,0.1)"}`,transition:"all .2s",transform:selected?"scale(1.02)":"scale(1)",boxShadow:selected?`0 8px 30px ${tmpl.border}40`:""}} >
+      {/* Poster preview */}
+      <div style={{background:tmpl.bg,padding:16,aspectRatio:"9/16",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",position:"relative",overflow:"hidden"}}>
+        {/* Top bar */}
+        <div style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontSize:9,fontWeight:800,color:tmpl.accent,letterSpacing:".1em",textTransform:"uppercase",opacity:.8}}>LIVE</div>
+          <div style={{fontSize:9,fontWeight:800,color:tmpl.accent,letterSpacing:".1em",textTransform:"uppercase",opacity:.8}}>VS</div>
+          <div style={{fontSize:9,fontWeight:800,color:tmpl.accent,letterSpacing:".1em",textTransform:"uppercase",opacity:.8}}>LIVE</div>
         </div>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:20}}>
+        {/* Crown decoration */}
+        {tmpl.crown&&<div style={{fontSize:18,opacity:.7,lineHeight:1}}>👑</div>}
+        {/* Avatars */}
+        <div style={{display:"flex",alignItems:"center",gap:8,width:"100%",justifyContent:"center"}}>
           {/* Creator A */}
           <div style={{textAlign:"center",flex:1}}>
-            <div style={{width:72,height:72,borderRadius:"50%",background:`linear-gradient(135deg,${T.acc}40,${T.acc}20)`,border:`2px solid ${T.acc}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:22,fontWeight:800,color:T.acc}}>
-              {cA?String(cA.pseudo||"?").slice(0,2).toUpperCase():"?"}
-            </div>
-            <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:2}}>{cA?.pseudo||"Créateur A"}</div>
-            <div style={{fontSize:11,color:T.cy}}>💎 {(cA?.diamonds||0).toLocaleString()}</div>
+            {cA?.tiktok_avatar_url
+              ? <img src={cA.tiktok_avatar_url} style={{width:50,height:50,borderRadius:"50%",border:`2px solid ${tmpl.border}`,objectFit:"cover",display:"block",margin:"0 auto 4px"}} alt=""/>
+              : <div style={{width:50,height:50,borderRadius:"50%",background:`${tmpl.border}30`,border:`2px solid ${tmpl.border}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 4px",fontSize:16,color:tmpl.accent,fontWeight:800}}>{(cA?.pseudo||"?")[0]}</div>
+            }
+            <div style={{fontSize:8,color:tmpl.accent,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>@{cA?.pseudo||"NOM1"}</div>
           </div>
           {/* VS */}
-          <div style={{textAlign:"center"}}>
-            <div style={{fontSize:24,fontWeight:900,color:T.go,lineHeight:1}}>VS</div>
-          </div>
+          <div style={{fontSize:16,fontWeight:900,color:tmpl.accent,textShadow:`0 0 15px ${tmpl.accent}`}}>VS</div>
           {/* Creator B */}
           <div style={{textAlign:"center",flex:1}}>
-            <div style={{width:72,height:72,borderRadius:"50%",background:`linear-gradient(135deg,${T.cy}40,${T.cy}20)`,border:`2px solid ${T.cy}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:22,fontWeight:800,color:T.cy}}>
-              {cB?String(cB.pseudo||"?").slice(0,2).toUpperCase():"?"}
-            </div>
-            <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:2}}>{cB?.pseudo||"À définir"}</div>
-            <div style={{fontSize:11,color:T.cy}}>💎 {(cB?.diamonds||0).toLocaleString()}</div>
+            {cB?.tiktok_avatar_url
+              ? <img src={cB.tiktok_avatar_url} style={{width:50,height:50,borderRadius:"50%",border:`2px solid ${tmpl.border}`,objectFit:"cover",display:"block",margin:"0 auto 4px"}} alt=""/>
+              : <div style={{width:50,height:50,borderRadius:"50%",background:`${tmpl.border}30`,border:`2px solid ${tmpl.border}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 4px",fontSize:16,color:tmpl.accent,fontWeight:800}}>{(cB?.pseudo||"?")[0]}</div>
+            }
+            <div style={{fontSize:8,color:tmpl.accent,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>@{cB?.pseudo||"NOM2"}</div>
           </div>
         </div>
-        {/* Date & time */}
-        <div style={{textAlign:"center",padding:"12px 16px",borderRadius:12,background:"rgba(127,0,255,.1)",border:"1px solid rgba(127,0,255,.25)",marginBottom:16}}>
-          <div style={{fontSize:18,fontWeight:900,color:T.tx,letterSpacing:".04em"}}>{matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR"):date}</div>
-          <div style={{fontSize:14,color:T.acc,fontWeight:700,marginTop:3}}>⏰ {time}</div>
-          <div style={{fontSize:11,color:T.sec,marginTop:4}}>{matchData.is_inter_agency?"Match Inter-Agences":"Match Intra-Agence"}</div>
+        {/* Date badge */}
+        <div style={{border:`1px solid ${tmpl.border}`,borderRadius:6,padding:"5px 12px",textAlign:"center",background:`${tmpl.border}15`,backdropFilter:"blur(4px)"}}>
+          <div style={{fontSize:10,fontWeight:800,color:tmpl.accent,letterSpacing:".05em"}}>RENDEZ-VOUS</div>
+          <div style={{fontSize:9,fontWeight:600,color:"rgba(255,255,255,0.9)",marginTop:2}}>LE {date} · {time}</div>
         </div>
-        <div style={{textAlign:"center",fontSize:10,color:T.sec}}>Diamond's by Belive Academy · {CONTACT}</div>
-        <button className="btn" style={{width:"100%",justifyContent:"center",marginTop:14,fontSize:12}} onClick={onClose}>Fermer</button>
+        {/* Type badge */}
+        <div style={{fontSize:8,color:tmpl.border,opacity:.7}}>{isInter?"INTER-AGENCES":"LIVE MATCH"}</div>
+      </div>
+      {/* Template name */}
+      <div style={{background:"#0D0D0D",padding:"8px 10px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{fontSize:10,fontWeight:600,color:"rgba(255,255,255,0.6)",letterSpacing:".04em"}}>{tmpl.label}</div>
+        {selected&&<div style={{fontSize:9,color:tmpl.accent,fontWeight:700}}>✓ Sélectionné</div>}
       </div>
     </div>
   );
 }
+
+function MatchPoster({matchData,creators,onClose}){
+  const cA=creators.find(c=>c.id===matchData.creator_a||c.profile_id===matchData.creator_a);
+  const cB=creators.find(c=>c.id===matchData.creator_b||c.profile_id===matchData.creator_b);
+  const [selected,setSelected]=useState("dark_gold");
+  const [downloading,setDownloading]=useState(false);
+
+  const handleDownload=()=>{
+    setDownloading(true);
+    // Open in new tab for screenshot/save
+    const tmpl=POSTER_TEMPLATES.find(t=>t.id===selected);
+    const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:transparent;width:540px;height:960px;display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif}</style></head><body>
+    <div style="width:540px;height:960px;background:${tmpl.bg};display:flex;flex-direction:column;align-items:center;justify-content:space-around;padding:40px 30px;position:relative">
+      <div style="font-size:14px;font-weight:800;color:${tmpl.accent};letter-spacing:.15em">DIAMOND'S · LIVE MATCH</div>
+      ${tmpl.crown?'<div style="font-size:48px">👑</div>':''}
+      <div style="display:flex;align-items:center;gap:30px;width:100%;justify-content:center">
+        <div style="text-align:center"><div style="width:140px;height:140px;border-radius:50%;background:${tmpl.border}30;border:3px solid ${tmpl.border};display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:40px;color:${tmpl.accent};font-weight:800">${(cA?.pseudo||"?")[0].toUpperCase()}</div><div style="color:${tmpl.accent};font-weight:700;font-size:16px">@${cA?.pseudo||"NOM1"}</div></div>
+        <div style="font-size:52px;font-weight:900;color:${tmpl.accent}">VS</div>
+        <div style="text-align:center"><div style="width:140px;height:140px;border-radius:50%;background:${tmpl.border}30;border:3px solid ${tmpl.border};display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:40px;color:${tmpl.accent};font-weight:800">${(cB?.pseudo||"?")[0].toUpperCase()}</div><div style="color:${tmpl.accent};font-weight:700;font-size:16px">@${cB?.pseudo||"NOM2"}</div></div>
+      </div>
+      <div style="border:2px solid ${tmpl.border};border-radius:12px;padding:16px 40px;text-align:center;background:${tmpl.border}15">
+        <div style="font-size:18px;font-weight:800;color:${tmpl.accent};letter-spacing:.1em">RENDEZ-VOUS</div>
+        <div style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);margin-top:6px">LE ${matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}):"??/??"} · ${matchData.match_time||"20:00"}</div>
+      </div>
+      <div style="font-size:12px;color:${tmpl.border};opacity:.6">Diamond's by Belive Academy</div>
+    </div></body></html>`;
+    const blob=new Blob([html],{type:"text/html"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download=`match-poster-${selected}.html`;a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url);setDownloading(false);},1000);
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",zIndex:300,display:"flex",flexDirection:"column",backdropFilter:"blur(8px)"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{flex:1,display:"flex",flexDirection:"column",maxWidth:800,margin:"0 auto",width:"100%",padding:20}}>
+        {/* Header */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:16,color:"#FFFFFF"}}>Choisir une affiche</div>
+            <div style={{fontSize:12,color:"#6B7280",marginTop:2}}>{cA?.pseudo||"?"} VS {cB?.pseudo||"?"} · {matchData.match_date?new Date(matchData.match_date).toLocaleDateString("fr-FR"):""} {matchData.match_time||""}</div>
+          </div>
+          <button className="btng" onClick={onClose}>✕ Fermer</button>
+        </div>
+        {/* Note about photos */}
+        {(!cA?.tiktok_avatar_url||!cB?.tiktok_avatar_url)&&(
+          <div style={{padding:"9px 13px",borderRadius:9,background:"rgba(147,51,234,0.1)",border:"1px solid rgba(147,51,234,0.25)",fontSize:12,color:"#A78BFA",marginBottom:14}}>
+            💡 Les créateurs sans photo de profil affichent leurs initiales. Demandez-leur d'ajouter leur photo dans leur profil pour des affiches avec photos.
+          </div>
+        )}
+        {/* Grid of templates */}
+        <div style={{flex:1,overflowY:"auto",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16}}>
+          {POSTER_TEMPLATES.map(tmpl=>(
+            <PosterCard key={tmpl.id} tmpl={tmpl} cA={cA} cB={cB}
+              matchDate={matchData.match_date} matchTime={matchData.match_time}
+              isInter={matchData.is_inter_agency}
+              selected={selected===tmpl.id}
+              onSelect={()=>setSelected(tmpl.id)}/>
+          ))}
+        </div>
+        {/* Download button */}
+        <button className="btn" style={{width:"100%",justifyContent:"center",fontSize:13,padding:"11px"}} onClick={handleDownload} disabled={downloading}>
+          {downloading?<><Spin/>Génération…</>:"⬇ Télécharger cette affiche"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 
 /* ─── REMINDERS PANEL ───────────────────── */
 function RemindersPanel({matches,schedules}){
