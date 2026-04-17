@@ -1427,6 +1427,352 @@ function BlockedAgenciesPanel({profile}){
   );
 }
 
+
+/* ─── ADMIN INVITE AGENCIES ─────────────── */
+function AdminInviteAgencies(){
+  const [codes,setCodes]=useState([]);
+  const [generating,setGenerating]=useState(false);
+  const [copied,setCopied]=useState(null);
+
+  const loadCodes=async()=>{
+    if(!sb) return;
+    const {data}=await sb.from("invite_codes").select("*").eq("target_role","agency").order("created_at",{ascending:false});
+    setCodes(data||[]);
+  };
+  useEffect(()=>{loadCodes();},[]);
+
+  const generateCode=async()=>{
+    if(!sb) return;
+    setGenerating(true);
+    const code=`AGENCE-${Math.random().toString(36).slice(-6).toUpperCase()}`;
+    await sb.from("invite_codes").insert([{code,target_role:"agency"}]);
+    await loadCodes();
+    setGenerating(false);
+  };
+  const cp=(c)=>{navigator.clipboard.writeText(c);setCopied(c);setTimeout(()=>setCopied(null),2000);};
+  const del=async(id)=>{if(!sb||!confirm("Supprimer ce code ?")) return;await sb.from("invite_codes").delete().eq("id",id);loadCodes();};
+
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:22,fontWeight:700,color:T.tx,marginBottom:4}}>Inviter des agences</h1>
+        <p style={{fontSize:13,color:T.sec}}>Générez des codes pour que les agences puissent s'inscrire sur Diamond's</p>
+      </div>
+      <div className="card" style={{padding:20,marginBottom:16}}>
+        <div style={{fontWeight:600,fontSize:13,color:T.tx,marginBottom:8}}>Nouveau code agence</div>
+        <p style={{fontSize:12,color:T.sec,marginBottom:14}}>L'agence utilise ce code lors de son inscription pour accéder à l'espace agence.</p>
+        <button className="btn" onClick={generateCode} disabled={generating}>
+          {generating?<><Spin/>Génération…</>:"+ Générer un code"}
+        </button>
+      </div>
+      {codes.length===0?(
+        <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:"1px solid rgba(255,255,255,0.06)",borderRadius:12}}>
+          Aucun code généré
+        </div>
+      ):(
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          <div style={{fontSize:11,fontWeight:600,color:T.sec,textTransform:"uppercase",letterSpacing:".06em",marginBottom:4}}>{codes.length} code{codes.length>1?"s":""}</div>
+          {codes.map(c=>(
+            <div key={c.id} className="card" style={{padding:14,display:"flex",alignItems:"center",gap:12}}>
+              <code style={{flex:1,fontSize:14,fontWeight:700,fontFamily:"monospace",letterSpacing:".08em",color:T.acc}}>{c.code}</code>
+              <div style={{fontSize:11,color:T.sec}}>{new Date(c.created_at).toLocaleDateString("fr-FR")}</div>
+              <button className="btng" onClick={()=>cp(c.code)}>{copied===c.code?"✓ Copié":"Copier"}</button>
+              <button className="btng" style={{color:T.ng}} onClick={()=>del(c.id)}>Suppr.</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── ADMIN ALL USERS ────────────────────── */
+function AdminAllUsersView(){
+  const [profiles,setProfiles]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState("");
+  const [filter,setFilter]=useState("all");
+  useEffect(()=>{fetchAllProfiles().then(d=>{setProfiles(d);setLoading(false);});},[]);
+  const filtered=profiles.filter(p=>{
+    const s=!search||p.email?.toLowerCase().includes(search.toLowerCase())||p.tiktok_handle?.toLowerCase().includes(search.toLowerCase())||p.role?.toLowerCase().includes(search.toLowerCase());
+    const f=filter==="all"||p.role===filter;
+    return s&&f;
+  });
+  const roleC={admin:T.acc,agency:T.acc,director:"#818CF8",manager:"#34D399",agent:"#60A5FA",creator:"#F472B6"};
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:22,fontWeight:700,color:T.tx,marginBottom:4}}>Utilisateurs</h1>
+        <p style={{fontSize:13,color:T.sec}}>Tous les inscrits sur Diamond's</p>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+        <SC label="Total" val={profiles.length} accent={T.acc}/>
+        <SC label="Agences" val={profiles.filter(p=>p.role==="agency").length}/>
+        <SC label="Staff" val={profiles.filter(p=>["director","manager","agent"].includes(p.role)).length}/>
+        <SC label="Créateurs" val={profiles.filter(p=>p.role==="creator").length}/>
+      </div>
+      <div style={{display:"flex",gap:10,marginBottom:14}}>
+        <input className="inp" placeholder="Rechercher…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
+        <select className="inp" value={filter} onChange={e=>setFilter(e.target.value)} style={{width:130}}>
+          <option value="all">Tous</option>
+          <option value="agency">Agence</option>
+          <option value="director">Directeur</option>
+          <option value="manager">Manager</option>
+          <option value="agent">Agent</option>
+          <option value="creator">Créateur</option>
+        </select>
+      </div>
+      {loading?<div style={{textAlign:"center",padding:30,color:T.sec}}><Spin/></div>:
+      <div className="card" style={{overflow:"hidden"}}>
+        <div style={{padding:"10px 16px",borderBottom:"1px solid rgba(255,255,255,0.06)",fontSize:11,fontWeight:600,color:T.sec}}>{filtered.length} utilisateur{filtered.length>1?"s":""}</div>
+        {filtered.map(p=>(
+          <div key={p.id} className="cr" style={{gridTemplateColumns:"1fr 120px 90px 80px"}}>
+            <div><div style={{fontWeight:500,fontSize:12.5,color:T.tx}}>{p.email}</div>
+              {p.tiktok_handle&&<div style={{fontSize:11,color:T.sec}}>@{p.tiktok_handle}</div>}</div>
+            <div style={{fontSize:11,color:T.sec}}>{new Date(p.created_at).toLocaleDateString("fr-FR")}</div>
+            <span className="tag" style={{background:`${roleC[p.role]||T.sec}15`,color:roleC[p.role]||T.sec}}>{p.role}</span>
+            <div style={{fontSize:11,color:p.tiktok_handle?T.ok:T.ng}}>{p.tiktok_handle?"✓ TikTok":"— TikTok"}</div>
+          </div>
+        ))}
+      </div>}
+    </div>
+  );
+}
+
+/* ─── ADMIN ALL CREATORS ─────────────────── */
+function AdminAllCreatorsView(){
+  const [creators,setCreators]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState("");
+  const [sortBy,setSortBy]=useState("diamonds");
+  useEffect(()=>{fetchAllCreators().then(d=>{setCreators(d);setLoading(false);});},[]);
+  const filtered=creators.filter(c=>!search||c.pseudo?.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>{
+    if(sortBy==="diamonds") return (b.diamonds||0)-(a.diamonds||0);
+    if(sortBy==="days") return (b.days_live||0)-(a.days_live||0);
+    return new Date(b.created_at)-new Date(a.created_at);
+  });
+  const totalD=creators.reduce((s,c)=>s+(c.diamonds||0),0);
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:22,fontWeight:700,color:T.tx,marginBottom:4}}>Créateurs</h1>
+        <p style={{fontSize:13,color:T.sec}}>Tous les créateurs TikTok sur la plateforme</p>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
+        <SC label="Total" val={creators.length} accent={T.acc}/>
+        <SC label="💎 Diamants cumulés" val={totalD.toLocaleString()} accent={T.acc}/>
+        <SC label="Moyenne diamants" val={creators.length?Math.round(totalD/creators.length).toLocaleString():"0"}/>
+      </div>
+      <div style={{display:"flex",gap:10,marginBottom:14}}>
+        <input className="inp" placeholder="Rechercher par pseudo…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
+        <select className="inp" value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{width:140}}>
+          <option value="diamonds">Tri : Diamants</option>
+          <option value="days">Tri : Jours live</option>
+          <option value="date">Tri : Date</option>
+        </select>
+      </div>
+      {loading?<div style={{textAlign:"center",padding:30,color:T.sec}}><Spin/></div>:
+      <div className="card" style={{overflow:"hidden"}}>
+        <div style={{overflowX:"auto"}}><div style={{minWidth:500}}>
+          <div className="cr" style={{gridTemplateColumns:"1fr 90px 55px 55px 80px",background:"rgba(255,255,255,0.02)",fontSize:10,fontWeight:600,color:T.sec,textTransform:"uppercase",letterSpacing:".06em"}}>
+            <div>Pseudo</div><div>💎 Diamants</div><div>Jours</div><div>Heures</div><div>Statut</div>
+          </div>
+          {filtered.map(c=>(
+            <div key={c.id} className="cr" style={{gridTemplateColumns:"1fr 90px 55px 55px 80px"}}>
+              <div style={{fontWeight:500,fontSize:12.5,color:T.tx}}>{c.pseudo||"—"}</div>
+              <div style={{fontWeight:700,color:T.acc,fontSize:12}}>{(c.diamonds||0).toLocaleString()}</div>
+              <div style={{fontSize:12,color:(c.days_live||0)>=20?T.ok:T.txD}}>{c.days_live||0}j</div>
+              <div style={{fontSize:12,color:(c.hours_live||0)>=40?T.ok:T.txD}}>{c.hours_live||0}h</div>
+              <span className="tag" style={{background:c.diamonds>0?`${T.ok}15`:"rgba(255,255,255,0.05)",color:c.diamonds>0?T.ok:T.sec}}>Actif</span>
+            </div>
+          ))}
+        </div></div>
+      </div>}
+    </div>
+  );
+}
+
+/* ─── ADMIN ALL STAFF ────────────────────── */
+function AdminAllStaffView(){
+  const [all,setAll]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState("");
+  const [filter,setFilter]=useState("all");
+  useEffect(()=>{
+    Promise.all([fetchAllAgents(),fetchAllManagers(),fetchAllDirectors()]).then(([ag,mg,dr])=>{
+      setAll([...ag.map(x=>({...x,type:"agent"})),...mg.map(x=>({...x,type:"manager"})),...dr.map(x=>({...x,type:"director"}))]);
+      setLoading(false);
+    });
+  },[]);
+  const filtered=all.filter(s=>{
+    const m=!search||s.name?.toLowerCase().includes(search.toLowerCase())||s.email?.toLowerCase().includes(search.toLowerCase());
+    const f=filter==="all"||s.type===filter;
+    return m&&f;
+  });
+  const tC={agent:"#60A5FA",manager:"#34D399",director:"#818CF8"};
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:22,fontWeight:700,color:T.tx,marginBottom:4}}>Staff</h1>
+        <p style={{fontSize:13,color:T.sec}}>Agents, managers et directeurs</p>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
+        <SC label="Agents" val={all.filter(s=>s.type==="agent").length} accent="#60A5FA"/>
+        <SC label="Managers" val={all.filter(s=>s.type==="manager").length} accent="#34D399"/>
+        <SC label="Directeurs" val={all.filter(s=>s.type==="director").length} accent="#818CF8"/>
+      </div>
+      <div style={{display:"flex",gap:10,marginBottom:14}}>
+        <input className="inp" placeholder="Rechercher…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
+        <select className="inp" value={filter} onChange={e=>setFilter(e.target.value)} style={{width:130}}>
+          <option value="all">Tous</option>
+          <option value="agent">Agents</option>
+          <option value="manager">Managers</option>
+          <option value="director">Directeurs</option>
+        </select>
+      </div>
+      {loading?<div style={{textAlign:"center",padding:30,color:T.sec}}><Spin/></div>:
+      <div className="card" style={{overflow:"hidden"}}>
+        {filtered.map(s=>(
+          <div key={s.id} className="cr" style={{gridTemplateColumns:"36px 1fr 100px 90px"}}>
+            <AV name={(s.name||"?").slice(0,2)} color={tC[s.type]||T.acc} size={28}/>
+            <div><div style={{fontWeight:500,fontSize:12.5,color:T.tx}}>{s.name||"—"}</div><div style={{fontSize:11,color:T.sec}}>{s.email}</div></div>
+            <div style={{fontSize:11,color:T.sec}}>{s.phone||"—"}</div>
+            <span className="tag" style={{background:`${tC[s.type]}15`,color:tC[s.type]}}>{s.type}</span>
+          </div>
+        ))}
+      </div>}
+    </div>
+  );
+}
+
+/* ─── ADMIN ALL MATCHES ──────────────────── */
+function AdminAllMatchesView(){
+  const [matches,setMatches]=useState([]);
+  const [loading,setLoading]=useState(true);
+  useEffect(()=>{fetchAllMatches().then(d=>{setMatches(d);setLoading(false);});},[]);
+  const sC={pending:T.go,confirmed:T.ok,done:T.sec,cancelled:T.ng};
+  const sL={pending:"En attente",confirmed:"Confirmé",done:"Terminé",cancelled:"Annulé"};
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:22,fontWeight:700,color:T.tx,marginBottom:4}}>Tous les matchs</h1>
+        <p style={{fontSize:13,color:T.sec}}>Vue globale des matchs TikTok Live</p>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+        <SC label="Total" val={matches.length} accent={T.acc}/>
+        <SC label="En attente" val={matches.filter(m=>m.status==="pending").length} accent={T.go}/>
+        <SC label="Confirmés" val={matches.filter(m=>m.status==="confirmed").length} accent={T.ok}/>
+        <SC label="Inter-agences" val={matches.filter(m=>m.is_inter_agency).length}/>
+      </div>
+      {loading?<div style={{textAlign:"center",padding:30,color:T.sec}}><Spin/></div>:
+      matches.length===0?<div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:"1px solid rgba(255,255,255,0.06)",borderRadius:12}}>Aucun match</div>:
+      <div className="card" style={{overflow:"hidden"}}>
+        <div className="cr" style={{gridTemplateColumns:"100px 1fr 80px 90px 85px",background:"rgba(255,255,255,0.02)",fontSize:10,fontWeight:600,color:T.sec,textTransform:"uppercase",letterSpacing:".06em"}}>
+          <div>Date</div><div>Match</div><div>Heure</div><div>Type</div><div>Statut</div>
+        </div>
+        {matches.map(m=>(
+          <div key={m.id} className="cr" style={{gridTemplateColumns:"100px 1fr 80px 90px 85px"}}>
+            <div style={{fontWeight:500,fontSize:12,color:T.tx}}>{m.match_date?new Date(m.match_date).toLocaleDateString("fr-FR"):"—"}</div>
+            <div style={{fontSize:12,color:T.txD}}>Match {m.is_inter_agency?"inter":"intra"}-agence</div>
+            <div style={{fontSize:12,color:T.sec}}>{m.match_time||"—"}</div>
+            <span className="tag" style={{background:m.is_inter_agency?`${T.acc}15`:"rgba(255,255,255,0.05)",color:m.is_inter_agency?T.acc:T.sec}}>{m.is_inter_agency?"Inter":"Intra"}</span>
+            <span className="tag" style={{background:`${sC[m.status]||T.go}15`,color:sC[m.status]||T.go}}>{sL[m.status]||"—"}</span>
+          </div>
+        ))}
+      </div>}
+    </div>
+  );
+}
+
+/* ─── ADMIN ALL SCHEDULES ────────────────── */
+function AdminAllSchedulesView(){
+  const [schedules,setSchedules]=useState([]);
+  const [loading,setLoading]=useState(true);
+  useEffect(()=>{fetchAllSchedules().then(d=>{setSchedules(d);setLoading(false);});},[]);
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:22,fontWeight:700,color:T.tx,marginBottom:4}}>Plannings</h1>
+        <p style={{fontSize:13,color:T.sec}}>Tous les créneaux live déclarés</p>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+        <SC label="Total créneaux" val={schedules.length} accent={T.acc}/>
+        <SC label="Inter-agences" val={schedules.filter(s=>s.accept_inter_agency).length} accent={T.acc}/>
+        {DAYS.slice(0,2).map((d,i)=><SC key={i} label={d} val={schedules.filter(s=>s.day_of_week===i).length}/>)}
+      </div>
+      {loading?<div style={{textAlign:"center",padding:30,color:T.sec}}><Spin/></div>:
+      schedules.length===0?<div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:"1px solid rgba(255,255,255,0.06)",borderRadius:12}}>Aucun planning</div>:
+      <div className="card" style={{overflow:"hidden"}}>
+        <div className="cr" style={{gridTemplateColumns:"80px 120px 1fr 80px",background:"rgba(255,255,255,0.02)",fontSize:10,fontWeight:600,color:T.sec,textTransform:"uppercase",letterSpacing:".06em"}}>
+          <div>Jour</div><div>Horaires</div><div>Notes</div><div>Type</div>
+        </div>
+        {schedules.map(s=>(
+          <div key={s.id} className="cr" style={{gridTemplateColumns:"80px 120px 1fr 80px"}}>
+            <div style={{fontWeight:500,fontSize:12,color:T.tx}}>{DAYS[s.day_of_week]||"—"}</div>
+            <div style={{fontSize:12,color:T.txD}}>{s.start_time?.slice(0,5)||"—"} → {s.end_time?.slice(0,5)||"—"}</div>
+            <div style={{fontSize:11,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.notes||"—"}</div>
+            <span className="tag" style={{background:s.accept_inter_agency?`${T.acc}15`:"rgba(255,255,255,0.05)",color:s.accept_inter_agency?T.acc:T.sec}}>{s.accept_inter_agency?"Inter":"Intra"}</span>
+          </div>
+        ))}
+      </div>}
+    </div>
+  );
+}
+
+/* ─── ADMIN ALL LIVES ────────────────────── */
+function AdminAllLivesView(){
+  const [lives,setLives]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [sortBy,setSortBy]=useState("diamonds");
+  useEffect(()=>{fetchAllLiveEntries().then(d=>{setLives(d);setLoading(false);});},[]);
+  const sorted=[...lives].sort((a,b)=>{
+    if(sortBy==="diamonds") return (b.diamonds||0)-(a.diamonds||0);
+    if(sortBy==="viewers") return (b.viewers||0)-(a.viewers||0);
+    if(sortBy==="duration") return (b.duration_minutes||0)-(a.duration_minutes||0);
+    return new Date(b.live_date)-new Date(a.live_date);
+  });
+  const totalD=lives.reduce((s,l)=>s+(l.diamonds||0),0);
+  const totalV=lives.reduce((s,l)=>s+(l.viewers||0),0);
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:22,fontWeight:700,color:T.tx,marginBottom:4}}>Lives</h1>
+        <p style={{fontSize:13,color:T.sec}}>Tous les lives enregistrés manuellement</p>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+        <SC label="Total" val={lives.length} accent={T.acc}/>
+        <SC label="💎 Diamants" val={totalD.toLocaleString()} accent={T.acc}/>
+        <SC label="👁 Spectateurs" val={totalV.toLocaleString()}/>
+        <SC label="Durée moy." val={lives.length?`${Math.round(lives.reduce((s,l)=>s+(l.duration_minutes||0),0)/lives.length)}min`:"—"}/>
+      </div>
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:14}}>
+        <select className="inp" value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{width:150}}>
+          <option value="date">Tri : Date</option>
+          <option value="diamonds">Tri : Diamants</option>
+          <option value="viewers">Tri : Spectateurs</option>
+          <option value="duration">Tri : Durée</option>
+        </select>
+      </div>
+      {loading?<div style={{textAlign:"center",padding:30,color:T.sec}}><Spin/></div>:
+      lives.length===0?<div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:"1px solid rgba(255,255,255,0.06)",borderRadius:12}}>Aucun live</div>:
+      <div className="card" style={{overflow:"hidden"}}>
+        <div className="cr" style={{gridTemplateColumns:"90px 90px 80px 80px 1fr",background:"rgba(255,255,255,0.02)",fontSize:10,fontWeight:600,color:T.sec,textTransform:"uppercase",letterSpacing:".06em"}}>
+          <div>Date</div><div>💎 Diamants</div><div>Durée</div><div>👁 Spectat.</div><div>Notes</div>
+        </div>
+        {sorted.map(l=>(
+          <div key={l.id} className="cr" style={{gridTemplateColumns:"90px 90px 80px 80px 1fr"}}>
+            <div style={{fontWeight:500,fontSize:12,color:T.tx}}>{new Date(l.live_date).toLocaleDateString("fr-FR")}</div>
+            <div style={{fontWeight:700,color:T.acc,fontSize:12}}>{(l.diamonds||0).toLocaleString()}</div>
+            <div style={{fontSize:12,color:T.txD}}>{Math.round((l.duration_minutes||0)/60*10)/10}h</div>
+            <div style={{fontSize:12,color:T.txD}}>{(l.viewers||0).toLocaleString()}</div>
+            <div style={{fontSize:11,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.notes||"—"}</div>
+          </div>
+        ))}
+      </div>}
+    </div>
+  );
+}
+
 /* ─── APP ROOT ──────────────────────────── */
 export default function App(){
   const auth=useAuth();
@@ -1468,6 +1814,13 @@ export default function App(){
     matches: ()=><MatchesView profile={auth.profile} creators={team.creators} agents={team.agents}/>,
     planning:()=><PlanningView profile={auth.profile}/>,
     my_lives:()=><MyLivesView profile={auth.profile}/>,
+    invite_agencies:()=><AdminInviteAgencies/>,
+    all_users:()=><AdminAllUsersView/>,
+    all_creators:()=><AdminAllCreatorsView/>,
+    all_staff:()=><AdminAllStaffView/>,
+    all_matches:()=><AdminAllMatchesView/>,
+    all_schedules:()=><AdminAllSchedulesView/>,
+    all_lives:()=><AdminAllLivesView/>,
   };
   const View=views[tab]||views.dash;
 
