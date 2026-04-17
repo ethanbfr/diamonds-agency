@@ -376,15 +376,13 @@ function LoginPage(){
       if(agErr){setErr("Erreur création agence: "+agErr.message);setLoad(false);return;}
       // Upsert profile (trigger may not have run yet)
       if(ag?.id){
-        const {error:pErr}=await sb.from("profiles").upsert({
-          id:userId,
-          email:email,
-          role:"agency",
-          agency_id:ag.id
-        },{onConflict:"id"});
-        if(pErr){
-          // Try update as fallback
-          await sb.from("profiles").update({role:"agency",agency_id:ag.id}).eq("id",userId);
+        // Wait for Supabase trigger to create the profile first
+        await new Promise(r=>setTimeout(r,1500));
+        // Now update the role (trigger already created it with role='creator')
+        const {error:p1}=await sb.from("profiles").update({role:"agency",agency_id:ag.id,email:email}).eq("id",userId);
+        if(p1){
+          // If update failed, try upsert
+          await sb.from("profiles").upsert({id:userId,email:email,role:"agency",agency_id:ag.id},{onConflict:"id",ignoreDuplicates:false});
         }
       }
       await sb.from("invite_codes").update({uses:1}).eq("code",cleanCode);
