@@ -2032,8 +2032,32 @@ function SettingsView({profile,reload}){
   const [tiktokHandle,setTiktokHandle]=useState(profile?.tiktok_handle||"");
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
+  const [agencyCodes,setAgencyCodes]=useState([]);
+  const [generating,setGenerating]=useState(false);
   const ROLES=[{k:"creator",l:"Part crateur",c:T.ok},{k:"agent",l:"Commission agent",c:T.cy},{k:"manager",l:"Commission manager",c:T.pu},{k:"director",l:"Commission directeur",c:T.acc}];
   const total=Object.values(pcts).reduce((s,v)=>s+v,0);
+  const loadAgencyCodes=async()=>{
+    if(!sb||!ag?.id) return;
+    const {data}=await sb.from("invite_codes").select("*").eq("agency_id",ag.id).eq("target_role","agency");
+    setAgencyCodes(data||[]);
+  };
+  useEffect(()=>{loadAgencyCodes();},[ag?.id]);
+  
+  const generateAgencyCode=async()=>{
+    if(!sb||!ag?.id) return;
+    setGenerating(true);
+    const code=`AGENCE-${ag.slug.toUpperCase()}-${Math.random().toString(36).slice(-6).toUpperCase()}`;
+    await sb.from("invite_codes").insert([{
+      code,
+      target_role:"agency",
+      agency_id:ag.id,
+      uses:0,
+      max_uses:1
+    }]);
+    await loadAgencyCodes();
+    setGenerating(false);
+  };
+  
   const save=async()=>{
     if(!sb||!ag?.id) return;setSaving(true);
     await sb.from("profiles").update({tiktok_handle:tiktokHandle.trim()}).eq("id",profile.id);
@@ -2090,6 +2114,38 @@ function SettingsView({profile,reload}){
           </div>
         ))}
       </div>
+      {profile?.role === "agency" && (
+        <div className="card" style={{padding:18,marginBottom:14}}>
+          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:4}}>Codes d'inscription agence</div>
+          <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Générez des codes pour permettre aux nouvelles agences de s'inscrire.</div>
+          <div style={{marginBottom:12}}>
+            <button className="btn" style={{fontSize:12}} onClick={generateAgencyCode} disabled={generating}>
+              {generating?<><Spin/>Génération...</>:"Générer un code agence"}
+            </button>
+          </div>
+          {agencyCodes.length===0?(
+            <div style={{textAlign:"center",padding:"20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:12,fontSize:12}}>
+              Aucun code généré
+            </div>
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {agencyCodes.map(code=>(
+                <div key={code.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,background:"rgba(255,255,255,.03)",border:"1px solid rgba(75,0,130,.2)"}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:12.5,color:T.tx}}>{code.code}</div>
+                    <div style={{fontSize:10.5,color:T.sec}}>
+                      {code.uses}/{code.max_uses} utilisations  Expire le {new Date(code.expires_at).toLocaleDateString("fr-FR")}
+                    </div>
+                  </div>
+                  <button className="btng" style={{fontSize:10.5,padding:"4px 8px"}} onClick={()=>navigator.clipboard.writeText(code.code)}>
+                    Copier
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div className="card" style={{padding:18,marginBottom:14}}>
         <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:4}}>Agences bloques pour les matchs</div>
         <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Ces agences ne pourront pas proposer de matchs  vos crateurs.</div>
