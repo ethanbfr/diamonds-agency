@@ -6,19 +6,19 @@ const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 
 const T={
-  bg:"#0a0a0a",
-  bgGradient:"linear-gradient(135deg, #0a0a0a 0%, #1a0a1f 25%, #2d1b4d 50%, #1a0a1f 75%, #0a0a0a 100%)",
-  card:"rgba(153, 102, 204, 0.08)",
-  cardGlass:"rgba(255, 255, 255, 0.04)",
-  cardGlassHover:"rgba(153, 102, 204, 0.12)",
-  b:"rgba(255, 255, 255, 0.08)",
-  acc:"#9966cc",
-  accLight:"#b19cd9",
-  accGlow:"rgba(153, 102, 204, 0.25)",
+  bg:"#000000",
+  bgGradient:"linear-gradient(135deg, #000000 0%, #0d0015 25%, #1a0026 50%, #0d0015 75%, #000000 100%)",
+  card:"rgba(75, 0, 130, 0.08)",
+  cardGlass:"rgba(255, 255, 255, 0.03)",
+  cardGlassHover:"rgba(75, 0, 130, 0.12)",
+  b:"rgba(255, 255, 255, 0.06)",
+  acc:"#4b0082",
+  accLight:"#6a0dad",
+  accGlow:"rgba(75, 0, 130, 0.25)",
   cy:"#00bcd4",
   cyLight:"#4dd0e1",
   cyGlow:"rgba(0, 188, 212, 0.15)",
-  sec:"#b19cd9",
+  sec:"#6a0dad",
   ok:"#4caf50",
   okGlow:"rgba(76, 175, 80, 0.15)",
   ng:"#f44336",
@@ -28,12 +28,12 @@ const T={
   pu:"#e91e63",
   puGlow:"rgba(233, 30, 99, 0.15)",
   tx:"#ffffff",
-  txDim:"#b0b0b0",
-  stripe:"#9966cc",
+  txDim:"#a0a0a0",
+  stripe:"#4b0082",
   neon:"#ffffff",
   neonPink:"#f8bbd0",
   neonGreen:"#a5d6a7",
-  neonPurple:"#b19cd9",
+  neonPurple:"#6a0dad",
   diamond:"rgba(255, 215, 0, 0.8)",
   diamondGlow:"rgba(255, 215, 0, 0.9)"
 };
@@ -194,16 +194,16 @@ const DiamondSVG=({size=40})=>(
     <defs>
       <linearGradient id="dg" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stopColor="#ffffff"/>
-        <stop offset="20%" stopColor="#9966cc"/>
-        <stop offset="40%" stopColor="#b19cd9"/>
-        <stop offset="60%" stopColor="#dda0dd"/>
-        <stop offset="80%" stopColor="#e6e6fa"/>
+        <stop offset="15%" stopColor="#4b0082"/>
+        <stop offset="35%" stopColor="#6a0dad"/>
+        <stop offset="55%" stopColor="#8a2be2"/>
+        <stop offset="75%" stopColor="#9370db"/>
         <stop offset="100%" stopColor="#ffffff"/>
       </linearGradient>
       <linearGradient id="dg2" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#ffffff"/>
-        <stop offset="30%" stopColor="#f8f8ff"/>
-        <stop offset="100%" stopColor="rgba(153, 102, 204, 0.6)"/>
+        <stop offset="25%" stopColor="#f0f0ff"/>
+        <stop offset="100%" stopColor="rgba(75, 0, 130, 0.7)"/>
       </linearGradient>
       <filter id="diamondGlow">
         <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
@@ -225,7 +225,7 @@ const DiamondSVG=({size=40})=>(
         points="0,-20 20,0 0,20 -20,0" 
         fill="url(#dg)" 
         filter="url(#diamondGlow)"
-        style={{filter:"drop-shadow(0 0 30px rgba(153,102,204,1))"}}
+        style={{filter:"drop-shadow(0 0 30px rgba(75,0,130,1))"}}
       />
       <polygon 
         points="0,-20 20,0 0,0 -20,0" 
@@ -239,7 +239,7 @@ const DiamondSVG=({size=40})=>(
         fill="url(#dg)" 
         filter="url(#diamondGlow)"
         opacity=".8"
-        style={{filter:"drop-shadow(0 0 25px rgba(153,102,204,0.8))"}}
+        style={{filter:"drop-shadow(0 0 25px rgba(75,0,130,0.8))"}}
       />
       <polygon 
         points="0,-20 20,0 0,0 -20,0" 
@@ -250,7 +250,7 @@ const DiamondSVG=({size=40})=>(
     <circle cx="5" cy="5" r="3" fill="#ffffff" filter="url(#sparkle)">
       <animate attributeName="opacity" values="1;0.2;1" dur="1.5s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="35" cy="5" r="2.5" fill="#9966cc" filter="url(#sparkle)">
+    <circle cx="35" cy="5" r="2.5" fill="#4b0082" filter="url(#sparkle)">
       <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
     </circle>
     <circle cx="20" cy="35" r="2.2" fill="#ffffff" filter="url(#sparkle)">
