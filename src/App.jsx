@@ -5,12 +5,12 @@ const SB_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 
-const T={bg:"#080808",card:"rgba(255,255,255,0.03)",cardH:"rgba(255,255,255,0.05)",b:"rgba(255,255,255,0.06)",acc:"#9333EA",accL:"#A855F7",glow:"rgba(147,51,234,0.4)",sec:"#6B7280",ok:"#22C55E",ng:"#EF4444",go:"#F59E0B",pu:"#A855F7",tx:"#FFFFFF",txD:"#A1A1AA",stripe:"#9333EA"};
+const T={bg:"#080808",card:"rgba(255,255,255,0.03)",cardH:"rgba(255,255,255,0.05)",b:"rgba(255,255,255,0.06)",acc:"#2563EB",accL:"#3B82F6",glow:"rgba(37,99,235,0.35)",sec:"#6B7280",ok:"#22C55E",ng:"#EF4444",go:"#F59E0B",pu:"#60A5FA",tx:"#FFFFFF",txD:"#A1A1AA",stripe:"#2563EB"};
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
 const PRICE=149;
-const STRIPE_PAYMENT_LINK="https://buy.stripe.com/REMPLACER_PAR_TON_LIEN";
-const STRIPE_PK="pk_live_REMPLACER_PAR_TA_CLE";
+// Stripe: crée un Payment Link sur dashboard.stripe.com → remplace ci-dessous
+const STRIPE_LINK="https://buy.stripe.com/3cIcN46cX8qZbkL2AE1wY07";
 
 const css=`
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
@@ -24,10 +24,10 @@ body{background:#0F0F0F;color:#fff;font-size:14px;min-height:100vh;-webkit-font-
 .nb{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:400;border:none;background:transparent;width:100%;color:#555;transition:color .1s,background .1s;text-align:left;font-family:inherit;letter-spacing:.01em}
 .nb:hover{color:#fff;background:rgba(255,255,255,.05)}
 .nb.on{color:#fff;font-weight:500;position:relative}
-.nb.on::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:2px;background:#9333EA;border-radius:0 2px 2px 0}
+.nb.on::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:2px;background:#2563EB;border-radius:0 2px 2px 0}
 /* BUTTONS */
-.btn{background:#9333EA;color:#fff;border:none;border-radius:8px;padding:12px 20px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .15s,box-shadow .15s;position:relative;overflow:hidden}
-.btn:hover{background:#7C3AED;box-shadow:0 0 0 3px rgba(147,51,234,.25)}
+.btn{background:#2563EB;color:#fff;border:none;border-radius:8px;padding:12px 20px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .15s,box-shadow .15s;position:relative;overflow:hidden}
+.btn:hover{background:#1D4ED8;box-shadow:0 0 0 3px rgba(37,99,235,.25)}
 .btn:active{transform:scale(.99)}
 .btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
 .btng{background:transparent;color:#555;border:1px solid #222;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:inherit;transition:all .12s}
@@ -40,16 +40,16 @@ body{background:#0F0F0F;color:#fff;font-size:14px;min-height:100vh;-webkit-font-
 .cr:hover{background:#151515}
 /* RANGE */
 input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:20px;background:#222;outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#9333EA;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#2563EB;cursor:pointer}
 /* INPUTS */
 .inp{width:100%;padding:11px 14px;border-radius:8px;border:1px solid #222;background:#1a1a1a;color:#fff;font-size:14px;outline:none;font-family:inherit;transition:border .12s}
-.inp:focus{border-color:#9333EA}
+.inp:focus{border-color:#2563EB}
 .inp::placeholder{color:#444}
 select.inp option{background:#111;color:#fff}
 /* CARDS */
 .card{background:#151515;border-radius:12px;border:1px solid #1e1e1e}
 .card:hover{border-color:#2a2a2a}
-.glow{background:#151515;border-radius:12px;border:1px solid rgba(147,51,234,.3);box-shadow:0 0 20px rgba(147,51,234,.08)}
+.glow{background:#151515;border-radius:12px;border:1px solid rgba(37,99,235,.3);box-shadow:0 0 20px rgba(37,99,235,.08)}
 /* TOGGLE */
 .tog{width:38px;height:20px;border-radius:10px;cursor:pointer;border:none;position:relative;flex-shrink:0;transition:background .2s}
 .tog .kn{position:absolute;top:2px;width:16px;height:16px;border-radius:50%;background:white;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.4)}
@@ -69,7 +69,7 @@ const calcPayout=(ag,c)=>{
   const b=(c.diamonds||0)*0.017;
   return {eligible:true,creator:Math.round(b*(ag?.pct_creator||55)/100),agent:Math.round(b*(ag?.pct_agent||10)/100),manager:Math.round(b*(ag?.pct_manager||5)/100),director:Math.round(b*(ag?.pct_director||3)/100)};
 };
-const billingOk=(ag)=>!ag||ag.is_offered||ag.billing_status==="actif";
+const billingOk=(ag)=>!ag||ag.is_offered||ag.billing_status==="actif"||(ag.billing_status==="essai");
 
 /* ─── SUPABASE ──────────────────────────── */
 const getProfile=async(uid)=>{
@@ -171,7 +171,7 @@ const DiamondSVG=({size=40})=>(
       {/* Reflets arc-en-ciel */}
       <linearGradient id="dgFire1" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stopColor="#FF6B9D" stopOpacity="0.4"/>
-        <stop offset="50%" stopColor="#A78BFA" stopOpacity="0.3"/>
+        <stop offset="50%" stopColor="#60A5FA" stopOpacity="0.3"/>
         <stop offset="100%" stopColor="#34D399" stopOpacity="0.4"/>
       </linearGradient>
       <filter id="dgGlow">
@@ -238,7 +238,7 @@ const Brand=({big=false})=>(
       {big&&<><Spk x={-7} y={-5} d={0}/><Spk x={57} y={-3} d={.4}/><Spk x={-4} y={52} d={.7}/><Spk x={58} y={50} d={.2}/></>}
     </div>
     <div>
-      <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:big?32:14,color:T.tx,letterSpacing:"-0.025em",lineHeight:1}}><span style={{background:"linear-gradient(135deg,#F5D0FE,#C084FC,#A855F7)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>Diamond's</span></div>
+      <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:big?32:14,color:T.tx,letterSpacing:"-0.025em",lineHeight:1}}><span style={{background:"linear-gradient(135deg,#DBEAFE,#60A5FA,#3B82F6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>Diamond's</span></div>
       <div style={{fontSize:big?10:8.5,color:T.sec,fontWeight:500,marginTop:1,letterSpacing:".06em"}}>by Belive Academy</div>
     </div>
   </div>
@@ -321,7 +321,6 @@ function LoginPage(){
   const [step,setStep]=useState("auth"); // auth | payment | confirm
   const [err,setErr]=useState("");
   const [load,setLoad]=useState(false);
-  const [pendingCode,setPendingCode]=useState("");
 
   const login=async()=>{
     setErr("");setLoad(true);
@@ -385,9 +384,8 @@ function LoginPage(){
   };
 
   const goStripe=()=>{
-    // Redirect to Stripe Payment Link with metadata
-    const url=`${STRIPE_PAYMENT_LINK}?prefilled_email=${encodeURIComponent(email)}&client_reference_id=${pendingCode}`;
-    window.open(url,"_blank");
+    const url=`${STRIPE_LINK}?prefilled_email=${encodeURIComponent(email)}&client_reference_id=${encodeURIComponent(pendingCode)}`;
+    window.location.href=url;
   };
 
   // Payment success check (Stripe redirects back with ?payment=success&code=XXXX)
@@ -400,7 +398,7 @@ function LoginPage(){
   if(step==="confirm") return(
     <div style={{minHeight:"100vh",background:"#0F0F0F",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{textAlign:"center",maxWidth:400}}>
-        <div style={{width:56,height:56,borderRadius:16,background:"rgba(147,51,234,.15)",border:"1px solid rgba(147,51,234,.3)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",fontSize:24,color:"#9333EA"}}>✓</div>
+        <div style={{width:56,height:56,borderRadius:16,background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",fontSize:24,color:"#2563EB"}}>✓</div>
         <h2 style={{fontSize:24,fontWeight:700,marginBottom:8,letterSpacing:"-.02em"}}>Compte créé !</h2>
         <p style={{color:"#555",marginBottom:24,lineHeight:1.6}}>Vérifie ta boîte mail pour confirmer, puis connecte-toi.</p>
         <button className="btn" style={{margin:"0 auto"}} onClick={()=>{setStep("auth");setMode("login");}}>Se connecter →</button>
@@ -418,7 +416,7 @@ function LoginPage(){
         {/* Price card */}
         <div style={{background:"#151515",borderRadius:16,border:"1px solid #222",padding:28,marginBottom:16}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:20}}>
-            <span style={{background:"rgba(147,51,234,.15)",border:"1px solid rgba(147,51,234,.3)",borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:600,color:"#9333EA",letterSpacing:".04em"}}>✦ ABONNEMENT MENSUEL</span>
+            <span style={{background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:600,color:"#2563EB",letterSpacing:".04em"}}>✦ ABONNEMENT MENSUEL</span>
           </div>
           <div style={{marginBottom:20}}>
             <span style={{fontSize:64,fontWeight:800,color:"#fff",letterSpacing:"-.04em"}}>{PRICE}</span>
@@ -434,8 +432,8 @@ function LoginPage(){
             "Support prioritaire Diamond's"
           ].map((f,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-              <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(147,51,234,.12)",border:"1px solid rgba(147,51,234,.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <div style={{width:6,height:6,borderRadius:"50%",background:"#9333EA"}}/>
+              <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(37,99,235,.12)",border:"1px solid rgba(37,99,235,.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <div style={{width:6,height:6,borderRadius:"50%",background:"#2563EB"}}/>
               </div>
               <span style={{fontSize:14,color:"#ccc"}}>{f}</span>
             </div>
@@ -460,7 +458,7 @@ function LoginPage(){
   return(
     <div style={{minHeight:"100vh",background:"#0F0F0F",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       {/* Ambient */}
-      <div style={{position:"fixed",top:0,left:"50%",transform:"translateX(-50%)",width:600,height:400,background:"radial-gradient(ellipse,rgba(147,51,234,.08) 0%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+      <div style={{position:"fixed",top:0,left:"50%",transform:"translateX(-50%)",width:600,height:400,background:"radial-gradient(ellipse,rgba(37,99,235,.08) 0%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
 
       <div style={{width:"100%",maxWidth:420,position:"relative",zIndex:1}}>
         <div style={{textAlign:"center",marginBottom:32}}>
@@ -472,7 +470,7 @@ function LoginPage(){
           {/* Tabs */}
           <div style={{display:"flex",background:"#111",borderRadius:10,padding:3,marginBottom:24}}>
             {["login","register"].map(m=>(
-              <button key={m} onClick={()=>{setMode(m);setErr("");}} style={{flex:1,padding:"10px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",border:"none",background:mode===m?"#9333EA":"transparent",color:mode===m?"#fff":"#555",fontFamily:"inherit",transition:"all .15s"}}>
+              <button key={m} onClick={()=>{setMode(m);setErr("");}} style={{flex:1,padding:"10px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",border:"none",background:mode===m?"#2563EB":"transparent",color:mode===m?"#fff":"#555",fontFamily:"inherit",transition:"all .15s"}}>
                 {m==="login"?"Connexion":"Inscription"}
               </button>
             ))}
@@ -503,11 +501,11 @@ function LoginPage(){
         </div>
 
         {mode==="register"&&(
-          <div style={{background:"rgba(147,51,234,.05)",borderRadius:12,border:"1px solid rgba(147,51,234,.12)",padding:16,marginBottom:12}}>
-            <p style={{fontSize:11,fontWeight:700,color:"#9333EA",textTransform:"uppercase",letterSpacing:".08em",marginBottom:10}}>✦ Ce que vous obtenez</p>
+          <div style={{background:"rgba(37,99,235,.05)",borderRadius:12,border:"1px solid rgba(37,99,235,.12)",padding:16,marginBottom:12}}>
+            <p style={{fontSize:11,fontWeight:700,color:"#2563EB",textTransform:"uppercase",letterSpacing:".08em",marginBottom:10}}>✦ Ce que vous obtenez</p>
             {["Espace agence complet","Gestion créateurs & staff","Matchs TikTok Live & affiches","Suivi diamants & reversements"].map((f,i)=>(
               <div key={i} style={{display:"flex",gap:8,alignItems:"center",marginBottom:i<3?6:0}}>
-                <div style={{width:16,height:16,borderRadius:"50%",background:"rgba(147,51,234,.12)",border:"1px solid rgba(147,51,234,.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><div style={{width:5,height:5,borderRadius:"50%",background:"#9333EA"}}/></div>
+                <div style={{width:16,height:16,borderRadius:"50%",background:"rgba(37,99,235,.12)",border:"1px solid rgba(37,99,235,.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><div style={{width:5,height:5,borderRadius:"50%",background:"#2563EB"}}/></div>
                 <span style={{fontSize:13,color:"#888"}}>{f}</span>
               </div>
             ))}
@@ -515,7 +513,7 @@ function LoginPage(){
         )}
 
         <div style={{textAlign:"center"}}>
-          <p style={{fontSize:12,color:"#333"}}>Problème ? <a href={`mailto:${CONTACT}`} style={{color:"#9333EA",textDecoration:"none"}}>Contacter Diamond's</a></p>
+          <p style={{fontSize:12,color:"#333"}}>Problème ? <a href={`mailto:${CONTACT}`} style={{color:"#2563EB",textDecoration:"none"}}>Contacter Diamond's</a></p>
           <p style={{fontSize:11,color:"#2a2a2a",marginTop:6,letterSpacing:".05em"}}>🔒 SÉCURISÉ · DONNÉES CHIFFRÉES</p>
         </div>
       </div>
@@ -780,8 +778,11 @@ function AdminBilling(){
         <SC label="Impayés" val={agencies.filter(a=>a.billing_status==="impayé"&&!a.is_offered).length} accent={T.ng}/>
         <SC label="Offerts ♥" val={offertCount} sub="Hors MRR" accent={T.cy}/>
       </div>
-      <div style={{padding:"10px 14px",borderRadius:11,background:"rgba(127,0,255,.06)",border:"1px solid rgba(127,0,255,.15)",fontSize:12.5,color:T.tx,marginBottom:14}}>
-        Abonnement unique <strong style={{color:T.acc}}>{PRICE}€/mois</strong> par agence · Accès illimité à toutes les fonctionnalités
+      <div style={{padding:"12px 16px",borderRadius:10,background:"rgba(37,99,235,.06)",border:"1px solid rgba(37,99,235,.15)",fontSize:13,color:T.tx,marginBottom:14,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+        <span>Abonnement <strong style={{color:T.acc}}>{PRICE}€/mois</strong> par agence · Paiement via Stripe</span>
+        <a href={STRIPE_LINK} target="_blank" rel="noopener noreferrer">
+          <button className="btn" style={{fontSize:12,padding:"6px 14px"}}>🔗 Lien Stripe</button>
+        </a>
       </div>
       <div className="card" style={{overflow:"hidden"}}>
         <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Toutes les agences</div>
@@ -1170,7 +1171,7 @@ function MatchesView({profile,creators}){
               <span className="tag" style={{background:`${statusColor[m.status]||T.go}18`,color:statusColor[m.status]||T.go}}>
                 {statusLabel[m.status]||"En attente"}
               </span>
-              <button className="btng" style={{fontSize:10.5,color:"#9333EA",borderColor:"rgba(147,51,234,0.3)"}} onClick={()=>setPoster(m)}>🖼 Affiche</button>
+              <button className="btng" style={{fontSize:10.5,color:"#2563EB",borderColor:"rgba(37,99,235,0.3)"}} onClick={()=>setPoster(m)}>🖼 Affiche</button>
             </div>
           ))}
         </div>
@@ -1260,7 +1261,7 @@ function CreatorsView({profile,creators,agents,reload}){
                         {canTogglePayout&&<button className="btng" style={{fontSize:9.5,padding:"2px 6px",color:c.disable_creator_payout?T.ok:T.ng}} onClick={()=>togglePayout(c.profile_id,c.disable_creator_payout)} title="Activer/désactiver reversement créateur">
                           {c.disable_creator_payout?"Rev ✓":"Rev ✕"}
                         </button>}
-                        {canTogglePayout&&<button className="btng" style={{fontSize:9.5,padding:"2px 6px",color:"#9333EA",borderColor:"rgba(147,51,234,0.3)"}} onClick={()=>setTargetCreator(c)} title="Objectifs personnalisés">🎯</button>}
+                        {canTogglePayout&&<button className="btng" style={{fontSize:9.5,padding:"2px 6px",color:"#2563EB",borderColor:"rgba(37,99,235,0.3)"}} onClick={()=>setTargetCreator(c)} title="Objectifs personnalisés">🎯</button>}
                       </div>
                     )}
                   </div>
@@ -1421,7 +1422,7 @@ function SettingsView({profile,reload}){
       </div>
       <div className="card" style={{padding:18,marginBottom:14}}>
         <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Permissions & Matchs</div>
-        {[{k:"dir",l:"Directeurs peuvent importer",c:T.acc},{k:"mgr",l:"Managers peuvent importer",c:T.pu},{k:"inter",l:"Matchs inter-agences acceptés",c:"#00C853"},{k:"coachEnabled",l:"Coach IA activé pour tout le monde",c:"#9333EA"},{k:"agentDel",l:"Agents peuvent supprimer des créateurs",c:"#FF9800"},{k:"mgrDel",l:"Managers peuvent supprimer agents & créateurs",c:T.pu},{k:"dirDel",l:"Directeurs peuvent tout supprimer",c:T.acc}].map(p=>(
+        {[{k:"dir",l:"Directeurs peuvent importer",c:T.acc},{k:"mgr",l:"Managers peuvent importer",c:T.pu},{k:"inter",l:"Matchs inter-agences acceptés",c:"#00C853"},{k:"coachEnabled",l:"Coach IA activé pour tout le monde",c:"#2563EB"},{k:"agentDel",l:"Agents peuvent supprimer des créateurs",c:"#FF9800"},{k:"mgrDel",l:"Managers peuvent supprimer agents & créateurs",c:T.pu},{k:"dirDel",l:"Directeurs peuvent tout supprimer",c:T.acc}].map(p=>(
           <div key={p.k} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:9,background:perms[p.k]?`${p.c}08`:"rgba(255,255,255,.02)",border:`1px solid ${perms[p.k]?p.c+"25":T.b}`,marginBottom:7}}>
             <div style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{p.l}</div>
             <Tog on={perms[p.k]} onChange={v=>setPerms(t=>({...t,[p.k]:v}))} color={p.c}/>
@@ -1548,7 +1549,7 @@ function TeamView({agents,managers,directors}){
 /* ─── MATCH POSTER ──────────────────────── */
 const POSTER_TEMPLATES=[
   {id:"gold",   label:"Gold Crown",   c1:"#0A0700",c2:"#1C1200",acc:"#D4A017",txt:"#FFE066"},
-  {id:"purple", label:"Purple Reign", c1:"#06000F",c2:"#180040",acc:"#A855F7",txt:"#E879F9"},
+  {id:"purple", label:"Purple Reign", c1:"#06000F",c2:"#180040",acc:"#3B82F6",txt:"#93C5FD"},
   {id:"space",  label:"Neon Space",   c1:"#000510",c2:"#001530",acc:"#00E5FF",txt:"#40F4FF"},
   {id:"rose",   label:"Rose Queen",   c1:"#120008",c2:"#2A0018",acc:"#FF69B4",txt:"#FFB3C1"},
   {id:"fire",   label:"Fire",         c1:"#0F0000",c2:"#280800",acc:"#FF4500",txt:"#FF8C42"},
@@ -2191,7 +2192,7 @@ function AdminPosterTemplatesView(){
         <h1 style={{fontSize:22,fontWeight:700,color:T.tx,marginBottom:4}}>Templates d'affiches</h1>
         <p style={{fontSize:13,color:T.sec}}>Cliquez sur "Affiche 🖼" dans un match pour choisir un template et télécharger</p>
       </div>
-      <div style={{padding:"10px 14px",borderRadius:10,background:"rgba(147,51,234,0.08)",border:"1px solid rgba(147,51,234,0.2)",fontSize:12,color:"#A78BFA",marginBottom:20}}>
+      <div style={{padding:"10px 14px",borderRadius:10,background:"rgba(37,99,235,0.08)",border:"1px solid rgba(37,99,235,0.2)",fontSize:12,color:"#60A5FA",marginBottom:20}}>
         💡 Les vraies photos TikTok des créateurs s'affichent automatiquement si elles sont uploadées dans leur profil
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14}}>
@@ -2355,7 +2356,7 @@ Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un co
     <div className="fup" style={{height:"calc(100vh - 80px)",display:"flex",flexDirection:"column"}}>
       <div style={{marginBottom:16,flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:4}}>
-          <div style={{width:40,height:40,borderRadius:12,background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🤖</div>
+          <div style={{width:40,height:40,borderRadius:12,background:"rgba(37,99,235,0.15)",border:"1px solid rgba(37,99,235,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🤖</div>
           <div>
             <h1 style={{fontSize:20,fontWeight:700,color:"#fff",letterSpacing:"-.02em"}}>Coach IA TikTok Live</h1>
             <p style={{fontSize:12,color:"#555"}}>Propulsé par Groq · Spécialisé TikTok Live</p>
@@ -2366,11 +2367,11 @@ Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un co
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginTop:10}}>
             <div style={{background:"#151515",border:"1px solid #1e1e1e",borderRadius:8,padding:"8px 12px"}}>
               <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:".06em",marginBottom:2}}>Jours live</div>
-              <div style={{fontSize:16,fontWeight:700,color:days>=minDays?"#22C55E":"#9333EA"}}>{days}<span style={{fontSize:11,color:"#444"}}>/{minDays}</span></div>
+              <div style={{fontSize:16,fontWeight:700,color:days>=minDays?"#22C55E":"#2563EB"}}>{days}<span style={{fontSize:11,color:"#444"}}>/{minDays}</span></div>
             </div>
             <div style={{background:"#151515",border:"1px solid #1e1e1e",borderRadius:8,padding:"8px 12px"}}>
               <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:".06em",marginBottom:2}}>Heures live</div>
-              <div style={{fontSize:16,fontWeight:700,color:hours>=minHours?"#22C55E":"#9333EA"}}>{hours}h<span style={{fontSize:11,color:"#444"}}>/{minHours}h</span></div>
+              <div style={{fontSize:16,fontWeight:700,color:hours>=minHours?"#22C55E":"#2563EB"}}>{hours}h<span style={{fontSize:11,color:"#444"}}>/{minHours}h</span></div>
             </div>
             <div style={{background:"#151515",border:"1px solid #1e1e1e",borderRadius:8,padding:"8px 12px"}}>
               <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:".06em",marginBottom:2}}>💎 Diamants</div>
@@ -2384,17 +2385,17 @@ Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un co
       <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:12,marginBottom:12,paddingRight:4}}>
         {messages.map((m,i)=>(
           <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
-            {m.role==="assistant"&&<div style={{width:28,height:28,borderRadius:8,background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,marginRight:8,marginTop:2}}>🤖</div>}
-            <div style={{maxWidth:"75%",padding:"10px 14px",borderRadius:m.role==="user"?"12px 12px 2px 12px":"12px 12px 12px 2px",background:m.role==="user"?"#9333EA":"#1a1a1a",border:m.role==="user"?"none":"1px solid #222",fontSize:13.5,lineHeight:1.65,color:"#fff",whiteSpace:"pre-wrap"}}>
+            {m.role==="assistant"&&<div style={{width:28,height:28,borderRadius:8,background:"rgba(37,99,235,0.15)",border:"1px solid rgba(37,99,235,0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,marginRight:8,marginTop:2}}>🤖</div>}
+            <div style={{maxWidth:"75%",padding:"10px 14px",borderRadius:m.role==="user"?"12px 12px 2px 12px":"12px 12px 12px 2px",background:m.role==="user"?"#2563EB":"#1a1a1a",border:m.role==="user"?"none":"1px solid #222",fontSize:13.5,lineHeight:1.65,color:"#fff",whiteSpace:"pre-wrap"}}>
               {m.content}
             </div>
           </div>
         ))}
         {loading&&(
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <div style={{width:28,height:28,borderRadius:8,background:"rgba(147,51,234,0.15)",border:"1px solid rgba(147,51,234,0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🤖</div>
+            <div style={{width:28,height:28,borderRadius:8,background:"rgba(37,99,235,0.15)",border:"1px solid rgba(37,99,235,0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🤖</div>
             <div style={{padding:"10px 14px",background:"#1a1a1a",border:"1px solid #222",borderRadius:"12px 12px 12px 2px",display:"flex",gap:6,alignItems:"center"}}>
-              {[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:"#9333EA",animation:`sp2 1s ${i*0.15}s ease-in-out infinite`}}/>)}
+              {[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:"#2563EB",animation:`sp2 1s ${i*0.15}s ease-in-out infinite`}}/>)}
             </div>
           </div>
         )}
@@ -2406,7 +2407,7 @@ Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un co
         <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10,flexShrink:0}}>
           {suggestions.map((s,i)=>(
             <button key={i} onClick={()=>setInput(s)} style={{padding:"6px 12px",borderRadius:20,border:"1px solid #222",background:"#151515",color:"#888",fontSize:12,cursor:"pointer",fontFamily:"inherit",transition:"all .12s"}}
-              onMouseEnter={e=>{e.target.style.borderColor="#9333EA";e.target.style.color="#fff";}}
+              onMouseEnter={e=>{e.target.style.borderColor="#2563EB";e.target.style.color="#fff";}}
               onMouseLeave={e=>{e.target.style.borderColor="#222";e.target.style.color="#888";}}>
               {s}
             </button>
@@ -2452,9 +2453,9 @@ function CreatorTargetsModal({creator,ag,onClose,onSave}){
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(8px)"}} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{background:"#151515",border:"1px solid #222",borderRadius:16,padding:28,width:"100%",maxWidth:380}}>
         <h2 style={{fontSize:18,fontWeight:700,color:"#fff",marginBottom:4,letterSpacing:"-.02em"}}>Objectifs personnalisés</h2>
-        <p style={{fontSize:13,color:"#555",marginBottom:20}}>Pour <strong style={{color:"#9333EA"}}>{creator?.pseudo||"ce créateur"}</strong></p>
+        <p style={{fontSize:13,color:"#555",marginBottom:20}}>Pour <strong style={{color:"#2563EB"}}>{creator?.pseudo||"ce créateur"}</strong></p>
 
-        <div style={{background:"rgba(147,51,234,0.06)",border:"1px solid rgba(147,51,234,0.12)",borderRadius:10,padding:"10px 14px",marginBottom:20,fontSize:12,color:"#666"}}>
+        <div style={{background:"rgba(37,99,235,0.06)",border:"1px solid rgba(37,99,235,0.12)",borderRadius:10,padding:"10px 14px",marginBottom:20,fontSize:12,color:"#666"}}>
           Objectifs généraux : {ag?.min_days||20}j / {ag?.min_hours||40}h · Si non défini ici, les objectifs généraux s'appliquent
         </div>
 
@@ -2462,14 +2463,14 @@ function CreatorTargetsModal({creator,ag,onClose,onSave}){
           <div>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
               <label style={{fontSize:12,fontWeight:600,color:"#888",textTransform:"uppercase",letterSpacing:".06em"}}>Jours de live minimum</label>
-              <span style={{fontSize:16,fontWeight:700,color:"#9333EA"}}>{days}j</span>
+              <span style={{fontSize:16,fontWeight:700,color:"#2563EB"}}>{days}j</span>
             </div>
             <input type="range" min={1} max={31} step={1} value={days} onChange={e=>setDays(+e.target.value)}/>
           </div>
           <div>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
               <label style={{fontSize:12,fontWeight:600,color:"#888",textTransform:"uppercase",letterSpacing:".06em"}}>Heures de live minimum</label>
-              <span style={{fontSize:16,fontWeight:700,color:"#9333EA"}}>{hours}h</span>
+              <span style={{fontSize:16,fontWeight:700,color:"#2563EB"}}>{hours}h</span>
             </div>
             <input type="range" min={1} max={200} step={1} value={hours} onChange={e=>setHours(+e.target.value)}/>
           </div>
@@ -2534,7 +2535,7 @@ export default function App(){
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
                 {["@ TikTok exact (identique à ton compte)","Ta photo de profil TikTok","Apparaîtront sur tes affiches de match"].map((f,i)=>(
                   <div key={i} style={{display:"flex",gap:10,alignItems:"center"}}>
-                    <div style={{width:6,height:6,borderRadius:"50%",background:"#9333EA",flexShrink:0}}/>
+                    <div style={{width:6,height:6,borderRadius:"50%",background:"#2563EB",flexShrink:0}}/>
                     <span style={{fontSize:13,color:"#888"}}>{f}</span>
                   </div>
                 ))}
@@ -2550,7 +2551,8 @@ export default function App(){
     );
   }
 
-  const isBlocked=role!=="admin"&&ag&&!billingOk(ag);
+  const isBlocked=role!=="admin"&&ag&&ag.billing_status==="impayé"&&!ag.is_offered;
+  const needsPayment=role==="agency"&&ag&&ag.billing_status==="essai"&&!ag.is_offered;
   const nav=NAVS[role]||NAVS["admin"];
   const views={
     dash:    ()=>role==="admin"?<AdminDash setTab={setTab}/>:<DashView profile={auth.profile} creators={team.creators} agents={team.agents} managers={team.managers} directors={team.directors}/>,
@@ -2576,6 +2578,50 @@ export default function App(){
   };
   const View=views[tab]||views.dash;
 
+  // Payment wall for agency in trial
+  if(needsPayment) return(
+    <>
+      <style>{css}</style>
+      <div style={{minHeight:"100vh",background:"#0F0F0F",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div style={{width:"100%",maxWidth:460,position:"relative"}}>
+          <div style={{textAlign:"center",marginBottom:28}}>
+            <div style={{display:"flex",justifyContent:"center",marginBottom:14}}><Brand big={true}/></div>
+          </div>
+          <div style={{background:"#151515",borderRadius:16,border:"1px solid #222",padding:28,marginBottom:12}}>
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(37,99,235,.12)",border:"1px solid rgba(37,99,235,.25)",borderRadius:20,padding:"4px 14px",fontSize:12,fontWeight:700,color:"#3B82F6",letterSpacing:".04em",marginBottom:20}}>✦ ABONNEMENT MENSUEL</div>
+            <div style={{marginBottom:8}}>
+              <span style={{fontSize:72,fontWeight:900,color:"#fff",letterSpacing:"-.04em",lineHeight:1}}>{PRICE}</span>
+              <span style={{fontSize:22,color:"#555",marginLeft:4}}>€<span style={{fontSize:14}}>/mois</span></span>
+            </div>
+            <p style={{fontSize:14,color:"#555",marginBottom:24,lineHeight:1.6}}>Accès complet · Résiliable à tout moment · Paiement sécurisé</p>
+            {["Gestion illimitée de créateurs & staff","Génération de matchs TikTok Live","Affiches de match personnalisées","Import Backstage automatisé","Coach IA TikTok Live 2026","Support prioritaire Diamond's"].map((f,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                <div style={{width:18,height:18,borderRadius:"50%",background:"rgba(37,99,235,.1)",border:"1px solid rgba(37,99,235,.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:"#2563EB"}}/>
+                </div>
+                <span style={{fontSize:13,color:"#aaa"}}>{f}</span>
+              </div>
+            ))}
+            <div style={{marginTop:24}}>
+              <a href={`${STRIPE_LINK}?prefilled_email=${encodeURIComponent(auth.profile?.email||"")}&client_reference_id=${encodeURIComponent(ag?.id||"")}`} style={{display:"block",textDecoration:"none"}} target="_blank" rel="noopener noreferrer">
+                <button className="btn" style={{width:"100%",padding:"15px",fontSize:16,justifyContent:"center",letterSpacing:".01em"}}>
+                  💳 Payer {PRICE}€/mois
+                </button>
+              </a>
+              <div style={{textAlign:"center",marginTop:10,fontSize:11,color:"#333",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                🔒 SÉCURISÉ PAR STRIPE · CHIFFREMENT 256-BIT
+              </div>
+            </div>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <p style={{fontSize:12,color:"#333"}}>Déjà payé ? <button onClick={auth.reload} style={{background:"none",border:"none",color:"#3B82F6",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Actualiser →</button></p>
+            <button onClick={auth.signOut} className="btng" style={{fontSize:11}}>Se déconnecter</button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   return(
     <>
       <style>{css}</style>
@@ -2595,7 +2641,7 @@ export default function App(){
           {/* User footer */}
           <div style={{padding:"12px 14px",borderTop:"1px solid #1a1a1a"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:10,background:"#191919",marginBottom:8}}>
-              <AV name={(auth.profile?.tiktok_handle||auth.profile?.email||"?").replace("@","")[0]?.toUpperCase()||"?"} color="#9333EA" size={30}/>
+              <AV name={(auth.profile?.tiktok_handle||auth.profile?.email||"?").replace("@","")[0]?.toUpperCase()||"?"} color="#2563EB" size={30}/>
               <div style={{overflow:"hidden",minWidth:0,flex:1}}>
                 <div style={{fontSize:12,fontWeight:600,color:"#FFF",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{auth.profile?.tiktok_handle||auth.profile?.email}</div>
                 <div style={{fontSize:10,color:"#525252",textTransform:"capitalize"}}>{role}</div>
