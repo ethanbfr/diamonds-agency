@@ -11,42 +11,44 @@ const CONTACT="diamonds.saas@gmail.com";
 const PRICE=149;
 
 const css=`
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{font-family:Inter,sans-serif;background:#080808;color:#FFF;font-size:13px;min-height:100vh}
-@keyframes fup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+body{font-family:Inter,sans-serif;background:#0A0A0A;color:#FFF;font-size:13px;min-height:100vh}
+@keyframes fup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes sp2{to{transform:rotate(360deg)}}
-@keyframes shine{0%{transform:translateX(-100%) skewX(-15deg)}100%{transform:translateX(250%) skewX(-15deg)}}
-.fup{animation:fup .28s ease both}.fup1{animation:fup .28s .06s ease both}.fup2{animation:fup .28s .12s ease both}
-.nb{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:500;border:none;background:transparent;width:100%;color:#6B7280;transition:color .15s,background .15s;text-align:left;font-family:Inter,sans-serif}
-.nb:hover{color:#FFF;background:rgba(255,255,255,0.04)}
-.nb.on{color:#FFF;font-weight:600;background:transparent;position:relative}
-.nb.on::before{content:'';position:absolute;left:0;top:18%;bottom:18%;width:2px;background:#9333EA;border-radius:0 2px 2px 0;box-shadow:0 0 8px rgba(147,51,234,0.7)}
-.btn{background:#9333EA;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-family:Inter,sans-serif;transition:all .2s;position:relative;overflow:hidden}
-.btn::after{content:'';position:absolute;top:0;left:-100%;width:55%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent);transform:skewX(-15deg);transition:left .45s}
-.btn:hover::after{left:160%}
-.btn:hover{background:#7C3AED;box-shadow:0 6px 24px rgba(147,51,234,0.4)}
-.btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
-.btng{background:transparent;color:#6B7280;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:Inter,sans-serif;transition:all .15s}
-.btng:hover{color:#FFF;border-color:rgba(255,255,255,0.22);background:rgba(255,255,255,0.04)}
+@keyframes shimmer{0%{transform:translateX(-100%) skewX(-20deg)}100%{transform:translateX(200%) skewX(-20deg)}}
+.fup{animation:fup .25s ease both}.fup1{animation:fup .25s .06s ease both}.fup2{animation:fup .25s .12s ease both}
+.nb{display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:400;border:none;background:transparent;width:100%;color:#525252;transition:all .15s;text-align:left;font-family:Inter,sans-serif;letter-spacing:.01em}
+.nb:hover{color:#FFF;background:rgba(255,255,255,0.05)}
+.nb.on{color:#FFF;font-weight:600;position:relative}
+.nb.on::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:2px;background:#9333EA;border-radius:0 2px 2px 0}
+.btn{background:#9333EA;color:#fff;border:none;border-radius:10px;padding:11px 20px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-family:Inter,sans-serif;transition:all .2s;position:relative;overflow:hidden;letter-spacing:.01em}
+.btn::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.15) 50%,transparent 60%);transform:translateX(-100%);transition:transform .5s}
+.btn:hover::after{transform:translateX(100%)}
+.btn:hover{background:#7C3AED;box-shadow:0 4px 20px rgba(147,51,234,0.45)}
+.btn:active{transform:scale(0.98)}
+.btn:disabled{opacity:.38;cursor:not-allowed;box-shadow:none}
+.btng{background:transparent;color:#525252;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 13px;font-size:11.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:Inter,sans-serif;transition:all .15s}
+.btng:hover{color:#FFF;border-color:rgba(255,255,255,0.2)}
 .tag{display:inline-flex;align-items:center;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
-.cr{display:grid;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.05);transition:background .12s}
+.cr{display:grid;align-items:center;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,0.05);transition:background .12s}
 .cr:last-child{border-bottom:none}
 .cr:hover{background:rgba(255,255,255,0.025)}
-input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:20px;background:rgba(255,255,255,0.1);outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#9333EA;cursor:pointer;box-shadow:0 0 6px rgba(147,51,234,0.6)}
-.inp{width:100%;padding:10px 13px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#FFF;font-size:13px;outline:none;font-family:Inter,sans-serif;transition:border .15s,background .15s}
-.inp:focus{border-color:rgba(147,51,234,0.55);background:rgba(147,51,234,0.07)}
-.inp::placeholder{color:#374151}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:20px;background:rgba(255,255,255,0.1);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#9333EA;cursor:pointer}
+.inp{width:100%;padding:11px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.09);background:rgba(255,255,255,0.04);color:#FFF;font-size:13.5px;outline:none;font-family:Inter,sans-serif;transition:all .15s}
+.inp:focus{border-color:rgba(147,51,234,0.6);background:rgba(147,51,234,0.07);box-shadow:0 0 0 3px rgba(147,51,234,0.12)}
+.inp::placeholder{color:#3D3D3D}
 select.inp option{background:#111;color:#FFF}
-.card{background:rgba(255,255,255,0.03);border-radius:14px;border:1px solid rgba(255,255,255,0.07)}
+.card{background:rgba(255,255,255,0.03);border-radius:14px;border:1px solid rgba(255,255,255,0.07);transition:border-color .15s}
 .card:hover{border-color:rgba(255,255,255,0.12)}
-.glow{background:rgba(147,51,234,0.08);border-radius:14px;border:1px solid rgba(147,51,234,0.25);box-shadow:0 0 30px rgba(147,51,234,0.1)}
+.glow{background:rgba(147,51,234,0.07);border-radius:14px;border:1px solid rgba(147,51,234,0.22);box-shadow:0 0 30px rgba(147,51,234,0.08)}
 .tog{width:40px;height:22px;border-radius:11px;cursor:pointer;border:none;position:relative;flex-shrink:0;transition:background .2s}
 .tog .kn{position:absolute;top:3px;width:16px;height:16px;border-radius:50%;background:white;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,0.4)}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(147,51,234,0.25);border-radius:4px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(147,51,234,0.3);border-radius:4px}
 `;
+
 
 
 /* ─── UTILS ─────────────────────────────── */
@@ -1376,93 +1378,160 @@ function TeamView({agents,managers,directors}){
 
 /* ─── MATCH POSTER ──────────────────────── */
 const POSTER_TEMPLATES=[
-  {id:"lion",    label:"Lion King",   bg:"https://images.unsplash.com/photo-1614027164847-1b28cfe1df60?w=600&q=80", acc:"#D4A017",txt:"#FFE066",ov:"rgba(8,4,0,0.58)"},
-  {id:"galaxy",  label:"Galaxy",      bg:"https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=600&q=80", acc:"#A855F7",txt:"#E879F9",ov:"rgba(6,0,20,0.58)"},
-  {id:"roses",   label:"Rose Queen",  bg:"https://images.unsplash.com/photo-1490750967868-88df5691cc8f?w=600&q=80", acc:"#FF69B4",txt:"#FFB3C1",ov:"rgba(30,0,15,0.55)"},
-  {id:"fire",    label:"Fire",        bg:"https://images.unsplash.com/photo-1486551937199-baf066a6485b?w=600&q=80", acc:"#FF4500",txt:"#FF8C42",ov:"rgba(20,3,0,0.55)"},
-  {id:"marble",  label:"Marble",      bg:"https://images.unsplash.com/photo-1566041510639-8d95a2490bfb?w=600&q=80", acc:"#E0E0E0",txt:"#FFFFFF",ov:"rgba(0,0,0,0.60)"},
-  {id:"jungle",  label:"Jungle",      bg:"https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&q=80", acc:"#00C853",txt:"#69F0AE",ov:"rgba(0,8,2,0.55)"},
+  {id:"gold",   label:"Gold Crown",   c1:"#0A0700",c2:"#1C1200",acc:"#D4A017",txt:"#FFE066"},
+  {id:"purple", label:"Purple Reign", c1:"#06000F",c2:"#180040",acc:"#A855F7",txt:"#E879F9"},
+  {id:"space",  label:"Neon Space",   c1:"#000510",c2:"#001530",acc:"#00E5FF",txt:"#40F4FF"},
+  {id:"rose",   label:"Rose Queen",   c1:"#120008",c2:"#2A0018",acc:"#FF69B4",txt:"#FFB3C1"},
+  {id:"fire",   label:"Fire",         c1:"#0F0000",c2:"#280800",acc:"#FF4500",txt:"#FF8C42"},
+  {id:"emerald",label:"Emerald",      c1:"#000F05",c2:"#001A0A",acc:"#00C853",txt:"#69F0AE"},
 ];
 
-function PosterDiv({tmpl,cA,cB,matchDate,matchTime,isInter,small=false}){
+function PosterBG({id,acc,c1,c2}){
+  if(id==="gold") return(
+    <div style={{position:"absolute",inset:0,background:`linear-gradient(160deg,${c1},${c2},${c1})`}}>
+      <div style={{position:"absolute",top:"15%",left:"50%",transform:"translateX(-50%)",opacity:.12}}>
+        <svg width="300" height="300" viewBox="0 0 300 300">
+          <ellipse cx="150" cy="150" rx="130" ry="110" fill={acc}/>
+          <ellipse cx="80" cy="80" rx="50" ry="40" fill={acc} opacity=".5"/>
+          <ellipse cx="220" cy="200" rx="60" ry="50" fill={acc} opacity=".4"/>
+        </svg>
+      </div>
+      {/* Lion silhouette */}
+      <div style={{position:"absolute",bottom:"28%",left:"50%",transform:"translateX(-50%)",opacity:.18}}>
+        <svg width="280" height="200" viewBox="0 0 280 200">
+          <ellipse cx="140" cy="110" rx="90" ry="80" fill={acc}/>
+          <ellipse cx="140" cy="60" rx="65" ry="55" fill={acc}/>
+          <ellipse cx="100" cy="35" rx="18" ry="22" fill={acc}/>
+          <ellipse cx="180" cy="35" rx="18" ry="22" fill={acc}/>
+          <circle cx="140" cy="65" rx="45" r="45" fill={c2}/>
+          <ellipse cx="140" cy="62" rx="32" ry="28" fill={acc} opacity=".8"/>
+        </svg>
+      </div>
+    </div>
+  );
+  if(id==="purple") return(
+    <div style={{position:"absolute",inset:0,background:`linear-gradient(160deg,${c1},${c2},${c1})`}}>
+      <div style={{position:"absolute",inset:0,opacity:.15}}>
+        <svg width="100%" height="100%" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice">
+          {[...Array(40)].map((_,i)=><circle key={i} cx={Math.sin(i*37)*180+200} cy={i*18} r={Math.random()*2+1} fill="white" opacity={Math.random()*0.8+0.2}/>)}
+          <circle cx="200" cy="200" r="80" fill={acc} opacity=".25"/>
+          <ellipse cx="200" cy="210" rx="120" ry="40" fill="none" stroke={acc} strokeWidth="2" opacity=".4"/>
+        </svg>
+      </div>
+    </div>
+  );
+  if(id==="space") return(
+    <div style={{position:"absolute",inset:0,background:`linear-gradient(160deg,${c1},${c2},${c1})`}}>
+      <div style={{position:"absolute",inset:0,opacity:.2}}>
+        <svg width="100%" height="100%" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice">
+          {[...Array(60)].map((_,i)=><circle key={i} cx={(i*67)%400} cy={(i*113)%700} r={i%5===0?2.5:1} fill="white" opacity={i%3===0?0.9:0.4}/>)}
+          <ellipse cx="200" cy="300" rx="150" ry="100" fill={acc} opacity=".08"/>
+          <path d="M50 350 Q200 200 350 350" fill="none" stroke={acc} strokeWidth="1" opacity=".3"/>
+          <path d="M0 400 Q200 250 400 400" fill="none" stroke={acc} strokeWidth="1" opacity=".2"/>
+        </svg>
+      </div>
+    </div>
+  );
+  if(id==="rose") return(
+    <div style={{position:"absolute",inset:0,background:`linear-gradient(160deg,${c1},${c2},${c1})`}}>
+      <div style={{position:"absolute",inset:0,opacity:.2}}>
+        <svg width="100%" height="100%" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice">
+          {/* Rose petals */}
+          {[0,60,120,180,240,300].map((a,i)=>(
+            <ellipse key={i} cx={200+Math.cos(a*Math.PI/180)*40} cy={200+Math.sin(a*Math.PI/180)*40} rx="35" ry="55" fill={acc} opacity=".6" transform={`rotate(${a} ${200+Math.cos(a*Math.PI/180)*40} ${200+Math.sin(a*Math.PI/180)*40})`}/>
+          ))}
+          <circle cx="200" cy="200" r="25" fill="#FFB3C1" opacity=".8"/>
+          {[0,60,120,180,240,300].map((a,i)=>(
+            <ellipse key={i+6} cx={200+Math.cos(a*Math.PI/180)*130} cy={450+Math.sin(a*Math.PI/180)*40} rx="25" ry="40" fill={acc} opacity=".35" transform={`rotate(${a} ${200+Math.cos(a*Math.PI/180)*130} ${450+Math.sin(a*Math.PI/180)*40})`}/>
+          ))}
+          <path d="M150 320 Q200 280 250 320" fill="none" stroke="#2E7D32" strokeWidth="3" opacity=".5"/>
+          <path d="M100 380 Q150 340 180 370" fill="none" stroke="#2E7D32" strokeWidth="2" opacity=".4"/>
+        </svg>
+      </div>
+    </div>
+  );
+  if(id==="fire") return(
+    <div style={{position:"absolute",inset:0,background:`linear-gradient(180deg,${c1},${c2} 40%,#3D0800 70%,${c1})`}}>
+      <div style={{position:"absolute",inset:0,opacity:.25}}>
+        <svg width="100%" height="100%" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice">
+          <path d="M200 600 Q180 500 200 420 Q150 480 160 380 Q120 450 140 350 Q100 420 130 300 Q80 380 120 260 Q160 140 200 80 Q240 140 280 260 Q320 380 270 300 Q300 420 260 350 Q280 450 240 380 Q250 480 220 420 Q240 500 200 600Z" fill="#FF4500" opacity=".6"/>
+          <path d="M200 580 Q185 500 200 440 Q165 490 175 400 Q145 460 165 370 Q135 430 160 320 Q185 200 200 120 Q215 200 240 320 Q265 430 235 370 Q255 460 225 400 Q235 490 215 440 Q230 500 200 580Z" fill="#FF6B00" opacity=".5"/>
+          <ellipse cx="200" cy="580" rx="80" ry="20" fill="#FF4500" opacity=".3"/>
+        </svg>
+      </div>
+    </div>
+  );
+  // emerald
+  return(
+    <div style={{position:"absolute",inset:0,background:`linear-gradient(160deg,${c1},${c2},${c1})`}}>
+      <div style={{position:"absolute",inset:0,opacity:.18}}>
+        <svg width="100%" height="100%" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice">
+          <path d="M50 100 Q150 50 200 120 Q250 50 350 100 Q400 200 350 300 Q300 380 200 400 Q100 380 50 300 Q0 200 50 100Z" fill={acc} opacity=".4"/>
+          <path d="M80 200 Q180 120 200 200 Q220 120 320 200 Q360 280 300 350 Q250 400 200 410 Q150 400 100 350 Q40 280 80 200Z" fill={acc} opacity=".3"/>
+          {[0,1,2,3,4].map(i=><path key={i} d={`M${80+i*60} ${150+i*80} Q${120+i*50} ${100+i*70} ${160+i*40} ${150+i*80}`} fill="none" stroke={acc} strokeWidth="1.5" opacity=".4"/>)}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function PosterPreview({tmpl,cA,cB,matchDate,matchTime,isInter,mini=false}){
   const date=matchDate?new Date(matchDate).toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"}):"??/??";
   const time=matchTime||"20:00";
-  const pA=cA?.pseudo||"@nom1";
-  const pB=cB?.pseudo||"@nom2";
-  const s=small?0.42:1;
-  const sz=(n)=>Math.round(n*s)+"px";
+  const pA=(cA?.pseudo||"@NOM1").slice(0,11);
+  const pB=(cB?.pseudo||"@NOM2").slice(0,11);
+  const av=mini?48:100;
+  const vs=mini?32:64;
+  const f=(n)=>mini?Math.round(n*0.44):n;
 
   return(
-    <div id={small?"":"poster-export"} style={{
-      width:small?"100%":"540px",
-      height:small?"auto":"960px",
-      aspectRatio:small?"9/16":undefined,
-      position:"relative",
-      overflow:"hidden",
-      borderRadius:small?10:16,
-      fontFamily:"Arial Black,Arial,sans-serif",
-      flexShrink:0,
-    }}>
-      {/* BG image */}
-      <img src={tmpl.bg} crossOrigin="anonymous" alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>
-      {/* Dark overlay */}
-      <div style={{position:"absolute",inset:0,background:tmpl.ov}}/>
-      {/* Gradient bottom */}
-      <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(0,0,0,0.25) 0%,transparent 35%,transparent 45%,rgba(0,0,0,0.92) 100%)"}}/>
+    <div style={{position:"relative",width:"100%",aspectRatio:"9/16",overflow:"hidden",borderRadius:mini?10:16,fontFamily:"'Arial Black',Arial,sans-serif"}}>
+      <PosterBG id={tmpl.id} acc={tmpl.acc} c1={tmpl.c1} c2={tmpl.c2}/>
+      {/* Radial glow center */}
+      <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse at 50% 42%,${tmpl.acc}22 0%,transparent 65%)`}}/>
 
-      {/* Content */}
-      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",padding:small?"8px":"28px"}}>
-
+      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",padding:mini?"8px 10px":"24px 28px"}}>
         {/* TOP */}
-        <div style={{width:"100%",textAlign:"center"}}>
-          {/* Deco lines */}
-          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:small?4:12}}>
-            <div style={{flex:1,height:1,background:`linear-gradient(90deg,transparent,${tmpl.acc})`}}/>
-            <div style={{fontSize:small?7:11,fontWeight:700,color:tmpl.acc,letterSpacing:2,fontFamily:"Arial,sans-serif"}}>DIAMOND'S</div>
-            <div style={{flex:1,height:1,background:`linear-gradient(90deg,${tmpl.acc},transparent)`}}/>
-          </div>
-          {/* LIVE badges */}
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:small?4:12}}>
-            <div style={{padding:small?"2px 6px":"4px 12px",border:`1px solid ${tmpl.acc}`,borderRadius:4,fontSize:small?6:10,fontWeight:700,color:tmpl.txt,background:`${tmpl.acc}20`,letterSpacing:1.5,fontFamily:"Arial,sans-serif"}}>LIVE</div>
-            <div style={{fontSize:small?10:18,fontWeight:900,color:tmpl.txt,letterSpacing:2,textShadow:`0 0 20px ${tmpl.acc}`}}>BATTLE MATCH</div>
-            <div style={{padding:small?"2px 6px":"4px 12px",border:`1px solid ${tmpl.acc}`,borderRadius:4,fontSize:small?6:10,fontWeight:700,color:tmpl.txt,background:`${tmpl.acc}20`,letterSpacing:1.5,fontFamily:"Arial,sans-serif"}}>LIVE</div>
-          </div>
-          {/* BIG TITLE */}
-          <div style={{fontSize:small?22:52,fontWeight:900,color:tmpl.txt,letterSpacing:4,lineHeight:1,textShadow:`0 0 30px ${tmpl.acc},0 2px 4px rgba(0,0,0,0.8)`}}>LIVE</div>
-        </div>
-
-        {/* MIDDLE - Avatars */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:small?8:20,width:"100%"}}>
-          {/* Creator A */}
-          <div style={{textAlign:"center",flex:1}}>
-            {cA?.tiktok_avatar_url
-              ? <img src={cA.tiktok_avatar_url} alt="" style={{width:small?52:110,height:small?52:110,borderRadius:"50%",objectFit:"cover",border:`${small?2:4}px solid ${tmpl.acc}`,boxShadow:`0 0 ${small?12:28}px ${tmpl.acc}80`,display:"block",margin:"0 auto"}}/>
-              : <div style={{width:small?52:110,height:small?52:110,borderRadius:"50%",border:`${small?2:4}px solid ${tmpl.acc}`,background:`${tmpl.acc}15`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto",fontSize:small?18:42,fontWeight:900,color:tmpl.txt,boxShadow:`0 0 ${small?12:28}px ${tmpl.acc}60`}}>{pA.replace("@","")[0]?.toUpperCase()||"?"}</div>
-            }
-            <div style={{marginTop:small?4:8,fontSize:small?8:14,fontWeight:700,color:tmpl.txt,fontFamily:"Arial,sans-serif",textShadow:"0 1px 4px rgba(0,0,0,0.9)"}}>{pA.length>10?pA.slice(0,10)+"…":pA}</div>
-          </div>
-
-          {/* VS */}
-          <div style={{width:small?36:72,height:small?36:72,borderRadius:"50%",border:`${small?1.5:3}px solid ${tmpl.acc}`,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:small?11:22,fontWeight:900,color:tmpl.acc,flexShrink:0,boxShadow:`0 0 ${small?10:22}px ${tmpl.acc}70`,textShadow:`0 0 10px ${tmpl.acc}`}}>VS</div>
-
-          {/* Creator B */}
-          <div style={{textAlign:"center",flex:1}}>
-            {cB?.tiktok_avatar_url
-              ? <img src={cB.tiktok_avatar_url} alt="" style={{width:small?52:110,height:small?52:110,borderRadius:"50%",objectFit:"cover",border:`${small?2:4}px solid ${tmpl.acc}`,boxShadow:`0 0 ${small?12:28}px ${tmpl.acc}80`,display:"block",margin:"0 auto"}}/>
-              : <div style={{width:small?52:110,height:small?52:110,borderRadius:"50%",border:`${small?2:4}px solid ${tmpl.acc}`,background:`${tmpl.acc}15`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto",fontSize:small?18:42,fontWeight:900,color:tmpl.txt,boxShadow:`0 0 ${small?12:28}px ${tmpl.acc}60`}}>{pB.replace("@","")[0]?.toUpperCase()||"?"}</div>
-            }
-            <div style={{marginTop:small?4:8,fontSize:small?8:14,fontWeight:700,color:tmpl.txt,fontFamily:"Arial,sans-serif",textShadow:"0 1px 4px rgba(0,0,0,0.9)"}}>{pB.length>10?pB.slice(0,10)+"…":pB}</div>
-          </div>
-        </div>
-
-        {/* BOTTOM - Date box */}
         <div style={{width:"100%"}}>
-          <div style={{border:`${small?1:2}px solid ${tmpl.acc}`,borderRadius:small?8:14,background:`${tmpl.acc}15`,backdropFilter:"blur(8px)",padding:small?"8px 10px":"16px 20px",textAlign:"center",boxShadow:`0 0 ${small?12:24}px ${tmpl.acc}30`}}>
-            <div style={{fontSize:small?6:10,letterSpacing:4,color:`${tmpl.acc}cc`,fontFamily:"Arial,sans-serif",fontWeight:600,marginBottom:small?2:6}}>RENDEZ-VOUS</div>
-            <div style={{fontSize:small?13:28,fontWeight:900,color:tmpl.txt,letterSpacing:1,textShadow:`0 0 15px ${tmpl.acc}`,lineHeight:1.1}}>LE {date} · {time}</div>
-            {isInter&&<div style={{marginTop:small?2:6,fontSize:small?6:9,color:`${tmpl.acc}99`,letterSpacing:2,fontFamily:"Arial,sans-serif"}}>INTER-AGENCES</div>}
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:f(10)}}>
+            <div style={{flex:1,height:1,background:`linear-gradient(90deg,transparent,${tmpl.acc}99)`}}/>
+            <span style={{fontSize:f(9),fontWeight:700,color:tmpl.acc,letterSpacing:2,fontFamily:"Arial,sans-serif"}}>DIAMOND'S</span>
+            <div style={{flex:1,height:1,background:`linear-gradient(90deg,${tmpl.acc}99,transparent)`}}/>
           </div>
-          <div style={{textAlign:"center",marginTop:small?4:10,fontSize:small?6:9,color:`${tmpl.acc}40`,letterSpacing:2,fontFamily:"Arial,sans-serif"}}>DIAMOND'S BY BELIVE ACADEMY</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{padding:`${f(3)}px ${f(9)}px`,border:`1px solid ${tmpl.acc}`,borderRadius:4,fontSize:f(8),fontWeight:700,color:tmpl.txt,background:`${tmpl.acc}20`,letterSpacing:1}}>LIVE</div>
+            <div style={{fontSize:f(14),fontWeight:900,color:tmpl.txt,letterSpacing:3,textShadow:`0 0 20px ${tmpl.acc}`}}>BATTLE</div>
+            <div style={{padding:`${f(3)}px ${f(9)}px`,border:`1px solid ${tmpl.acc}`,borderRadius:4,fontSize:f(8),fontWeight:700,color:tmpl.txt,background:`${tmpl.acc}20`,letterSpacing:1}}>LIVE</div>
+          </div>
+          <div style={{textAlign:"center",fontSize:f(40),fontWeight:900,color:tmpl.txt,letterSpacing:4,lineHeight:1,textShadow:`0 0 30px ${tmpl.acc},0 2px 6px #000`,marginTop:f(4)}}>LIVE</div>
+        </div>
+
+        {/* MIDDLE - avatars */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:f(14),width:"100%"}}>
+          <div style={{flex:1,textAlign:"center"}}>
+            {cA?.tiktok_avatar_url
+              ?<img src={cA.tiktok_avatar_url} alt="" style={{width:f(av),height:f(av),borderRadius:"50%",objectFit:"cover",border:`${mini?2:3}px solid ${tmpl.acc}`,boxShadow:`0 0 ${f(20)}px ${tmpl.acc}80`,display:"block",margin:`0 auto ${f(6)}px`}}/>
+              :<div style={{width:f(av),height:f(av),borderRadius:"50%",border:`${mini?2:3}px solid ${tmpl.acc}`,background:`${tmpl.acc}18`,display:"flex",alignItems:"center",justifyContent:"center",margin:`0 auto ${f(6)}px`,fontSize:f(34),fontWeight:900,color:tmpl.txt,boxShadow:`0 0 ${f(20)}px ${tmpl.acc}70`}}>{pA.replace("@","")[0]?.toUpperCase()||"?"}</div>
+            }
+            <div style={{fontSize:f(10),fontWeight:700,color:tmpl.txt,fontFamily:"Arial,sans-serif",textShadow:"0 1px 6px #000"}}>{pA}</div>
+          </div>
+          <div style={{width:f(vs),height:f(vs),borderRadius:"50%",border:`${mini?1.5:2.5}px solid ${tmpl.acc}`,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:f(15),fontWeight:900,color:tmpl.acc,flexShrink:0,boxShadow:`0 0 ${f(18)}px ${tmpl.acc}80`,textShadow:`0 0 12px ${tmpl.acc}`}}>VS</div>
+          <div style={{flex:1,textAlign:"center"}}>
+            {cB?.tiktok_avatar_url
+              ?<img src={cB.tiktok_avatar_url} alt="" style={{width:f(av),height:f(av),borderRadius:"50%",objectFit:"cover",border:`${mini?2:3}px solid ${tmpl.acc}`,boxShadow:`0 0 ${f(20)}px ${tmpl.acc}80`,display:"block",margin:`0 auto ${f(6)}px`}}/>
+              :<div style={{width:f(av),height:f(av),borderRadius:"50%",border:`${mini?2:3}px solid ${tmpl.acc}`,background:`${tmpl.acc}18`,display:"flex",alignItems:"center",justifyContent:"center",margin:`0 auto ${f(6)}px`,fontSize:f(34),fontWeight:900,color:tmpl.txt,boxShadow:`0 0 ${f(20)}px ${tmpl.acc}70`}}>{pB.replace("@","")[0]?.toUpperCase()||"?"}</div>
+            }
+            <div style={{fontSize:f(10),fontWeight:700,color:tmpl.txt,fontFamily:"Arial,sans-serif",textShadow:"0 1px 6px #000"}}>{pB}</div>
+          </div>
+        </div>
+
+        {/* BOTTOM - date */}
+        <div style={{width:"100%"}}>
+          <div style={{border:`${mini?1:2}px solid ${tmpl.acc}99`,borderRadius:f(12),background:`${tmpl.acc}18`,backdropFilter:"blur(4px)",padding:`${f(10)}px ${f(16)}px`,textAlign:"center",boxShadow:`0 0 ${f(20)}px ${tmpl.acc}30`}}>
+            <div style={{fontSize:f(7),letterSpacing:3,color:`${tmpl.acc}cc`,fontFamily:"Arial,sans-serif",marginBottom:f(3)}}>RENDEZ-VOUS</div>
+            <div style={{fontSize:f(20),fontWeight:900,color:tmpl.txt,textShadow:`0 0 15px ${tmpl.acc}`,lineHeight:1.1}}>LE {date} · {time}</div>
+          </div>
+          <div style={{textAlign:"center",marginTop:f(6),fontSize:f(7),color:`${tmpl.acc}50`,letterSpacing:2,fontFamily:"Arial,sans-serif"}}>DIAMOND'S BY BELIVE ACADEMY</div>
         </div>
       </div>
     </div>
@@ -1472,63 +1541,53 @@ function PosterDiv({tmpl,cA,cB,matchDate,matchTime,isInter,small=false}){
 function MatchPoster({matchData,creators,onClose}){
   const cA=creators.find(c=>c.id===matchData.creator_a||c.profile_id===matchData.creator_a);
   const cB=creators.find(c=>c.id===matchData.creator_b||c.profile_id===matchData.creator_b);
-  const [selected,setSelected]=useState("lion");
-  const tmpl=POSTER_TEMPLATES.find(t=>t.id===selected)||POSTER_TEMPLATES[0];
+  const [sel,setSel]=useState("gold");
+  const tmpl=POSTER_TEMPLATES.find(t=>t.id===sel)||POSTER_TEMPLATES[0];
 
   const download=()=>{
-    const el=document.getElementById("poster-export");
+    const el=document.getElementById("poster-full");
     if(!el) return;
-    // Use html2canvas via CDN - fallback to print
-    const script=document.createElement("script");
-    script.src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-    script.onload=()=>{
-      window.html2canvas(el,{useCORS:true,scale:1,backgroundColor:null,logging:false}).then(canvas=>{
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    s.onload=()=>{
+      window.html2canvas(el,{scale:2,useCORS:false,allowTaint:true,backgroundColor:null}).then(c=>{
         const a=document.createElement("a");
-        a.download=`match-${cA?.pseudo||"A"}-vs-${cB?.pseudo||"B"}.png`;
-        a.href=canvas.toDataURL("image/png");
-        a.click();
-      }).catch(()=>{
-        alert("Pour télécharger : clic droit sur l'aperçu → Enregistrer l'image");
-      });
+        a.download=`match-${(cA?.pseudo||"A").replace("@","")}-vs-${(cB?.pseudo||"B").replace("@","")}.png`;
+        a.href=c.toDataURL("image/png");a.click();
+      }).catch(()=>alert("Clic droit sur l'aperçu → Enregistrer l'image sous"));
     };
-    document.head.appendChild(script);
+    document.head.appendChild(s);
   };
 
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.96)",zIndex:300,backdropFilter:"blur(10px)",overflowY:"auto"}} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{maxWidth:900,margin:"20px auto",padding:"0 16px",display:"flex",gap:20,alignItems:"flex-start"}}>
-
-        {/* LEFT - grid */}
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.97)",zIndex:300,backdropFilter:"blur(12px)",overflowY:"auto"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{maxWidth:880,margin:"16px auto",padding:"0 14px",display:"flex",gap:18,alignItems:"flex-start"}}>
+        {/* Grid */}
         <div style={{flex:1,minWidth:0}}>
-          <div style={{marginBottom:16}}>
-            <h2 style={{fontSize:18,fontWeight:700,color:"#FFF",marginBottom:4}}>Choisir un template</h2>
-            <p style={{fontSize:12,color:"#6B7280"}}>
-              {(!cA?.tiktok_avatar_url||!cB?.tiktok_avatar_url)?"💡 Ajoutez des photos de profil TikTok pour qu'elles apparaissent sur l'affiche":"Photos des créateurs affichées automatiquement"}
-            </p>
+          <div style={{marginBottom:14}}>
+            <h2 style={{fontSize:17,fontWeight:700,color:"#FFF",marginBottom:3}}>Choisir un template</h2>
+            <p style={{fontSize:12,color:"#555"}}>{!cA?.tiktok_avatar_url||!cB?.tiktok_avatar_url?"💡 Ajoutez des photos TikTok dans les profils créateurs":"✓ Photos des créateurs chargées"}</p>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
             {POSTER_TEMPLATES.map(t=>(
-              <div key={t.id} onClick={()=>setSelected(t.id)} style={{cursor:"pointer",borderRadius:12,overflow:"hidden",outline:`2px solid ${selected===t.id?t.acc:"transparent"}`,transition:"all .2s",transform:selected===t.id?"scale(1.03)":"scale(1)",boxShadow:selected===t.id?`0 0 20px ${t.acc}50`:"none"}}>
-                <PosterDiv tmpl={t} cA={cA} cB={cB} matchDate={matchData.match_date} matchTime={matchData.match_time} isInter={matchData.is_inter_agency} small={true}/>
-                <div style={{background:"#0D0D0D",padding:"6px 8px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <span style={{fontSize:9,fontWeight:700,color:selected===t.id?t.acc:"#555",letterSpacing:".05em",textTransform:"uppercase"}}>{t.label}</span>
-                  {selected===t.id&&<span style={{fontSize:10,color:t.acc}}>✓</span>}
+              <div key={t.id} onClick={()=>setSel(t.id)} style={{cursor:"pointer",borderRadius:10,overflow:"hidden",outline:`2px solid ${sel===t.id?t.acc:"transparent"}`,transition:"all .18s",transform:sel===t.id?"scale(1.03)":"scale(1)",boxShadow:sel===t.id?`0 0 18px ${t.acc}55`:"none"}}>
+                <PosterPreview tmpl={t} cA={cA} cB={cB} matchDate={matchData.match_date} matchTime={matchData.match_time} isInter={matchData.is_inter_agency} mini={true}/>
+                <div style={{background:"#111",padding:"5px 8px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <span style={{fontSize:9,fontWeight:700,color:sel===t.id?t.acc:"#555",letterSpacing:".05em",textTransform:"uppercase"}}>{t.label}</span>
+                  {sel===t.id&&<span style={{fontSize:10,color:t.acc}}>✓</span>}
                 </div>
               </div>
             ))}
           </div>
         </div>
-
-        {/* RIGHT - preview */}
-        <div style={{width:210,flexShrink:0,position:"sticky",top:20}}>
-          <h2 style={{fontSize:15,fontWeight:700,color:"#FFF",marginBottom:4}}>Aperçu</h2>
-          <p style={{fontSize:11,color:"#555",marginBottom:12}}>{cA?.pseudo||"@nom1"} vs {cB?.pseudo||"@nom2"}</p>
-          <div style={{borderRadius:12,overflow:"hidden",marginBottom:12}}>
-            <PosterDiv tmpl={tmpl} cA={cA} cB={cB} matchDate={matchData.match_date} matchTime={matchData.match_time} isInter={matchData.is_inter_agency} small={true}/>
+        {/* Preview */}
+        <div style={{width:200,flexShrink:0,position:"sticky",top:16}}>
+          <h2 style={{fontSize:14,fontWeight:700,color:"#FFF",marginBottom:3}}>Aperçu</h2>
+          <p style={{fontSize:11,color:"#444",marginBottom:10}}>{cA?.pseudo||"@nom1"} vs {cB?.pseudo||"@nom2"}</p>
+          <div id="poster-full" style={{borderRadius:12,overflow:"hidden",marginBottom:10}}>
+            <PosterPreview tmpl={tmpl} cA={cA} cB={cB} matchDate={matchData.match_date} matchTime={matchData.match_time} isInter={matchData.is_inter_agency} mini={true}/>
           </div>
-          <button className="btn" style={{width:"100%",justifyContent:"center",fontSize:13,padding:"11px",marginBottom:8}} onClick={download}>
-            ⬇ Télécharger
-          </button>
+          <button className="btn" style={{width:"100%",justifyContent:"center",fontSize:13,padding:"10px",marginBottom:7}} onClick={download}>⬇ Télécharger</button>
           <button className="btng" style={{width:"100%",justifyContent:"center"}} onClick={onClose}>Fermer</button>
         </div>
       </div>
@@ -2044,7 +2103,7 @@ export default function App(){
       <style>{css}</style>
       {isBlocked&&<BlockedScreen agencyName={ag?.name}/>}
       <div style={{minHeight:"100vh",background:"#080808",display:"flex",fontFamily:"Inter,sans-serif"}}>
-        <div style={{width:195,flexShrink:0,background:"#0D0D0D",borderRight:"1px solid rgba(255,255,255,0.06)",display:"flex",flexDirection:"column"}}>
+        <div style={{width:195,flexShrink:0,background:"#111111",borderRight:"1px solid rgba(255,255,255,0.06)",display:"flex",flexDirection:"column"}}>
           <div style={{padding:"14px 10px 16px",cursor:"pointer"}} onClick={()=>setTab("dash")}><Brand/></div>
           <div style={{padding:"0 8px",flex:1,overflowY:"auto"}}>
             {nav.map(n=><button key={n.id} className={`nb${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.l}</button>)}
