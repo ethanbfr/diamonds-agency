@@ -233,8 +233,6 @@ function LoginPage(){
   const [email,setEmail]=useState("");
   const [pw,setPw]=useState("");
   const [code,setCode]=useState("");
-  const [handle,setHandle]=useState("");
-  const [avatar,setAvatar]=useState(null);
   const [mode,setMode]=useState("login");
   const [err,setErr]=useState("");
   const [load,setLoad]=useState(false);
@@ -270,13 +268,6 @@ function LoginPage(){
     if(error){setErr(error.message);setLoad(false);return;}
     const {error:cErr}=await sb.rpc("use_invite_code",{p_code:cleanCode,p_user_id:data.user?.id});
     if(cErr){setErr("Code invalide ou expiré");setLoad(false);return;}
-    if(handle.trim()) await sb.from("profiles").update({tiktok_handle:"@"+handle.trim().replace(/^@/,"")}).eq("id",data.user?.id);
-    if(avatar){
-      const ext=avatar.name.split(".").pop();const path=`avatars/${data.user?.id}.${ext}`;
-      await sb.storage.from("avatars").upload(path,avatar,{upsert:true});
-      const {data:u}=sb.storage.from("avatars").getPublicUrl(path);
-      if(u?.publicUrl) await sb.from("profiles").update({tiktok_avatar_url:u.publicUrl}).eq("id",data.user?.id);
-    }
     setMode("confirm");setLoad(false);
   };
 
@@ -327,22 +318,13 @@ function LoginPage(){
               onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())}
               placeholder="••••••••"/>
           </div>
-          {mode==="register"&&(<>
-            <div>
-              <label style={{fontSize:11,fontWeight:600,color:"#525252",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>@ TikTok</label>
-              <input className="inp" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} placeholder="mon_pseudo_tiktok" style={{fontFamily:"monospace"}}/>
-              <p style={{fontSize:11,color:"#333",marginTop:5}}>Identique à votre compte TikTok</p>
-            </div>
-            <div>
-              <label style={{fontSize:11,fontWeight:600,color:"#525252",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Photo de profil</label>
-              <input className="inp" type="file" accept="image/*" onChange={e=>setAvatar(e.target.files[0])} style={{cursor:"pointer",fontSize:12}}/>
-            </div>
+          {mode==="register"&&(
             <div>
               <label style={{fontSize:11,fontWeight:600,color:"#525252",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:".08em"}}>Code d'invitation</label>
               <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="NOVA-AGENT-XXXXXX" style={{fontFamily:"monospace",letterSpacing:".08em"}}/>
-              <p style={{fontSize:11,color:"#333",marginTop:5}}>Code fourni par votre agence · Commence par AGENCE- si vous êtes une agence</p>
+              <p style={{fontSize:11,color:"#333",marginTop:5}}>Fourni par votre agence · AGENCE-XXXX si vous êtes une agence</p>
             </div>
-          </>)}
+          )}
 
           {err&&<div style={{padding:"11px 14px",borderRadius:10,background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.18)",fontSize:13,color:"#EF4444",display:"flex",gap:8,alignItems:"flex-start"}}><span style={{flexShrink:0}}>⚠</span>{err}</div>}
 
@@ -2050,6 +2032,44 @@ export default function App(){
 
   if(!auth.user) return <><style>{css}</style><LoginPage/></>;
 
+  // Gate: @TikTok obligatoire sauf admin/agency
+  const needsHandle = role && !["admin","agency"].includes(role) && auth.profile && !auth.profile.tiktok_handle;
+  if(needsHandle && tab!=="settings") {
+    return(
+      <>
+        <style>{css}</style>
+        <div style={{minHeight:"100vh",background:"#080808",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{width:"100%",maxWidth:440}}>
+            <div style={{textAlign:"center",marginBottom:32}}>
+              <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Brand big={true}/></div>
+            </div>
+            <div style={{background:"rgba(255,255,255,0.03)",borderRadius:24,border:"1px solid rgba(255,255,255,0.07)",padding:32}}>
+              <div style={{width:60,height:60,borderRadius:16,background:"rgba(147,51,234,0.12)",border:"1px solid rgba(147,51,234,0.3)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20,fontSize:28}}>📱</div>
+              <h1 style={{fontSize:24,fontWeight:800,color:"#FFF",marginBottom:10,letterSpacing:"-.02em"}}>Complète ton profil</h1>
+              <p style={{fontSize:14,color:"#525252",marginBottom:24,lineHeight:1.65}}>Avant d'accéder à Diamond's, ajoute ton <strong style={{color:"#FFF"}}>@ TikTok</strong> et ta <strong style={{color:"#FFF"}}>photo de profil</strong>. Ils doivent être identiques à ton compte TikTok.</p>
+              <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
+                {["Ton @ TikTok exact (ex: @mon_pseudo)","Ta photo de profil TikTok","Ces infos apparaîtront sur tes affiches de match"].map((f,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(147,51,234,0.12)",border:"1px solid rgba(147,51,234,0.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <div style={{width:7,height:7,borderRadius:"50%",background:"#9333EA"}}/>
+                    </div>
+                    <span style={{fontSize:13,color:"#A3A3A3"}}>{f}</span>
+                  </div>
+                ))}
+              </div>
+              <button className="btn" style={{width:"100%",justifyContent:"center",padding:"14px",fontSize:15}} onClick={()=>setTab("settings")}>
+                Compléter mon profil →
+              </button>
+            </div>
+            <div style={{textAlign:"right",marginTop:12}}>
+              <button className="btng" onClick={auth.signOut} style={{fontSize:11}}>Se déconnecter</button>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   const isBlocked=role!=="admin"&&ag&&!billingOk(ag);
   const nav=NAVS[role]||NAVS["admin"];
   const views={
@@ -2080,22 +2100,37 @@ export default function App(){
       <style>{css}</style>
       {isBlocked&&<BlockedScreen agencyName={ag?.name}/>}
       <div style={{minHeight:"100vh",background:"#080808",display:"flex",fontFamily:"Inter,sans-serif"}}>
-        <div style={{width:195,flexShrink:0,background:"#111111",borderRight:"1px solid rgba(255,255,255,0.06)",display:"flex",flexDirection:"column"}}>
-          <div style={{padding:"14px 10px 16px",cursor:"pointer"}} onClick={()=>setTab("dash")}><Brand/></div>
-          <div style={{padding:"0 8px",flex:1,overflowY:"auto"}}>
+        {/* SIDEBAR */}
+        <div style={{width:220,flexShrink:0,background:"#0D0D0D",borderRight:"1px solid rgba(255,255,255,0.05)",display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:10}}>
+          {/* Brand */}
+          <div style={{padding:"20px 16px 16px",borderBottom:"1px solid rgba(255,255,255,0.05)",cursor:"pointer"}} onClick={()=>setTab("dash")}>
+            <Brand/>
+          </div>
+          {/* Nav */}
+          <div style={{padding:"10px 10px",flex:1,overflowY:"auto"}}>
+            <div style={{fontSize:10,fontWeight:600,color:"#2A2A2A",textTransform:"uppercase",letterSpacing:".09em",padding:"8px 12px 4px",marginBottom:2}}>Navigation</div>
             {nav.map(n=><button key={n.id} className={`nb${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.l}</button>)}
           </div>
-          <div style={{padding:"9px 10px",borderTop:`1px solid ${T.b}`,display:"flex",alignItems:"center",gap:8}}>
-            <AV name={(auth.profile?.email||"?")[0].toUpperCase()} color={T.acc} size={28}/>
-            <div style={{overflow:"hidden",minWidth:0}}>
-              <div style={{fontSize:11.5,fontWeight:600,color:T.tx,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{auth.profile?.email}</div>
-              <div style={{fontSize:9.5,color:T.sec}}>{role}</div>
+          {/* User footer */}
+          <div style={{padding:"12px 14px",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.03)",marginBottom:8}}>
+              <AV name={(auth.profile?.tiktok_handle||auth.profile?.email||"?").replace("@","")[0]?.toUpperCase()||"?"} color="#9333EA" size={30}/>
+              <div style={{overflow:"hidden",minWidth:0,flex:1}}>
+                <div style={{fontSize:12,fontWeight:600,color:"#FFF",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{auth.profile?.tiktok_handle||auth.profile?.email}</div>
+                <div style={{fontSize:10,color:"#525252",textTransform:"capitalize"}}>{role}</div>
+              </div>
             </div>
+            <button onClick={auth.signOut} style={{width:"100%",padding:"7px",borderRadius:8,border:"1px solid rgba(255,255,255,0.06)",background:"transparent",color:"#525252",fontSize:12,cursor:"pointer",fontFamily:"Inter,sans-serif",transition:"all .15s",textAlign:"center"}}
+              onMouseEnter={e=>{e.target.style.color="#EF4444";e.target.style.borderColor="rgba(239,68,68,0.2)"}}
+              onMouseLeave={e=>{e.target.style.color="#525252";e.target.style.borderColor="rgba(255,255,255,0.06)"}}>
+              Déconnexion
+            </button>
           </div>
-          <button onClick={auth.signOut} style={{margin:"0 8px 10px",padding:"7px 10px",borderRadius:9,border:`1px solid ${T.b}`,background:"transparent",color:T.sec,fontSize:12,cursor:"pointer",fontFamily:"Inter,sans-serif",transition:"color .18s"}}
-            onMouseEnter={e=>e.currentTarget.style.color=T.ng} onMouseLeave={e=>e.currentTarget.style.color=T.sec}>Déconnexion</button>
         </div>
-        <main style={{flex:1,overflowY:"auto",padding:"24px 28px",background:"#080808"}}>
+          </div>
+
+        </div>
+        <main style={{flex:1,overflowY:"auto",padding:"28px 32px",background:"#080808",marginLeft:220,minHeight:"100vh"}}>
           {loadT?<div style={{textAlign:"center",padding:40,color:T.sec}}>Chargement…</div>:<View/>}
         </main>
       </div>
