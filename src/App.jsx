@@ -2226,7 +2226,7 @@ export default function App(){
             {nav.map(n=>(<button key={n.id} className={`nb${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.l}</button>))}
           </div>
           <div style={{padding:"9px 10px",borderTop:`1px solid ${T.b}`,display:"flex",alignItems:"center",gap:8}}>
-            <AV name={(auth.profile?.email||"?")[0].toUpperCase()} color={T.acc} size={28}/>
+            <AV name={(auth.profile?.email||"")[0].toUpperCase()} color={T.acc} size={28}/>
             <div style={{overflow:"hidden",minWidth:0}}>
               <div style={{fontSize:11.5,fontWeight:600,color:T.tx,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{auth.profile?.email}</div>
               <div style={{fontSize:9.5,color:T.sec}}>{role}</div>
