@@ -2574,15 +2574,16 @@ function AdminMembersView(){
     if(!selected||!newPw.trim()){setMsg("Remplis tous les champs");return;}
     if(newPw.length<6){setMsg("Minimum 6 caractères");return;}
     setSaving(true);setMsg("");
-    // Use Supabase admin API via service role
-    const {error}=await sb.auth.admin.updateUserById(selected.id,{password:newPw});
-    if(error){
-      // Fallback: direct update via profiles rpc
-      setMsg("❌ Erreur: "+error.message+" — Utilisez Supabase Dashboard pour reset ce mot de passe.");
+    const {data,error}=await sb.rpc("admin_change_password",{
+      p_user_id:selected.id,
+      p_new_password:newPw
+    });
+    if(error||data?.success===false){
+      setMsg("❌ "+(data?.error||error?.message||"Erreur inconnue"));
     } else {
       setMsg("✓ Mot de passe modifié pour "+selected.email);
       setNewPw("");
-      setSelected(null);
+      setTimeout(()=>{setSelected(null);setMsg("");},2000);
     }
     setSaving(false);
   };
