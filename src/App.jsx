@@ -337,13 +337,6 @@ function LoginPage(){
               <input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&(mode==="login"?login():register())} placeholder="••••••••"/></div>
             {mode==="register"&&(
               <>
-                <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>@ TikTok * (même que sur TikTok)</label>
-                  <input className="inp" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} placeholder="mon_pseudo_tiktok" style={{fontFamily:"monospace"}}/>
-                  <div style={{fontSize:11,color:T.sec,marginTop:3}}>Doit être identique à votre compte TikTok</div>
-                </div>
-                <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Photo de profil (même que TikTok)</label>
-                  <input className="inp" type="file" accept="image/*" onChange={e=>setAvatar(e.target.files[0])} style={{fontSize:11.5}}/>
-                </div>
                 <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Code d'invitation</label>
                   <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="NOVA-AGENT-XXXXXX" style={{fontFamily:"monospace",letterSpacing:".08em"}}/>
                   <div style={{fontSize:11,color:T.sec,marginTop:4}}>Code fourni par votre agence</div>
