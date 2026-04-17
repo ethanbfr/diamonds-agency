@@ -8,17 +8,17 @@ const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 const T={
   bg:"#0a0a0a",
   bgGradient:"linear-gradient(135deg, #0a0a0a 0%, #1a0a1f 25%, #2d1b4d 50%, #1a0a1f 75%, #0a0a0a 100%)",
-  card:"rgba(156, 39, 176, 0.08)",
+  card:"rgba(153, 102, 204, 0.08)",
   cardGlass:"rgba(255, 255, 255, 0.04)",
-  cardGlassHover:"rgba(156, 39, 176, 0.12)",
+  cardGlassHover:"rgba(153, 102, 204, 0.12)",
   b:"rgba(255, 255, 255, 0.08)",
-  acc:"#9c27b0",
-  accLight:"#ba68c8",
-  accGlow:"rgba(156, 39, 176, 0.25)",
+  acc:"#9966cc",
+  accLight:"#b19cd9",
+  accGlow:"rgba(153, 102, 204, 0.25)",
   cy:"#00bcd4",
   cyLight:"#4dd0e1",
   cyGlow:"rgba(0, 188, 212, 0.15)",
-  sec:"#ce93d8",
+  sec:"#b19cd9",
   ok:"#4caf50",
   okGlow:"rgba(76, 175, 80, 0.15)",
   ng:"#f44336",
@@ -29,11 +29,11 @@ const T={
   puGlow:"rgba(233, 30, 99, 0.15)",
   tx:"#ffffff",
   txDim:"#b0b0b0",
-  stripe:"#9c27b0",
+  stripe:"#9966cc",
   neon:"#ffffff",
   neonPink:"#f8bbd0",
   neonGreen:"#a5d6a7",
-  neonPurple:"#e1bee7",
+  neonPurple:"#b19cd9",
   diamond:"rgba(255, 215, 0, 0.8)",
   diamondGlow:"rgba(255, 215, 0, 0.9)"
 };
@@ -193,26 +193,26 @@ const DiamondSVG=({size=40})=>(
   <svg width={size} height={size} viewBox="0 0 40 40">
     <defs>
       <linearGradient id="dg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#9c27b0"/>
-        <stop offset="25%" stopColor="#ba68c8"/>
-        <stop offset="50%" stopColor="#ce93d8"/>
-        <stop offset="75%" stopColor="#e1bee7"/>
-        <stop offset="100%" stopColor="#f8bbd0"/>
+        <stop offset="0%" stopColor="#9966cc"/>
+        <stop offset="25%" stopColor="#b19cd9"/>
+        <stop offset="50%" stopColor="#dda0dd"/>
+        <stop offset="75%" stopColor="#e6e6fa"/>
+        <stop offset="100%" stopColor="#ffffff"/>
       </linearGradient>
       <linearGradient id="dg2" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#ffffff"/>
-        <stop offset="40%" stopColor="#f8bbd0"/>
-        <stop offset="100%" stopColor="rgba(156, 39, 176, 0.3)"/>
+        <stop offset="50%" stopColor="#f0e6ff"/>
+        <stop offset="100%" stopColor="rgba(153, 102, 204, 0.4)"/>
       </linearGradient>
       <filter id="diamondGlow">
-        <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+        <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
         <feMerge>
           <feMergeNode in="coloredBlur"/>
           <feMergeNode in="SourceGraphic"/>
         </feMerge>
       </filter>
       <filter id="sparkle">
-        <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
         <feMerge>
           <feMergeNode in="coloredBlur"/>
           <feMergeNode in="SourceGraphic"/>
@@ -221,39 +221,39 @@ const DiamondSVG=({size=40})=>(
     </defs>
     <g transform="rotate(45 20 20)">
       <polygon 
-        points="0,-16 16,0 0,16 -16,0" 
+        points="0,-18 18,0 0,18 -18,0" 
         fill="url(#dg)" 
         filter="url(#diamondGlow)"
-        style={{filter:"drop-shadow(0 0 20px rgba(156,39,176,0.8))"}}
+        style={{filter:"drop-shadow(0 0 25px rgba(153,102,204,0.9))"}}
       />
       <polygon 
-        points="0,-16 16,0 0,0 -16,0" 
+        points="0,-18 18,0 0,0 -18,0" 
         fill="url(#dg2)" 
-        opacity=".85"
+        opacity=".9"
       />
     </g>
     <g transform="rotate(0 20 20)">
       <polygon 
-        points="0,-16 16,0 0,16 -16,0" 
+        points="0,-18 18,0 0,18 -18,0" 
         fill="url(#dg)" 
         filter="url(#diamondGlow)"
-        opacity=".6"
-        style={{filter:"drop-shadow(0 0 15px rgba(156,39,176,0.5))"}}
+        opacity=".7"
+        style={{filter:"drop-shadow(0 0 20px rgba(153,102,204,0.6))"}}
       />
       <polygon 
-        points="0,-16 16,0 0,0 -16,0" 
+        points="0,-18 18,0 0,0 -18,0" 
         fill="url(#dg2)" 
-        opacity=".75"
+        opacity=".8"
       />
     </g>
-    <circle cx="8" cy="8" r="2" fill="#ffffff" filter="url(#sparkle)">
-      <animate attributeName="opacity" values="1;0.3;1" dur="2.5s" repeatCount="indefinite"/>
+    <circle cx="6" cy="6" r="2.5" fill="#ffffff" filter="url(#sparkle)">
+      <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="32" cy="8" r="1.5" fill="#ce93d8" filter="url(#sparkle)">
-      <animate attributeName="opacity" values="1;0.4;1" dur="3s" repeatCount="indefinite"/>
+    <circle cx="34" cy="6" r="2" fill="#b19cd9" filter="url(#sparkle)">
+      <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="20" cy="32" r="1.2" fill="#ffffff" filter="url(#sparkle)">
-      <animate attributeName="opacity" values="0.9;0.2;0.9" dur="2s" repeatCount="indefinite"/>
+    <circle cx="20" cy="34" r="1.8" fill="#ffffff" filter="url(#sparkle)">
+      <animate attributeName="opacity" values="0.9;0.2;0.9" dur="1.8s" repeatCount="indefinite"/>
     </circle>
   </svg>
 );
