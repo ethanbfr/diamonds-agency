@@ -117,6 +117,14 @@ const fetchMatches=async(agId)=>{if(!sb) return [];const {data}=await sb.from("m
 const fetchLiveEntries=async(profileId)=>{if(!sb) return [];const {data}=await sb.from("live_entries").select("*").eq("creator_profile_id",profileId).order("live_date",{ascending:false}).limit(30);return data||[];};
 const addLiveEntry=async(entry)=>{if(!sb) return {error:"no sb"};const {data,error}=await sb.from("live_entries").insert(entry).select().single();return error?{error:error.message}:{data};};
 const importBackstage=async(agId,importerId,rows)=>{if(!sb) return {error:"Supabase non configuré"};const {data,error}=await sb.rpc("import_backstage",{p_agency_id:agId,p_importer_id:importerId,p_data:rows});return error?{error:error.message}:data;};
+const fetchAllProfiles=async()=>{if(!sb) return [];const {data}=await sb.from("profiles").select("*").order("created_at",{ascending:false});return data||[];};
+const fetchAllCreators=async()=>{if(!sb) return [];const {data}=await sb.from("creators").select("*").order("created_at",{ascending:false});return data||[];};
+const fetchAllAgents=async()=>{if(!sb) return [];const {data}=await sb.from("agents").select("*");return data||[];};
+const fetchAllManagers=async()=>{if(!sb) return [];const {data}=await sb.from("managers").select("*");return data||[];};
+const fetchAllDirectors=async()=>{if(!sb) return [];const {data}=await sb.from("directors").select("*");return data||[];};
+const fetchAllMatches=async()=>{if(!sb) return [];const {data}=await sb.from("matches").select("*").order("match_date",{ascending:false});return data||[];};
+const fetchAllSchedules=async()=>{if(!sb) return [];const {data}=await sb.from("schedules").select("*");return data||[];};
+const fetchAllLiveEntries=async()=>{if(!sb) return [];const {data}=await sb.from("live_entries").select("*").order("live_date",{ascending:false}).limit(100);return data||[];};
 
 /* ─── SHARED UI ─────────────────────────── */
 const DiamondSVG=({size=40})=>(
@@ -192,7 +200,7 @@ const billingTag=(s,isOffered)=>{
 
 /* ─── NAV ───────────────────────────────── */
 const NAVS={
-  admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"invite_agencies",l:"Inviter agences"},{id:"all_users",l:"Utilisateurs"},{id:"all_creators",l:"Créateurs"},{id:"all_staff",l:"Staff"},{id:"all_matches",l:"Matchs"},{id:"all_schedules",l:"Plannings"},{id:"all_lives",l:"Lives"}],
+  admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"invite_agencies",l:"Inviter agences"},{id:"all_users",l:"Utilisateurs"},{id:"all_creators",l:"Créateurs"},{id:"all_staff",l:"Staff"},{id:"all_matches",l:"Matchs"},{id:"all_schedules",l:"Plannings"},{id:"all_lives",l:"Lives"},{id:"poster_templates",l:"Templates affiches"}],
   agency:  [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Liens d'invitation"},{id:"matches",l:"Matchs"},{id:"settings",l:"Paramètres"}],
   director:[{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"}],
   manager: [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"}],
@@ -254,9 +262,34 @@ function LoginPage(){
     if(!code.trim()){setErr("Code d'invitation requis");return;}
     setErr("");setLoad(true);
     if(!sb){setErr("Supabase non configuré");setLoad(false);return;}
+    // Check if it's an agency code (starts with AGENCE-)
+    const cleanCode=code.trim().toUpperCase();
+    const isAgencyCode=cleanCode.startsWith("AGENCE-");
+    if(isAgencyCode){
+      // Agency registration flow
+      const {data:codeData}=await sb.from("invite_codes").select("*").eq("code",cleanCode).single();
+      if(!codeData){setErr("Code agence invalide");setLoad(false);return;}
+      const {data,error}=await sb.auth.signUp({email,password:pw});
+      if(error){setErr(error.message);setLoad(false);return;}
+      if(data.user){
+        // Create agency
+        const {data:agData}=await sb.from("agencies").insert({
+          name:email.split("@")[0],slug:cleanCode.split("-")[1]||"AG",
+          billing_status:"essai",is_offered:false,
+          pct_director:3,pct_manager:5,pct_agent:10,pct_creator:55,
+          min_days:20,min_hours:40,accept_inter_agency:true
+        }).select().single();
+        // Set profile as agency role - permanent, code deletion won't affect this
+        await sb.from("profiles").update({role:"agency",agency_id:agData?.id}).eq("id",data.user.id);
+        // Mark code used but profile role is permanent in profiles table
+        await sb.from("invite_codes").update({uses:1}).eq("code",cleanCode);
+      }
+      setMode("confirm");setLoad(false);return;
+    }
+    // Regular member registration
     const {data,error}=await sb.auth.signUp({email,password:pw});
     if(error){setErr(error.message);setLoad(false);return;}
-    const {error:cErr}=await sb.rpc("use_invite_code",{p_code:code.trim().toUpperCase(),p_user_id:data.user?.id});
+    const {error:cErr}=await sb.rpc("use_invite_code",{p_code:cleanCode,p_user_id:data.user?.id});
     if(cErr){setErr("Code invalide ou expiré");setLoad(false);return;}
     // Save TikTok handle
     if(handle.trim()) await sb.from("profiles").update({tiktok_handle:"@"+handle.trim()}).eq("id",data.user?.id);
@@ -272,7 +305,7 @@ function LoginPage(){
   };
 
   if(mode==="confirm") return(
-    <div style={{minHeight:"100vh",background:`radial-gradient(ellipse at 50% 0%,rgba(127,0,255,.15) 0%,transparent 55%),${T.bg}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div style={{minHeight:"100vh",background:"#080808",display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{textAlign:"center",maxWidth:360,padding:20}} className="fup">
         <div style={{fontSize:40,marginBottom:14}}>✅</div>
         <h1 style={{fontSize:22,fontWeight:800,color:T.tx,marginBottom:8}}>Compte créé !</h1>
@@ -283,7 +316,7 @@ function LoginPage(){
   );
 
   return(
-    <div style={{minHeight:"100vh",background:`radial-gradient(ellipse at 50% 0%,rgba(127,0,255,.15) 0%,transparent 55%),${T.bg}`,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <div style={{minHeight:"100vh",background:"#080808",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{width:"100%",maxWidth:360}}>
         <div style={{textAlign:"center",marginBottom:24}} className="fup">
           <div style={{display:"flex",justifyContent:"center",marginBottom:14}}><Brand big={true}/></div>
@@ -1857,6 +1890,43 @@ function AdminAllLivesView(){
   );
 }
 
+
+/* ─── ADMIN POSTER TEMPLATES ────────────── */
+function AdminPosterTemplatesView(){
+  const demoA={pseudo:"@créateur_A",tiktok_avatar_url:null,diamonds:15000};
+  const demoB={pseudo:"@créateur_B",tiktok_avatar_url:null,diamonds:12500};
+  const demoMatch={match_date:new Date().toISOString().split("T")[0],match_time:"20:00",is_inter_agency:false};
+  const [selected,setSelected]=useState(null);
+  return(
+    <div className="fup">
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:22,fontWeight:700,color:T.tx,marginBottom:4}}>Templates d'affiches</h1>
+        <p style={{fontSize:13,color:T.sec}}>Aperçu des 6 templates disponibles lors de la génération d'un match</p>
+      </div>
+      <div style={{padding:"10px 14px",borderRadius:10,background:"rgba(147,51,234,0.08)",border:"1px solid rgba(147,51,234,0.2)",fontSize:12,color:"#A78BFA",marginBottom:20}}>
+        💡 Ces templates s'affichent automatiquement quand vous cliquez sur <strong style={{color:"#FFFFFF"}}>"Affiche 🖼"</strong> sur un match. Les créateurs avec une photo de profil verront leur vraie photo sur l'affiche.
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14}}>
+        {POSTER_TEMPLATES.map(tmpl=>(
+          <div key={tmpl.id} onClick={()=>setSelected(selected===tmpl.id?null:tmpl.id)} style={{cursor:"pointer"}}>
+            <PosterCard tmpl={tmpl} cA={demoA} cB={demoB}
+              matchDate={demoMatch.match_date} matchTime={demoMatch.match_time}
+              isInter={false} selected={selected===tmpl.id} onSelect={()=>{}}/>
+            <div style={{marginTop:8,fontSize:11,color:T.sec,textAlign:"center",lineHeight:1.5}}>
+              {tmpl.id==="dark_gold"&&"Fond noir · Accents dorés · Couronne"}
+              {tmpl.id==="purple_magic"&&"Fond violet · Accents violet clair"}
+              {tmpl.id==="black_marble"&&"Marbre noir · Accents blancs · Couronne"}
+              {tmpl.id==="neon_space"&&"Fond spatial · Accents cyan néon"}
+              {tmpl.id==="rose_gold"&&"Fond sombre rosé · Accents pink · Couronne"}
+              {tmpl.id==="emerald"&&"Fond vert sombre · Accents émeraude"}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── APP ROOT ──────────────────────────── */
 export default function App(){
   const auth=useAuth();
@@ -1905,6 +1975,7 @@ export default function App(){
     all_matches:()=><AdminAllMatchesView/>,
     all_schedules:()=><AdminAllSchedulesView/>,
     all_lives:()=><AdminAllLivesView/>,
+    poster_templates:()=><AdminPosterTemplatesView/>,
   };
   const View=views[tab]||views.dash;
 
