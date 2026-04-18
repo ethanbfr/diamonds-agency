@@ -89,7 +89,7 @@ const calcPayout=(ag,c)=>{
 };
 const billingOk=(ag)=>!ag||ag.is_offered||ag.billing_status==="actif";
 
-/** Rôle affiché admin : agences mal enregistrées en "creator" (sans lien creators, ou 1er compte créé avec l’agence) */
+/** Rôle affiché admin : agences mal enregistrées en "creator" (sans lien creators, ou 1er compte créé avec l'agence) */
 const enrichProfilesForAdmin=(profiles,agencies,creatorsRows)=>{
   const agencyIds=new Set((agencies||[]).map(a=>a.id));
   const linkedCreatorProfiles=new Set((creatorsRows||[]).map(c=>c.profile_id).filter(Boolean));
@@ -108,9 +108,11 @@ const enrichProfilesForAdmin=(profiles,agencies,creatorsRows)=>{
   });
   return (profiles||[]).map(p=>{
     const inAg=p.agency_id&&agencyIds.has(p.agency_id);
+    // Agency owners should never be displayed as creators
+    const isAgencyOwner=ownerByAgency.get(p.agency_id)===p.id;
     const noCreatorRow=p.role==="creator"&&inAg&&!linkedCreatorProfiles.has(p.id);
     const firstOnAgency=p.role==="creator"&&inAg&&ownerByAgency.get(p.agency_id)===p.id;
-    const misTaggedAgencyOwner=p.role==="creator"&&inAg&&(noCreatorRow||firstOnAgency);
+    const misTaggedAgencyOwner=(p.role==="creator"&&inAg&&(noCreatorRow||firstOnAgency))||isAgencyOwner;
     const displayRole=misTaggedAgencyOwner?"agency":p.role;
     return {...p,displayRole,misTaggedAgencyOwner};
   });
@@ -729,7 +731,8 @@ function AdminAgencies(){
       if(error) throw error;
       await load();
     }catch(e){
-      window.alert("Mise à jour impossible : "+(e.message||e)+"\n\n(RLS : droits update sur agencies pour admin ?)");
+      const errorMsg="Mise à jour impossible : "+(e.message||e)+"\n\nSolution : Vérifiez les politiques RLS Supabase :\n1. Allez dans Supabase Dashboard → Authentication → Policies\n2. Table 'agencies' : ajoutez une politique qui permet aux admins de faire des UPDATE\n3. OU utilisez le Service Role Key pour contourner RLS";
+      window.alert(errorMsg);
     }finally{
       setBusy(null);
     }
@@ -852,11 +855,11 @@ function AdminAgencies(){
                 )}
                 {!ag.is_offered&&(
                   <button type="button" disabled={!!busy} onClick={()=>updateBilling(ag.id,"is_offered",true)} style={{
-                    fontSize:14,padding:"12px 16px",width:"100%",borderRadius:10,border:`1px solid ${T.payRed}55`,
-                    background:`linear-gradient(180deg,rgba(255,0,51,.22),rgba(255,0,51,.08))`,color:"#FFF",cursor:"pointer",fontFamily:"inherit",fontWeight:800,
-                    boxShadow:`0 0 28px ${T.payRedGlow}`
+                    fontSize:12,padding:"8px 12px",width:"100%",borderRadius:8,border:`1px solid ${T.payRed}55`,
+                    background:`linear-gradient(180deg,rgba(255,0,51,.2),rgba(255,0,51,.08))`,color:"#FFF",cursor:"pointer",fontFamily:"inherit",fontWeight:600,
+                    boxShadow:`0 0 16px ${T.payRedGlow}`
                   }}>
-                    ♥ Offrir l’accès gratuitement — cette agence ne paie pas
+                    ♥ Offrir gratuitement
                   </button>
                 )}
                 {ag.is_offered&&(
@@ -893,11 +896,23 @@ function AdminBilling(){
       if(field==="is_offered"&&val===true) patch={is_offered:true,billing_status:"actif"};
       else if(field==="is_offered"&&val===false) patch={is_offered:false,billing_status:"impayé"};
       else patch={[field]:val};
-      const {error}=await sb.from("agencies").update(patch).eq("id",id).select("id");
-      if(error) throw error;
-      await refresh();
+      const {error,data}=await sb.from("agencies").update(patch).eq("id",id).select("id");
+      if(error) {
+        if (error.code === '42501') {
+          const errorMsg = "Mise à jour impossible : vous n'avez pas les permissions nécessaires pour mettre à jour cette agence.\n\nSolution : Vérifiez les politiques RLS Supabase :\n1. Allez dans Supabase Dashboard → Authentication → Policies\n2. Table 'agencies' : ajoutez une politique qui permet aux admins de faire des UPDATE\n3. OU utilisez le Service Role Key pour contourner RLS";
+          window.alert(errorMsg);
+        } else {
+          throw error;
+        }
+      } else if (!data || data.length === 0) {
+        const errorMsg = "Mise à jour impossible : l'agence n'a pas été mise à jour.\n\nSolution : Vérifiez les politiques RLS Supabase :\n1. Allez dans Supabase Dashboard → Authentication → Policies\n2. Table 'agencies' : ajoutez une politique qui permet aux admins de faire des UPDATE\n3. OU utilisez le Service Role Key pour contourner RLS";
+        window.alert(errorMsg);
+      } else {
+        await refresh();
+      }
     }catch(e){
-      window.alert("Mise à jour impossible : "+(e.message||e)+(e?.hint?` (${e.hint})`:"")+"\n\nVérifie les politiques RLS Supabase : l’admin doit pouvoir modifier la table agencies.");
+      const errorMsg="Mise à jour impossible : "+(e.message||e)+(e?.hint?` (${e.hint})`:"")+"\n\nSolution : Vérifiez les politiques RLS Supabase :\n1. Allez dans Supabase Dashboard → Authentication → Policies\n2. Table 'agencies' : ajoutez une politique qui permet aux admins de faire des UPDATE\n3. OU utilisez le Service Role Key pour contourner RLS";
+      window.alert(errorMsg);
     }finally{
       setBusy(null);
     }
@@ -941,15 +956,15 @@ function AdminBilling(){
               )}
               {!ag.is_offered&&(
                 <button type="button" disabled={!!busy} onClick={()=>update(ag.id,"is_offered",true)} style={{
-                  fontSize:14,padding:"12px 16px",width:"100%",borderRadius:10,border:`1px solid ${T.payRed}55`,background:`linear-gradient(180deg,rgba(255,0,51,.2),rgba(255,0,51,.08))`,color:"#FFF",cursor:"pointer",fontFamily:"inherit",fontWeight:800,
-                  boxShadow:`0 0 24px ${T.payRedGlow}`,textShadow:"0 1px 12px rgba(0,0,0,.5)"
+                  fontSize:10,padding:"4px 8px",width:"100%",borderRadius:8,border:`1px solid ${T.payRed}55`,background:`linear-gradient(180deg,rgba(255,0,51,.2),rgba(255,0,51,.08))`,color:"#FFF",cursor:"pointer",fontFamily:"inherit",fontWeight:600,
+                  boxShadow:`0 0 16px ${T.payRedGlow}`
                 }}>
-                  ♥ Offrir l’accès gratuitement — cette agence ne paie pas
+                  ♥ Offrir
                 </button>
               )}
               {ag.is_offered&&(
-                <button type="button" className="btng" style={{fontSize:13,padding:"10px",width:"100%",justifyContent:"center",color:T.ng,borderColor:`${T.ng}40`}} disabled={!!busy} onClick={()=>update(ag.id,"is_offered",false)}>
-                  Retirer l’offre (repasse en impayé)
+                <button type="button" className="btng" style={{fontSize:11,padding:"6px",width:"100%",justifyContent:"center",color:T.ng,borderColor:`${T.ng}40`}} disabled={!!busy} onClick={()=>update(ag.id,"is_offered",false)}>
+                  Retirer l’offre
                 </button>
               )}
               {!ag.is_offered&&ag.billing_status==="actif"&&(
