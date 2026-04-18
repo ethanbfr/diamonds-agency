@@ -89,12 +89,28 @@ const calcPayout=(ag,c)=>{
 };
 const billingOk=(ag)=>!ag||ag.is_offered||ag.billing_status==="actif";
 
-/** Rôle affiché admin : propriétaires agence parfois enregistrés "creator" sans ligne creators → comptés comme agence */
+/** Rôle affiché admin : agences mal enregistrées en "creator" (sans lien creators, ou 1er compte créé avec l’agence) */
 const enrichProfilesForAdmin=(profiles,agencies,creatorsRows)=>{
   const agencyIds=new Set((agencies||[]).map(a=>a.id));
   const linkedCreatorProfiles=new Set((creatorsRows||[]).map(c=>c.profile_id).filter(Boolean));
+  const ownerByAgency=new Map();
+  (agencies||[]).forEach(a=>{
+    const members=(profiles||[]).filter(p=>p.agency_id===a.id);
+    if(!members.length) return;
+    let first=null,firstT=Infinity;
+    for(const p of members){
+      const t=new Date(p.created_at||0).getTime();
+      if(t<firstT){firstT=t;first=p;}
+    }
+    if(!first) return;
+    const agT=new Date(a.created_at||0).getTime();
+    if(Number.isFinite(agT)&&Math.abs(firstT-agT)<1000*60*120) ownerByAgency.set(a.id,first.id);
+  });
   return (profiles||[]).map(p=>{
-    const misTaggedAgencyOwner=p.role==="creator"&&p.agency_id&&agencyIds.has(p.agency_id)&&!linkedCreatorProfiles.has(p.id);
+    const inAg=p.agency_id&&agencyIds.has(p.agency_id);
+    const noCreatorRow=p.role==="creator"&&inAg&&!linkedCreatorProfiles.has(p.id);
+    const firstOnAgency=p.role==="creator"&&inAg&&ownerByAgency.get(p.agency_id)===p.id;
+    const misTaggedAgencyOwner=p.role==="creator"&&inAg&&(noCreatorRow||firstOnAgency);
     const displayRole=misTaggedAgencyOwner?"agency":p.role;
     return {...p,displayRole,misTaggedAgencyOwner};
   });
@@ -107,6 +123,13 @@ const getProfile=async(uid)=>{
   const {data,error}=await sb.from("profiles").select("*").eq("id",uid).single();
   if(error||!data) return null;
   if(data.agency_id){const {data:ag}=await sb.from("agencies").select("*").eq("id",data.agency_id).single();data.agencies=ag||null;}
+  if(data.role==="creator"&&data.agency_id){
+    const {data:cr}=await sb.from("creators").select("id").eq("profile_id",uid).maybeSingle();
+    if(!cr&&data.agencies?.created_at&&data.created_at){
+      const dt=Math.abs(new Date(data.created_at).getTime()-new Date(data.agencies.created_at).getTime());
+      if(dt<1000*60*120) data.role="agency";
+    }
+  }
   return data;
 };
 const fetchTeam=async(agId,profileId,role)=>{
@@ -411,7 +434,8 @@ function LoginPage(){
           if(upErr){setErr("Erreur rôle agence: "+(rpcErr.message||upErr.message));setLoad(false);return;}
         }
       }
-      await sb.from("invite_codes").update({used:true}).eq("code",cleanCode);
+      const {error:invErr}=await sb.from("invite_codes").update({used:true}).eq("code",cleanCode);
+      if(invErr) await sb.from("invite_codes").update({uses:1}).eq("code",cleanCode);
     } else {
       // For non-agency: upsert profile first then use code
       await sb.from("profiles").upsert({id:userId,email:email},{onConflict:"id"});
@@ -584,7 +608,7 @@ function AdminDash({setTab}){
         <div style={{fontSize:10,fontWeight:700,color:T.acc,textTransform:"uppercase",letterSpacing:".1em",marginBottom:3}}>Super Admin · Belive Academy</div>
         <h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Vue globale</h1>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+      <div className="admin-stat-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
         <SC label="MRR" val={mrr+"€"} sub={`${PRICE}€/agence · hors offerts`} accent={T.acc}/>
         <SC label="ARR estimé" val={mrr*12+"€"} sub="Projection"/>
         <SC label="Agences actives" val={paying.length} sub="Payantes" accent={T.ok}/>
@@ -672,6 +696,7 @@ function AdminAgencies(){
   const [codes,setCodes]=useState({});
   const [genning,setGenning]=useState(null);
   const [copied,setCopied]=useState(null);
+  const [busy,setBusy]=useState(null);
   const BASE="https://agency.beliveacademy.com/join";
   const COLORS={director:T.acc,manager:T.pu,agent:T.cy,creator:T.ok};
 
@@ -694,6 +719,7 @@ function AdminAgencies(){
   };
   const updateBilling=async(id,field,value)=>{
     if(!sb){window.alert("Supabase non configuré");return;}
+    setBusy(`${id}-${field}`);
     try{
       let patch;
       if(field==="is_offered"&&value===true) patch={is_offered:true,billing_status:"actif"};
@@ -704,6 +730,8 @@ function AdminAgencies(){
       await load();
     }catch(e){
       window.alert("Mise à jour impossible : "+(e.message||e)+"\n\n(RLS : droits update sur agencies pour admin ?)");
+    }finally{
+      setBusy(null);
     }
   };
   const cp=(k)=>{setCopied(k);setTimeout(()=>setCopied(null),2000);};
@@ -799,22 +827,48 @@ function AdminAgencies(){
           <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:8}}>Aucune agence</div>
         </div>
       ):(
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {agencies.map(ag=>(
-            <div key={ag.id} className="card" style={{padding:16,display:"flex",alignItems:"center",gap:12,transition:"border-color .2s"}}
-              onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(127,0,255,.3)"} onMouseLeave={e=>e.currentTarget.style.borderColor=T.b}>
-              <div style={{width:44,height:44,borderRadius:13,background:(ag.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:800,fontSize:18,flexShrink:0}}>{ag.name[0]}</div>
-              <div style={{flex:1}}>
-                <div style={{fontWeight:800,fontSize:14,color:T.tx,display:"flex",alignItems:"center",gap:7,marginBottom:3}}>{ag.name}{billingTag(ag.billing_status,ag.is_offered)}</div>
-                <div style={{fontSize:11.5,color:T.sec}}>Slug: {ag.slug} · Crea {ag.pct_creator||55}% · Agt {ag.pct_agent||10}%</div>
+            <div key={ag.id} className="card" style={{padding:16,border:`1px solid ${T.b}`,background:"linear-gradient(165deg,rgba(255,255,255,.035) 0%,rgba(255,255,255,.01) 100%)"}}>
+              <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:12}}>
+                <div style={{width:48,height:48,borderRadius:14,background:(ag.color||T.acc)+"22",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:900,fontSize:18,flexShrink:0,border:`1px solid ${(ag.color||T.acc)}35`}}>{ag.name[0]}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:800,fontSize:15,color:T.tx,marginBottom:6}}>{ag.name}</div>
+                  <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:8,marginBottom:6}}>
+                    {billingTag(ag.billing_status,ag.is_offered)}
+                    <span style={{fontSize:11.5,color:T.sec}}>Slug {ag.slug} · reversement créa {ag.pct_creator||55}%</span>
+                  </div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                    <button type="button" className="btng" style={{fontSize:12,padding:"8px 12px"}} onClick={()=>{setSel(ag);loadCodes(ag.id);}}>Codes invitation</button>
+                    <button type="button" className="btng" style={{fontSize:12,padding:"8px 12px"}} onClick={()=>setViewDash(ag)}>Dashboard agence</button>
+                  </div>
+                </div>
               </div>
-              <div style={{display:"flex",gap:5,flexWrap:"wrap",justifyContent:"flex-end"}}>
-                <button className="btng" style={{fontSize:10.5}} onClick={()=>{setSel(ag);loadCodes(ag.id);}}>Codes</button>
-                <button className="btng" style={{fontSize:10.5}} onClick={()=>setViewDash(ag)}>Dashboard</button>
-                {!ag.is_offered&&ag.billing_status!=="actif"&&<button className="btn" style={{fontSize:10.5,padding:"4px 9px",background:`linear-gradient(135deg,${T.ok},#00E676)`}} onClick={()=>updateBilling(ag.id,"billing_status","actif")}>Activer</button>}
-                {!ag.is_offered&&<button style={{padding:"4px 9px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.cy}30`,background:`${T.cy}10`,color:T.cy,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>updateBilling(ag.id,"is_offered",true)}>Offrir ♥</button>}
-                {ag.is_offered&&<button className="btng" style={{fontSize:10.5,color:T.ng}} onClick={()=>updateBilling(ag.id,"is_offered",false)}>Retirer</button>}
-                {ag.billing_status==="actif"&&!ag.is_offered&&<button style={{padding:"4px 9px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.ng}30`,background:`${T.ng}10`,color:T.ng,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>updateBilling(ag.id,"billing_status","impayé")}>Impayé</button>}
+              <div className="billing-card-actions" style={{display:"flex",flexDirection:"column",gap:10}}>
+                {!ag.is_offered&&ag.billing_status!=="actif"&&(
+                  <button type="button" className="btn" style={{fontSize:14,padding:"12px 16px",width:"100%",background:`linear-gradient(135deg,${T.ok},#00E676)`,fontWeight:700}} disabled={!!busy} onClick={()=>updateBilling(ag.id,"billing_status","actif")}>
+                    ✓ Activer l’abonnement ({PRICE}€/mois)
+                  </button>
+                )}
+                {!ag.is_offered&&(
+                  <button type="button" disabled={!!busy} onClick={()=>updateBilling(ag.id,"is_offered",true)} style={{
+                    fontSize:14,padding:"12px 16px",width:"100%",borderRadius:10,border:`1px solid ${T.payRed}55`,
+                    background:`linear-gradient(180deg,rgba(255,0,51,.22),rgba(255,0,51,.08))`,color:"#FFF",cursor:"pointer",fontFamily:"inherit",fontWeight:800,
+                    boxShadow:`0 0 28px ${T.payRedGlow}`
+                  }}>
+                    ♥ Offrir l’accès gratuitement — cette agence ne paie pas
+                  </button>
+                )}
+                {ag.is_offered&&(
+                  <button type="button" className="btng" style={{fontSize:13,padding:"10px",width:"100%",justifyContent:"center",color:T.ng,borderColor:`${T.ng}40`}} disabled={!!busy} onClick={()=>updateBilling(ag.id,"is_offered",false)}>
+                    Retirer l’offre (repasse en impayé)
+                  </button>
+                )}
+                {!ag.is_offered&&ag.billing_status==="actif"&&(
+                  <button type="button" style={{fontSize:12,padding:"8px",width:"100%",borderRadius:8,border:`1px solid ${T.ng}35`,background:`${T.ng}12`,color:T.ng,cursor:"pointer",fontFamily:"inherit"}} disabled={!!busy} onClick={()=>updateBilling(ag.id,"billing_status","impayé")}>
+                    Marquer comme impayé
+                  </button>
+                )}
               </div>
             </div>
           ))}
