@@ -22,8 +22,7 @@ const executeAdminUpdate = async (table, id, updates) => {
   const { data, error } = await sb
     .from(table)
     .update(updates)
-    .eq('id', id)
-    .select();
+    .eq('id', id);
   
   console.log('Résultat Supabase:', { data, error });
   
