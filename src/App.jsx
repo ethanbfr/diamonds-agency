@@ -28,9 +28,11 @@ const executeAdminUpdate = async (table, id, updates) => {
   console.log('Résultat Supabase:', { data, error });
   
   if (error) {
+    console.error('Erreur Supabase détaillée:', error);
     throw new Error(error.message || "Erreur lors de la mise à jour");
   }
   
+  console.log('Mise à jour réussie:', data);
   return data;
 };
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
@@ -764,16 +766,17 @@ function AdminAgencies(){
         updates = { [field]: value };
       }
       
-      // Execute admin update via RPC
+      console.log('updateBilling appelé avec:', { id, field, value, updates });
+      
+      // Execute admin update
       const result = await executeAdminUpdate('agencies', id, updates);
       
-      if (!result) {
-        throw new Error("Aucune agence mise à jour");
-      }
+      console.log('Resultat de updateBilling:', result);
       
       await load();
     }catch(e){
-      const errorMsg="Mise à jour impossible : "+(e.message||e)+"\n\nSolution : Assurez-vous d'avoir exécuté le script SQL avec admin_update_agency_simple dans Supabase.";
+      console.error('Erreur dans updateBilling:', e);
+      const errorMsg="Mise à jour impossible : "+(e.message||e)+"\n\nSolution : Vérifiez la console pour plus de détails.";
       window.alert(errorMsg);
     }finally{
       setBusy(null);
