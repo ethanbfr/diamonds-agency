@@ -19,6 +19,14 @@ const executeAdminUpdate = async (table, id, updates) => {
   
   console.log('Tentative de mise à jour via REST API...');
   
+  // Ajouter updated_at pour contourner le trigger
+  const updatesWithTimestamp = {
+    ...updates,
+    updated_at: new Date().toISOString()
+  };
+  
+  console.log('Updates avec timestamp:', updatesWithTimestamp);
+  
   const url = `${SB_URL}/rest/v1/${table}?id=eq.${id}`;
   
   const response = await fetch(url, {
@@ -29,7 +37,7 @@ const executeAdminUpdate = async (table, id, updates) => {
       'Authorization': `Bearer ${SB_ANON}`,
       'Prefer': 'return=minimal'
     },
-    body: JSON.stringify(updates)
+    body: JSON.stringify(updatesWithTimestamp)
   });
   
   console.log('Response status:', response.status);
