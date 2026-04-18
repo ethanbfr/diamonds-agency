@@ -3,9 +3,31 @@ import { createClient } from "@supabase/supabase-js";
 
 const SB_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+const SB_SERVICE = import.meta.env.VITE_SUPABASE_SERVICE_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
+const sbAdmin = SB_URL && SB_SERVICE ? createClient(SB_URL, SB_SERVICE) : null;
 
 const T={bg:"#080808",card:"rgba(255,255,255,0.03)",cardH:"rgba(255,255,255,0.05)",b:"rgba(255,255,255,0.06)",acc:"#2563EB",accL:"#3B82F6",glow:"rgba(37,99,235,0.35)",sec:"#6B7280",ok:"#22C55E",ng:"#EF4444",go:"#F59E0B",pu:"#60A5FA",cy:"#22D3EE",tx:"#FFFFFF",txD:"#A1A1AA",stripe:"#2563EB",payRed:"#FF0033",payRedGlow:"rgba(255,0,51,0.45)"};
+
+// Helper function for admin updates using RPC function
+const executeAdminUpdate = async (table, id, updates) => {
+  if (!sb) {
+    throw new Error("Supabase non configuré");
+  }
+  
+  // Use the simpler function signature
+  const { data, error } = await sb.rpc('admin_update_agency_simple', {
+    agency_id: id,
+    is_offered: updates.is_offered,
+    billing_status: updates.billing_status
+  });
+  
+  if (error) {
+    throw new Error(error.message || "Erreur lors de la mise à jour");
+  }
+  
+  return data;
+};
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
 const PRICE=149;
@@ -720,18 +742,33 @@ function AdminAgencies(){
     await loadCodes(ag.id);setGenning(null);
   };
   const updateBilling=async(id,field,value)=>{
-    if(!sb){window.alert("Supabase non configuré");return;}
     setBusy(`${id}-${field}`);
     try{
-      let patch;
-      if(field==="is_offered"&&value===true) patch={is_offered:true,billing_status:"actif"};
-      else if(field==="is_offered"&&value===false) patch={is_offered:false,billing_status:"impayé"};
-      else patch={[field]:value};
-      const {error}=await sb.from("agencies").update(patch).eq("id",id).select("id");
-      if(error) throw error;
+      let updates = {};
+      
+      if(field==="is_offered"&&value===true) {
+        updates = { is_offered: true, billing_status: 'actif' };
+      }
+      else if(field==="is_offered"&&value===false) {
+        updates = { is_offered: false, billing_status: 'impayé' };
+      }
+      else if(field==="billing_status") {
+        updates = { billing_status: value };
+      }
+      else {
+        updates = { [field]: value };
+      }
+      
+      // Execute admin update via RPC
+      const result = await executeAdminUpdate('agencies', id, updates);
+      
+      if (!result) {
+        throw new Error("Aucune agence mise à jour");
+      }
+      
       await load();
     }catch(e){
-      const errorMsg="Mise à jour impossible : "+(e.message||e)+"\n\nSolution : Vérifiez les politiques RLS Supabase :\n1. Allez dans Supabase Dashboard → Authentication → Policies\n2. Table 'agencies' : ajoutez une politique qui permet aux admins de faire des UPDATE\n3. OU utilisez le Service Role Key pour contourner RLS";
+      const errorMsg="Mise à jour impossible : "+(e.message||e)+"\n\nSolution : Assurez-vous d'avoir exécuté le script SQL avec admin_update_agency_simple dans Supabase.";
       window.alert(errorMsg);
     }finally{
       setBusy(null);
@@ -888,30 +925,34 @@ function AdminBilling(){
   useEffect(()=>{fetchAllAgencies().then(setAgencies);},[]);
   const refresh=()=>fetchAllAgencies().then(setAgencies);
   const update=async(id,field,val)=>{
-    if(!sb){window.alert("Supabase non configuré");return;}
     const key=`${id}-${field}-${val}`;
     setBusy(key);
     try{
-      let patch;
-      if(field==="is_offered"&&val===true) patch={is_offered:true,billing_status:"actif"};
-      else if(field==="is_offered"&&val===false) patch={is_offered:false,billing_status:"impayé"};
-      else patch={[field]:val};
-      const {error,data}=await sb.from("agencies").update(patch).eq("id",id).select("id");
-      if(error) {
-        if (error.code === '42501') {
-          const errorMsg = "Mise à jour impossible : vous n'avez pas les permissions nécessaires pour mettre à jour cette agence.\n\nSolution : Vérifiez les politiques RLS Supabase :\n1. Allez dans Supabase Dashboard → Authentication → Policies\n2. Table 'agencies' : ajoutez une politique qui permet aux admins de faire des UPDATE\n3. OU utilisez le Service Role Key pour contourner RLS";
-          window.alert(errorMsg);
-        } else {
-          throw error;
-        }
-      } else if (!data || data.length === 0) {
-        const errorMsg = "Mise à jour impossible : l'agence n'a pas été mise à jour.\n\nSolution : Vérifiez les politiques RLS Supabase :\n1. Allez dans Supabase Dashboard → Authentication → Policies\n2. Table 'agencies' : ajoutez une politique qui permet aux admins de faire des UPDATE\n3. OU utilisez le Service Role Key pour contourner RLS";
-        window.alert(errorMsg);
-      } else {
-        await refresh();
+      let updates = {};
+      
+      if(field==="is_offered"&&val===true) {
+        updates = { is_offered: true, billing_status: 'actif' };
       }
+      else if(field==="is_offered"&&val===false) {
+        updates = { is_offered: false, billing_status: 'impayé' };
+      }
+      else if(field==="billing_status") {
+        updates = { billing_status: val };
+      }
+      else {
+        updates = { [field]: val };
+      }
+      
+      // Execute admin update via RPC
+      const result = await executeAdminUpdate('agencies', id, updates);
+      
+      if (!result) {
+        throw new Error("Aucune agence mise à jour");
+      }
+      
+      await refresh();
     }catch(e){
-      const errorMsg="Mise à jour impossible : "+(e.message||e)+(e?.hint?` (${e.hint})`:"")+"\n\nSolution : Vérifiez les politiques RLS Supabase :\n1. Allez dans Supabase Dashboard → Authentication → Policies\n2. Table 'agencies' : ajoutez une politique qui permet aux admins de faire des UPDATE\n3. OU utilisez le Service Role Key pour contourner RLS";
+      const errorMsg="Mise à jour impossible : "+(e.message||e)+"\n\nSolution : Assurez-vous d'avoir exécuté le script SQL avec admin_update_agency_simple dans Supabase.";
       window.alert(errorMsg);
     }finally{
       setBusy(null);
