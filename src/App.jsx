@@ -9,18 +9,17 @@ const sbAdmin = SB_URL && SB_SERVICE ? createClient(SB_URL, SB_SERVICE) : null;
 
 const T={bg:"#080808",card:"rgba(255,255,255,0.03)",cardH:"rgba(255,255,255,0.05)",b:"rgba(255,255,255,0.06)",acc:"#2563EB",accL:"#3B82F6",glow:"rgba(37,99,235,0.35)",sec:"#6B7280",ok:"#22C55E",ng:"#EF4444",go:"#F59E0B",pu:"#60A5FA",cy:"#22D3EE",tx:"#FFFFFF",txD:"#A1A1AA",stripe:"#2563EB",payRed:"#FF0033",payRedGlow:"rgba(255,0,51,0.45)"};
 
-// Helper function for admin updates using RPC function
+// Helper function for admin updates using regular Supabase client
 const executeAdminUpdate = async (table, id, updates) => {
   if (!sb) {
     throw new Error("Supabase non configuré");
   }
   
-  // Use the simpler function signature
-  const { data, error } = await sb.rpc('admin_update_agency_simple', {
-    agency_id: id,
-    is_offered: updates.is_offered,
-    billing_status: updates.billing_status
-  });
+  const { data, error } = await sb
+    .from(table)
+    .update(updates)
+    .eq('id', id)
+    .select();
   
   if (error) {
     throw new Error(error.message || "Erreur lors de la mise à jour");
