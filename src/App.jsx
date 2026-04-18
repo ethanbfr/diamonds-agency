@@ -9,30 +9,39 @@ const sbAdmin = SB_URL && SB_SERVICE ? createClient(SB_URL, SB_SERVICE) : null;
 
 const T={bg:"#080808",card:"rgba(255,255,255,0.03)",cardH:"rgba(255,255,255,0.05)",b:"rgba(255,255,255,0.06)",acc:"#2563EB",accL:"#3B82F6",glow:"rgba(37,99,235,0.35)",sec:"#6B7280",ok:"#22C55E",ng:"#EF4444",go:"#F59E0B",pu:"#60A5FA",cy:"#22D3EE",tx:"#FFFFFF",txD:"#A1A1AA",stripe:"#2563EB",payRed:"#FF0033",payRedGlow:"rgba(255,0,51,0.45)"};
 
-// Helper function for admin updates using regular Supabase client
+// Helper function for admin updates using direct REST API
 const executeAdminUpdate = async (table, id, updates) => {
   console.log('executeAdminUpdate appelé avec:', { table, id, updates });
   
-  if (!sb) {
+  if (!SB_URL || !SB_ANON) {
     throw new Error("Supabase non configuré");
   }
   
-  console.log('Tentative de mise à jour Supabase...');
+  console.log('Tentative de mise à jour via REST API...');
   
-  const { data, error } = await sb
-    .from(table)
-    .update(updates)
-    .eq('id', id)
-    .select('id, name, billing_status, is_offered');
+  const url = `${SB_URL}/rest/v1/${table}?id=eq.${id}`;
   
-  console.log('Résultat Supabase:', { data, error });
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SB_ANON,
+      'Authorization': `Bearer ${SB_ANON}`,
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify(updates)
+  });
   
-  if (error) {
-    console.error('Erreur Supabase détaillée:', error);
-    throw new Error(error.message || "Erreur lors de la mise à jour");
+  console.log('Response status:', response.status);
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Erreur REST API:', errorText);
+    throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
   }
   
-  console.log('Mise à jour réussie:', data);
+  const data = await response.json();
+  console.log('Mise à jour réussie via REST API:', data);
   return data;
 };
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
