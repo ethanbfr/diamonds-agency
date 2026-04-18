@@ -5,7 +5,7 @@ const SB_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 
-const T={bg:"#080808",card:"rgba(255,255,255,0.03)",cardH:"rgba(255,255,255,0.05)",b:"rgba(255,255,255,0.06)",acc:"#2563EB",accL:"#3B82F6",glow:"rgba(37,99,235,0.35)",sec:"#6B7280",ok:"#22C55E",ng:"#EF4444",go:"#F59E0B",pu:"#60A5FA",tx:"#FFFFFF",txD:"#A1A1AA",stripe:"#2563EB"};
+const T={bg:"#080808",card:"rgba(255,255,255,0.03)",cardH:"rgba(255,255,255,0.05)",b:"rgba(255,255,255,0.06)",acc:"#2563EB",accL:"#3B82F6",glow:"rgba(37,99,235,0.35)",sec:"#6B7280",ok:"#22C55E",ng:"#EF4444",go:"#F59E0B",pu:"#60A5FA",cy:"#22D3EE",tx:"#FFFFFF",txD:"#A1A1AA",stripe:"#2563EB",payRed:"#FF0033",payRedGlow:"rgba(255,0,51,0.45)"};
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
 const PRICE=149;
@@ -56,6 +56,24 @@ select.inp option{background:#111;color:#fff}
 /* SC STAT CARDS */
 .sc{background:#151515;border-radius:10px;border:1px solid #1e1e1e;padding:16px 18px}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:4px}
+/* Mobile shell */
+.app-scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:25;backdrop-filter:blur(2px)}
+.app-sidebar-m{transition:transform .22s ease}
+@media (max-width:899px){
+  .app-sidebar-m{transform:translateX(-100%)}
+  .app-sidebar-m.open{transform:translateX(0);box-shadow:8px 0 40px rgba(0,0,0,.5)}
+  .app-mob-bar{display:flex}
+  .app-main-pad{padding:16px 14px calc(20px + env(safe-area-inset-bottom,0px))!important;margin-left:0!important}
+  .admin-stat-grid{grid-template-columns:repeat(2,1fr)!important}
+  .billing-card-actions{flex-direction:column!important;align-items:stretch!important}
+  .billing-card-actions button{width:100%!important;justify-content:center!important}
+}
+@media (min-width:900px){
+  .app-mob-bar{display:none}
+  .members-layout{flex-direction:row!important;align-items:flex-start!important}
+}
+.pay-cta-saas{background:linear-gradient(180deg,#FF1A44 0%,#FF0033 100%)!important;color:#fff!important;border:none!important;font-weight:800!important;letter-spacing:.02em;box-shadow:0 10px 40px rgba(255,0,51,.35),0 0 0 1px rgba(255,255,255,.08) inset}
+.pay-cta-saas:hover{filter:brightness(1.06);box-shadow:0 12px 44px rgba(255,0,51,.45),0 0 0 1px rgba(255,255,255,.1) inset}
 `;
 
 
@@ -70,6 +88,18 @@ const calcPayout=(ag,c)=>{
   return {eligible:true,creator:Math.round(b*(ag?.pct_creator||55)/100),agent:Math.round(b*(ag?.pct_agent||10)/100),manager:Math.round(b*(ag?.pct_manager||5)/100),director:Math.round(b*(ag?.pct_director||3)/100)};
 };
 const billingOk=(ag)=>!ag||ag.is_offered||ag.billing_status==="actif";
+
+/** Rôle affiché admin : propriétaires agence parfois enregistrés "creator" sans ligne creators → comptés comme agence */
+const enrichProfilesForAdmin=(profiles,agencies,creatorsRows)=>{
+  const agencyIds=new Set((agencies||[]).map(a=>a.id));
+  const linkedCreatorProfiles=new Set((creatorsRows||[]).map(c=>c.profile_id).filter(Boolean));
+  return (profiles||[]).map(p=>{
+    const misTaggedAgencyOwner=p.role==="creator"&&p.agency_id&&agencyIds.has(p.agency_id)&&!linkedCreatorProfiles.has(p.id);
+    const displayRole=misTaggedAgencyOwner?"agency":p.role;
+    return {...p,displayRole,misTaggedAgencyOwner};
+  });
+};
+const roleLabelFr=(r)=>({admin:"ADMIN",agency:"AGENCE",director:"DIRECTEUR",manager:"MANAGER",agent:"AGENT",creator:"CRÉATEUR"}[r]||String(r||"?").toUpperCase());
 
 /* ─── SUPABASE ──────────────────────────── */
 const getProfile=async(uid)=>{
@@ -374,12 +404,14 @@ function LoginPage(){
         can_agent_delete_creator:false,can_manager_delete_agent:false,can_director_delete_all:true
       }).select().single();
       if(agErr){setErr("Erreur création agence: "+agErr.message);setLoad(false);return;}
-      // Upsert profile (trigger may not have run yet)
       if(ag?.id){
-        // Use server-side function to force role=agency (bypasses trigger race condition)
-        await sb.rpc("set_agency_role",{p_user_id:userId,p_agency_id:ag.id});
+        const {error:rpcErr}=await sb.rpc("set_agency_role",{p_user_id:userId,p_agency_id:ag.id});
+        if(rpcErr){
+          const {error:upErr}=await sb.from("profiles").update({role:"agency",agency_id:ag.id}).eq("id",userId);
+          if(upErr){setErr("Erreur rôle agence: "+(rpcErr.message||upErr.message));setLoad(false);return;}
+        }
       }
-      await sb.from("invite_codes").update({uses:1}).eq("code",cleanCode);
+      await sb.from("invite_codes").update({used:true}).eq("code",cleanCode);
     } else {
       // For non-agency: upsert profile first then use code
       await sb.from("profiles").upsert({id:userId,email:email},{onConflict:"id"});
@@ -390,7 +422,8 @@ function LoginPage(){
   };
 
   const goStripe=()=>{
-    const url=`${STRIPE_LINK}?prefilled_email=${encodeURIComponent(email)}&client_reference_id=${encodeURIComponent(pendingCode)}`;
+    const ref=(code||"").trim().toUpperCase();
+    const url=`${STRIPE_LINK}?prefilled_email=${encodeURIComponent(email)}${ref?`&client_reference_id=${encodeURIComponent(ref)}`:""}`;
     window.location.href=url;
   };
 
@@ -413,50 +446,50 @@ function LoginPage(){
   );
 
   if(step==="payment") return(
-    <div style={{minHeight:"100vh",background:"#0F0F0F",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{width:"100%",maxWidth:480}}>
-        {/* Header */}
-        <div style={{textAlign:"center",marginBottom:32}}>
-          <div style={{display:"flex",justifyContent:"center",marginBottom:16}}><Brand big={true}/></div>
+    <div style={{minHeight:"100vh",background:"#000",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px 18px calc(28px + env(safe-area-inset-bottom, 12px))",boxSizing:"border-box"}}>
+      <div style={{position:"fixed",inset:0,background:"radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255,0,51,.12), transparent 55%)",pointerEvents:"none"}}/>
+      <div style={{width:"100%",maxWidth:440,position:"relative",zIndex:1}}>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><Brand big={true}/></div>
+          <p style={{fontSize:16,fontWeight:700,color:"#fff",letterSpacing:"-.02em"}}>Active ton espace agence</p>
+          <p style={{fontSize:13,color:"#888",marginTop:6}}>Un paiement sécurisé · Accès immédiat après validation</p>
         </div>
-        {/* Price card */}
-        <div style={{background:"#151515",borderRadius:16,border:"1px solid #222",padding:28,marginBottom:16}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:20}}>
-            <span style={{background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:600,color:"#2563EB",letterSpacing:".04em"}}>✦ ABONNEMENT MENSUEL</span>
+        <div style={{background:"#0A0A0A",borderRadius:20,border:"1px solid rgba(255,255,255,.08)",padding:"26px 22px",marginBottom:14,boxShadow:"0 0 0 1px rgba(255,0,51,.06), 0 24px 80px rgba(0,0,0,.55)"}}>
+          <div style={{marginBottom:18}}>
+            <span style={{background:`linear-gradient(90deg,${T.payRed},#FF4466)`,borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:800,color:"#fff",letterSpacing:".12em"}}>ABONNEMENT MENSUEL</span>
           </div>
-          <div style={{marginBottom:20}}>
-            <span style={{fontSize:64,fontWeight:800,color:"#fff",letterSpacing:"-.04em"}}>{PRICE}</span>
-            <span style={{fontSize:24,fontWeight:400,color:"#555",marginLeft:4}}>€<span style={{fontSize:14}}>/mois</span></span>
+          <div style={{marginBottom:16}}>
+            <span style={{fontSize:56,fontWeight:900,color:"#fff",letterSpacing:"-.04em"}}>{PRICE}</span>
+            <span style={{fontSize:22,color:"#666",fontWeight:500,marginLeft:4}}>€<span style={{fontSize:13}}>/mois</span></span>
           </div>
-          <p style={{fontSize:14,color:"#555",marginBottom:24}}>Accès complet · Sans engagement · Résiliable à tout moment</p>
+          <p style={{fontSize:13,color:"#777",marginBottom:22,lineHeight:1.55}}>Sans engagement · Résiliable · Paiement Stripe (comme SaaS House)</p>
           {[
             "Gestion illimitée de créateurs",
-            "Génération de matchs TikTok Live",
-            "Affiches de match personnalisées",
+            "Matchs TikTok Live & affiches",
             "Import Backstage automatisé",
-            "Calcul des reversements diamants",
+            "Coach IA & reversements diamants",
             "Support prioritaire Diamond's"
           ].map((f,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-              <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(37,99,235,.12)",border:"1px solid rgba(37,99,235,.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <div style={{width:6,height:6,borderRadius:"50%",background:"#2563EB"}}/>
+              <div style={{width:22,height:22,borderRadius:"50%",background:`${T.payRed}18`,border:`1px solid ${T.payRed}50`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <div style={{width:7,height:7,borderRadius:"50%",background:T.payRed}}/>
               </div>
               <span style={{fontSize:14,color:"#ccc"}}>{f}</span>
             </div>
           ))}
-          <div style={{marginTop:24}}>
-            <label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".08em"}}>Email de paiement</label>
-            <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="vous@email.com" style={{marginBottom:12}}/>
-            <button className="btn" style={{width:"100%",fontSize:15,padding:"14px",marginBottom:12}} onClick={goStripe}>
-              💳 Payer {PRICE}€/mois
+          <div style={{marginTop:22}}>
+            <label style={{fontSize:11,fontWeight:600,color:"#666",display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".08em"}}>Email de paiement</label>
+            <input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="vous@email.com" style={{marginBottom:14,background:"#111",borderColor:"#2a2a2a"}}/>
+            <button type="button" className="btn pay-cta-saas" style={{width:"100%",fontSize:16,padding:"16px",borderRadius:12}} onClick={goStripe}>
+              🔒 Payer {PRICE}€/mois
             </button>
-            <div style={{textAlign:"center",fontSize:12,color:"#333",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-              🔒 SÉCURISÉ PAR STRIPE · CHIFFREMENT 256-BIT
+            <div style={{textAlign:"center",fontSize:11,color:"#444",marginTop:14,letterSpacing:".04em"}}>
+              SÉCURISÉ PAR STRIPE · CHIFFREMENT 256-BIT
             </div>
           </div>
         </div>
-        <button className="btng" onClick={()=>setStep("auth")} style={{fontSize:12}}>← Retour</button>
-        <p style={{fontSize:12,color:"#333",marginTop:8}}>Après paiement, revenez ici pour finaliser votre inscription avec le code <strong style={{color:"#555",fontFamily:"monospace"}}>{pendingCode}</strong></p>
+        <button type="button" className="btng" onClick={()=>setStep("auth")} style={{fontSize:12}}>← Retour</button>
+        {code?.trim()&&<p style={{fontSize:12,color:"#555",marginTop:10,lineHeight:1.5}}>Après paiement, finalise avec le code <strong style={{color:"#888",fontFamily:"monospace"}}>{code.trim().toUpperCase()}</strong></p>}
       </div>
     </div>
   );
@@ -660,15 +693,18 @@ function AdminAgencies(){
     await loadCodes(ag.id);setGenning(null);
   };
   const updateBilling=async(id,field,value)=>{
-    if(!sb) return;
-    if(field==="is_offered"&&value===true){
-      await sb.from("agencies").update({is_offered:true,billing_status:"actif"}).eq("id",id);
-    } else if(field==="is_offered"&&value===false){
-      await sb.from("agencies").update({is_offered:false,billing_status:"impayé"}).eq("id",id);
-    } else {
-      await sb.from("agencies").update({[field]:value}).eq("id",id);
+    if(!sb){window.alert("Supabase non configuré");return;}
+    try{
+      let patch;
+      if(field==="is_offered"&&value===true) patch={is_offered:true,billing_status:"actif"};
+      else if(field==="is_offered"&&value===false) patch={is_offered:false,billing_status:"impayé"};
+      else patch={[field]:value};
+      const {error}=await sb.from("agencies").update(patch).eq("id",id).select("id");
+      if(error) throw error;
+      await load();
+    }catch(e){
+      window.alert("Mise à jour impossible : "+(e.message||e)+"\n\n(RLS : droits update sur agencies pour admin ?)");
     }
-    load();
   };
   const cp=(k)=>{setCopied(k);setTimeout(()=>setCopied(null),2000);};
 
@@ -791,25 +827,34 @@ function AdminAgencies(){
 /* ─── ADMIN BILLING ─────────────────────── */
 function AdminBilling(){
   const [agencies,setAgencies]=useState([]);
+  const [busy,setBusy]=useState(null);
   useEffect(()=>{fetchAllAgencies().then(setAgencies);},[]);
+  const refresh=()=>fetchAllAgencies().then(setAgencies);
   const update=async(id,field,val)=>{
-  if(!sb) return;
-  if(field==="is_offered"&&val===true){
-    await sb.from("agencies").update({is_offered:true,billing_status:"actif"}).eq("id",id);
-  } else if(field==="is_offered"&&val===false){
-    await sb.from("agencies").update({is_offered:false,billing_status:"impayé"}).eq("id",id);
-  } else {
-    await sb.from("agencies").update({[field]:val}).eq("id",id);
-  }
-  fetchAllAgencies().then(setAgencies);
-};
+    if(!sb){window.alert("Supabase non configuré");return;}
+    const key=`${id}-${field}-${val}`;
+    setBusy(key);
+    try{
+      let patch;
+      if(field==="is_offered"&&val===true) patch={is_offered:true,billing_status:"actif"};
+      else if(field==="is_offered"&&val===false) patch={is_offered:false,billing_status:"impayé"};
+      else patch={[field]:val};
+      const {error}=await sb.from("agencies").update(patch).eq("id",id).select("id");
+      if(error) throw error;
+      await refresh();
+    }catch(e){
+      window.alert("Mise à jour impossible : "+(e.message||e)+(e?.hint?` (${e.hint})`:"")+"\n\nVérifie les politiques RLS Supabase : l’admin doit pouvoir modifier la table agencies.");
+    }finally{
+      setBusy(null);
+    }
+  };
   const paying=agencies.filter(a=>a.billing_status==="actif"&&!a.is_offered);
   const mrr=paying.length*PRICE;
   const offertCount=agencies.filter(a=>a.is_offered).length;
   return(
     <div className="fup">
       <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Facturation</h1>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+      <div className="admin-stat-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
         <SC label="MRR" val={mrr+"€"} sub="Hors offerts" accent={T.stripe}/>
         <SC label="ARR estimé" val={mrr*12+"€"} sub="Projection"/>
         <SC label="Impayés" val={agencies.filter(a=>a.billing_status==="impayé"&&!a.is_offered).length} accent={T.ng}/>
@@ -817,24 +862,47 @@ function AdminBilling(){
       </div>
       <div style={{padding:"12px 16px",borderRadius:10,background:"rgba(37,99,235,.06)",border:"1px solid rgba(37,99,235,.15)",fontSize:13,color:T.tx,marginBottom:14,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
         <span>Abonnement <strong style={{color:T.acc}}>{PRICE}€/mois</strong> par agence · Paiement via Stripe</span>
-        <a href={STRIPE_LINK} target="_blank" rel="noopener noreferrer">
-          <button className="btn" style={{fontSize:12,padding:"6px 14px"}}>🔗 Lien Stripe</button>
-        </a>
+        <button type="button" className="btn pay-cta-saas" style={{fontSize:12,padding:"8px 16px"}} onClick={()=>{window.location.href=STRIPE_LINK;}}>Ouvrir le paiement Stripe →</button>
       </div>
-      <div className="card" style={{overflow:"hidden"}}>
-        <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Toutes les agences</div>
-        {agencies.length===0&&<div style={{padding:"28px 20px",textAlign:"center",color:T.sec}}>Aucune agence</div>}
+      <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Toutes les agences</div>
+      {agencies.length===0&&<div style={{padding:"28px 20px",textAlign:"center",color:T.sec,border:`1px dashed ${T.b}`,borderRadius:12}}>Aucune agence</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
         {agencies.map(ag=>(
-          <div key={ag.id} className="cr" style={{gridTemplateColumns:"38px 1fr 90px 80px 200px"}}>
-            <div style={{width:32,height:32,borderRadius:9,background:(ag.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:800,fontSize:13}}>{ag.name[0]}</div>
-            <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.name}</div>
-            {billingTag(ag.billing_status,ag.is_offered)}
-            <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{ag.is_offered?"Offert ♥":ag.billing_status==="actif"?`${PRICE}€`:"0€"}</div>
-            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-              {!ag.is_offered&&ag.billing_status!=="actif"&&<button className="btn" style={{fontSize:10.5,padding:"3px 8px",background:`linear-gradient(135deg,${T.ok},#00E676)`}} onClick={()=>update(ag.id,"billing_status","actif")}>Activer</button>}
-              {!ag.is_offered&&ag.billing_status==="actif"&&<button style={{padding:"3px 8px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.ng}30`,background:`${T.ng}10`,color:T.ng,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>update(ag.id,"billing_status","impayé")}>Impayé</button>}
-              {!ag.is_offered&&<button style={{padding:"3px 8px",borderRadius:7,fontSize:10.5,border:`1px solid ${T.cy}30`,background:`${T.cy}10`,color:T.cy,cursor:"pointer",fontFamily:"Inter,sans-serif"}} onClick={()=>update(ag.id,"is_offered",true)}>Offrir ♥</button>}
-              {ag.is_offered&&<button className="btng" style={{fontSize:10.5}} onClick={()=>update(ag.id,"is_offered",false)}>Retirer</button>}
+          <div key={ag.id} className="card" style={{padding:16,border:`1px solid ${T.b}`,background:"linear-gradient(165deg,rgba(255,255,255,.04) 0%,rgba(255,255,255,.01) 100%)"}}>
+            <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:14}}>
+              <div style={{width:44,height:44,borderRadius:12,background:(ag.color||T.acc)+"22",display:"flex",alignItems:"center",justifyContent:"center",color:ag.color||T.acc,fontWeight:900,fontSize:17,flexShrink:0,border:`1px solid ${(ag.color||T.acc)}35`}}>{ag.name[0]}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:800,fontSize:15,color:T.tx,marginBottom:6}}>{ag.name}</div>
+                <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:8}}>
+                  {billingTag(ag.billing_status,ag.is_offered)}
+                  <span style={{fontSize:12,color:T.sec}}>{ag.is_offered?"Accès offert":ag.billing_status==="actif"?`${PRICE}€ / mois`:"0€ facturé"}</span>
+                </div>
+              </div>
+            </div>
+            <div className="billing-card-actions" style={{display:"flex",flexDirection:"column",gap:10}}>
+              {!ag.is_offered&&ag.billing_status!=="actif"&&(
+                <button type="button" className="btn" style={{fontSize:14,padding:"12px 16px",width:"100%",background:`linear-gradient(135deg,${T.ok},#00E676)`,fontWeight:700}} disabled={!!busy} onClick={()=>update(ag.id,"billing_status","actif")}>
+                  ✓ Activer l’abonnement ({PRICE}€/mois)
+                </button>
+              )}
+              {!ag.is_offered&&(
+                <button type="button" disabled={!!busy} onClick={()=>update(ag.id,"is_offered",true)} style={{
+                  fontSize:14,padding:"12px 16px",width:"100%",borderRadius:10,border:`1px solid ${T.payRed}55`,background:`linear-gradient(180deg,rgba(255,0,51,.2),rgba(255,0,51,.08))`,color:"#FFF",cursor:"pointer",fontFamily:"inherit",fontWeight:800,
+                  boxShadow:`0 0 24px ${T.payRedGlow}`,textShadow:"0 1px 12px rgba(0,0,0,.5)"
+                }}>
+                  ♥ Offrir l’accès gratuitement — cette agence ne paie pas
+                </button>
+              )}
+              {ag.is_offered&&(
+                <button type="button" className="btng" style={{fontSize:13,padding:"10px",width:"100%",justifyContent:"center",color:T.ng,borderColor:`${T.ng}40`}} disabled={!!busy} onClick={()=>update(ag.id,"is_offered",false)}>
+                  Retirer l’offre (repasse en impayé)
+                </button>
+              )}
+              {!ag.is_offered&&ag.billing_status==="actif"&&(
+                <button type="button" style={{fontSize:12,padding:"8px",width:"100%",borderRadius:8,border:`1px solid ${T.ng}35`,background:`${T.ng}12`,color:T.ng,cursor:"pointer",fontFamily:"inherit"}} disabled={!!busy} onClick={()=>update(ag.id,"billing_status","impayé")}>
+                  Marquer comme impayé
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -1946,24 +2014,28 @@ function AdminAllUsersView(){
   const [loading,setLoading]=useState(true);
   const [search,setSearch]=useState("");
   const [filter,setFilter]=useState("all");
-  useEffect(()=>{fetchAllProfiles().then(d=>{setProfiles(d);setLoading(false);});},[]);
+  useEffect(()=>{
+    Promise.all([fetchAllProfiles(),fetchAllAgencies(),fetchAllCreators()]).then(([p,a,c])=>{
+      setProfiles(enrichProfilesForAdmin(p,a,c));setLoading(false);
+    });
+  },[]);
   const filtered=profiles.filter(p=>{
-    const s=!search||p.email?.toLowerCase().includes(search.toLowerCase())||p.tiktok_handle?.toLowerCase().includes(search.toLowerCase())||p.role?.toLowerCase().includes(search.toLowerCase());
-    const f=filter==="all"||p.role===filter;
+    const s=!search||p.email?.toLowerCase().includes(search.toLowerCase())||p.tiktok_handle?.toLowerCase().includes(search.toLowerCase())||p.role?.toLowerCase().includes(search.toLowerCase())||p.displayRole?.toLowerCase().includes(search.toLowerCase());
+    const f=filter==="all"||p.displayRole===filter;
     return s&&f;
   });
-  const roleC={admin:T.acc,agency:T.acc,director:"#818CF8",manager:"#34D399",agent:"#60A5FA",creator:"#F472B6"};
+  const roleC={admin:T.acc,agency:"#38BDF8",director:"#818CF8",manager:"#34D399",agent:"#60A5FA",creator:"#F472B6"};
   return(
     <div className="fup">
       <div style={{marginBottom:20}}>
         <h1 style={{fontSize:22,fontWeight:700,color:T.tx,marginBottom:4}}>Utilisateurs</h1>
         <p style={{fontSize:13,color:T.sec}}>Tous les inscrits sur Diamond's</p>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+      <div className="admin-stat-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
         <SC label="Total" val={profiles.length} accent={T.acc}/>
-        <SC label="Agences" val={profiles.filter(p=>p.role==="agency").length}/>
-        <SC label="Staff" val={profiles.filter(p=>["director","manager","agent"].includes(p.role)).length}/>
-        <SC label="Créateurs" val={profiles.filter(p=>p.role==="creator").length}/>
+        <SC label="Agences" val={profiles.filter(p=>p.displayRole==="agency").length}/>
+        <SC label="Staff" val={profiles.filter(p=>["director","manager","agent"].includes(p.displayRole)).length}/>
+        <SC label="Créateurs" val={profiles.filter(p=>p.displayRole==="creator").length}/>
       </div>
       <div style={{display:"flex",gap:10,marginBottom:14}}>
         <input className="inp" placeholder="Rechercher…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
@@ -1984,7 +2056,7 @@ function AdminAllUsersView(){
             <div><div style={{fontWeight:500,fontSize:12.5,color:T.tx}}>{p.email}</div>
               {p.tiktok_handle&&<div style={{fontSize:11,color:T.sec}}>@{p.tiktok_handle}</div>}</div>
             <div style={{fontSize:11,color:T.sec}}>{new Date(p.created_at).toLocaleDateString("fr-FR")}</div>
-            <span className="tag" style={{background:`${roleC[p.role]||T.sec}15`,color:roleC[p.role]||T.sec}}>{p.role}</span>
+            <span className="tag" style={{background:`${roleC[p.displayRole]||T.sec}15`,color:roleC[p.displayRole]||T.sec}}>{roleLabelFr(p.displayRole)}</span>
             <div style={{fontSize:11,color:p.tiktok_handle?T.ok:T.ng}}>{p.tiktok_handle?"✓ TikTok":"— TikTok"}</div>
           </div>
         ))}
@@ -2381,7 +2453,6 @@ Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un co
     }
     setLoading(false);
   };
-;
 
   const suggestions=[
     "Comment augmenter mes diamants ?",
@@ -2552,19 +2623,12 @@ function AdminMembersView(){
 
   useEffect(()=>{
     const load=async()=>{
-      const [profiles,agencies]=await Promise.all([
+      const [profiles,agencies,creators]=await Promise.all([
         fetchAllProfiles(),
-        fetchAllAgencies()
+        fetchAllAgencies(),
+        fetchAllCreators()
       ]);
-      // Fix roles: if profile has agency_id but shows creator -> fix display
-      const fixed=profiles.map(p=>{
-        if(p.agency_id&&p.role==="creator"){
-          const ag=agencies.find(a=>a.id===p.agency_id);
-          if(ag) return {...p,role:"agency",_agencyName:ag.name};
-        }
-        return p;
-      });
-      setUsers(fixed);
+      setUsers(enrichProfilesForAdmin(profiles,agencies,creators));
       setLoading(false);
     };
     load();
@@ -2575,7 +2639,9 @@ function AdminMembersView(){
     const s=search.toLowerCase();
     return (u.email||"").toLowerCase().includes(s)||
            (u.tiktok_handle||"").toLowerCase().includes(s)||
-           (u.role||"").toLowerCase().includes(s);
+           (u.role||"").toLowerCase().includes(s)||
+           (u.displayRole||"").toLowerCase().includes(s)||
+           roleLabelFr(u.displayRole).toLowerCase().includes(s);
   });
 
   const roleColor={admin:"#2563EB",agency:"#3B82F6",director:"#818CF8",manager:"#34D399",agent:"#60A5FA",creator:"#F472B6"};
@@ -2625,11 +2691,11 @@ function AdminMembersView(){
       </div>
 
       {/* Stats */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+      <div className="admin-stat-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
         <SC label="Total membres" val={users.length} accent="#2563EB"/>
-        <SC label="Agences" val={users.filter(u=>u.role==="agency").length}/>
-        <SC label="Staff" val={users.filter(u=>["director","manager","agent"].includes(u.role)).length}/>
-        <SC label="Créateurs" val={users.filter(u=>u.role==="creator").length}/>
+        <SC label="Agences" val={users.filter(u=>u.displayRole==="agency").length}/>
+        <SC label="Staff" val={users.filter(u=>["director","manager","agent"].includes(u.displayRole)).length}/>
+        <SC label="Créateurs" val={users.filter(u=>u.displayRole==="creator").length}/>
       </div>
 
       {/* Search */}
@@ -2638,10 +2704,10 @@ function AdminMembersView(){
         {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:16}}>✕</button>}
       </div>
 
-      <div style={{display:"flex",gap:16,alignItems:"flex-start"}}>
+      <div style={{display:"flex",flexDirection:"column",gap:16,alignItems:"stretch"}} className="members-layout">
 
         {/* Users list */}
-        <div style={{flex:1,minWidth:0}}>
+        <div style={{flex:1,minWidth:0,width:"100%"}}>
           {loading?<div style={{textAlign:"center",padding:30,color:"#555"}}><Spin/></div>:
           <div className="card" style={{overflow:"hidden"}}>
             <div style={{padding:"10px 16px",borderBottom:"1px solid #1e1e1e",fontSize:11,fontWeight:600,color:"#555",textTransform:"uppercase",letterSpacing:".06em"}}>
@@ -2653,14 +2719,14 @@ function AdminMembersView(){
                 style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",borderBottom:"1px solid #1a1a1a",cursor:"pointer",background:selected?.id===u.id?"rgba(37,99,235,0.08)":"transparent",transition:"background .1s"}}
                 onMouseEnter={e=>e.currentTarget.style.background=selected?.id===u.id?"rgba(37,99,235,0.08)":"#191919"}
                 onMouseLeave={e=>e.currentTarget.style.background=selected?.id===u.id?"rgba(37,99,235,0.08)":"transparent"}>
-                <div style={{width:36,height:36,borderRadius:10,background:`${roleColor[u.role]||"#555"}18`,border:`1px solid ${roleColor[u.role]||"#555"}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:roleColor[u.role]||"#555",fontWeight:700,flexShrink:0}}>
+                <div style={{width:36,height:36,borderRadius:10,background:`${roleColor[u.displayRole]||"#555"}18`,border:`1px solid ${roleColor[u.displayRole]||"#555"}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:roleColor[u.displayRole]||"#555",fontWeight:700,flexShrink:0}}>
                   {(u.tiktok_handle||u.email||"?").replace("@","")[0]?.toUpperCase()}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:500,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.email}</div>
                   <div style={{fontSize:11,color:"#555",marginTop:1}}>{u.tiktok_handle||"Pas de @ TikTok"}</div>
                 </div>
-                <span style={{fontSize:10,fontWeight:600,color:roleColor[u.role]||"#555",background:`${roleColor[u.role]||"#555"}15`,padding:"2px 8px",borderRadius:4,textTransform:"uppercase",letterSpacing:".04em",flexShrink:0}}>{u.role}</span>
+                <span style={{fontSize:10,fontWeight:600,color:roleColor[u.displayRole]||"#555",background:`${roleColor[u.displayRole]||"#555"}15`,padding:"2px 8px",borderRadius:4,textTransform:"uppercase",letterSpacing:".04em",flexShrink:0}}>{roleLabelFr(u.displayRole)}</span>
               </div>
             ))}
           </div>}
@@ -2668,7 +2734,7 @@ function AdminMembersView(){
 
         {/* Password reset panel */}
         {selected&&(
-          <div style={{width:280,flexShrink:0}}>
+          <div style={{width:"100%",maxWidth:380,flexShrink:0}}>
             <div className="card" style={{padding:20}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
                 <div style={{fontSize:13,fontWeight:600,color:"#fff"}}>Modifier le mot de passe</div>
@@ -2678,7 +2744,7 @@ function AdminMembersView(){
               {/* User info */}
               <div style={{background:"#111",borderRadius:8,padding:"10px 12px",marginBottom:16}}>
                 <div style={{fontSize:12,fontWeight:600,color:"#fff",marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selected.email}</div>
-                <div style={{fontSize:11,color:"#555"}}>{selected.tiktok_handle||"Pas de @ TikTok"} · <span style={{color:roleColor[selected.role]||"#555"}}>{selected.role}</span></div>
+                <div style={{fontSize:11,color:"#555"}}>{selected.tiktok_handle||"Pas de @ TikTok"} · <span style={{color:roleColor[selected.displayRole]||"#555"}}>{roleLabelFr(selected.displayRole)}</span></div>
               </div>
 
               {/* New password */}
@@ -2717,12 +2783,22 @@ export default function App(){
   const [tab,setTab]=useState("dash");
   const [team,setTeam]=useState({creators:[],agents:[],managers:[],directors:[]});
   const [loadT,setLT]=useState(false);
+  const [navOpen,setNavOpen]=useState(false);
+  const [isNarrow,setIsNarrow]=useState(typeof window!=="undefined"?window.matchMedia("(max-width:899px)").matches:false);
   const role=auth.profile?.role;
   const agencyId=auth.profile?.agency_id;
   const ag=auth.profile?.agencies;
 
   useEffect(()=>{if(agencyId){setLT(true);fetchTeam(agencyId,auth.profile?.id,role).then(d=>{setTeam(d);setLT(false);})};},[agencyId]);
   useEffect(()=>{setTab("dash");},[role]);
+  useEffect(()=>{
+    const mq=window.matchMedia("(max-width:899px)");
+    const fn=()=>{setIsNarrow(mq.matches);if(!mq.matches)setNavOpen(false);};
+    mq.addEventListener("change",fn);
+    fn();
+    return ()=>mq.removeEventListener("change",fn);
+  },[]);
+  useEffect(()=>{setNavOpen(false);},[tab]);
 
   const reload=()=>{auth.reload();if(agencyId) fetchTeam(agencyId,auth.profile?.id,role).then(setTeam);};
 
@@ -2800,88 +2876,64 @@ export default function App(){
   };
   const View=views[tab]||views.dash;
 
-  // Payment wall for agency in trial
+  // Payment wall for agency in trial (même esprit conversion que SaaS House : fond noir, CTA rouge, même onglet)
   if(needsPayment) return(
     <>
       <style>{css}</style>
-      <div style={{minHeight:"100vh",background:"#0F0F0F",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,fontFamily:"Inter,sans-serif"}}>
-        {/* Ambient glow */}
-        <div style={{position:"fixed",top:"-10%",left:"50%",transform:"translateX(-50%)",width:500,height:500,background:"radial-gradient(circle,rgba(37,99,235,0.1) 0%,transparent 65%)",pointerEvents:"none"}}/>
-
+      <div style={{minHeight:"100vh",background:"#000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px 18px calc(28px + env(safe-area-inset-bottom, 12px))",fontFamily:"Inter,sans-serif",boxSizing:"border-box"}}>
+        <div style={{position:"fixed",inset:0,background:"radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255,0,51,.12), transparent 55%)",pointerEvents:"none"}}/>
         <div style={{width:"100%",maxWidth:440,position:"relative",zIndex:1}}>
-          {/* Brand */}
-          <div style={{textAlign:"center",marginBottom:32}}>
-            <div style={{display:"flex",justifyContent:"center",marginBottom:14}}><Brand big={true}/></div>
-            <p style={{fontSize:15,color:"#555"}}>Activez votre agence Diamond's</p>
+          <div style={{textAlign:"center",marginBottom:24}}>
+            <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><Brand big={true}/></div>
+            <p style={{fontSize:17,fontWeight:800,color:"#fff",letterSpacing:"-.02em"}}>Débloque ton agence TikTok</p>
+            <p style={{fontSize:13,color:"#888",marginTop:8,lineHeight:1.5}}>Un paiement sécurisé · Accès complet Diamond's</p>
           </div>
-
-          {/* Card */}
-          <div style={{background:"#141414",borderRadius:20,border:"1px solid #1e1e1e",overflow:"hidden",marginBottom:12}}>
-            {/* Badge */}
-            <div style={{background:"rgba(37,99,235,0.08)",borderBottom:"1px solid #1e1e1e",padding:"12px 24px",display:"flex",alignItems:"center",gap:8}}>
-              <div style={{width:8,height:8,borderRadius:"50%",background:"#2563EB"}}/>
-              <span style={{fontSize:12,fontWeight:700,color:"#3B82F6",letterSpacing:".08em",textTransform:"uppercase"}}>Abonnement mensuel</span>
-            </div>
-
-            <div style={{padding:"28px 24px"}}>
-              {/* Price */}
-              <div style={{marginBottom:24}}>
-                <div style={{display:"flex",alignItems:"baseline",gap:4,marginBottom:6}}>
-                  <span style={{fontSize:64,fontWeight:900,color:"#fff",letterSpacing:"-.04em",lineHeight:1}}>{PRICE}</span>
-                  <span style={{fontSize:20,color:"#555",fontWeight:400}}>€</span>
-                  <span style={{fontSize:14,color:"#555",fontWeight:400}}>/mois</span>
-                </div>
-                <p style={{fontSize:13,color:"#444",lineHeight:1.5}}>Sans engagement · Résiliable à tout moment</p>
+          <div style={{background:"#0A0A0A",borderRadius:20,border:"1px solid rgba(255,255,255,.08)",overflow:"hidden",marginBottom:14,boxShadow:"0 0 0 1px rgba(255,0,51,.06), 0 24px 80px rgba(0,0,0,.55)"}}>
+            <div style={{padding:"22px 24px 26px"}}>
+              <div style={{marginBottom:16}}>
+                <span style={{background:`linear-gradient(90deg,${T.payRed},#FF4466)`,borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:800,color:"#fff",letterSpacing:".12em"}}>ABONNEMENT MENSUEL</span>
               </div>
-
-              {/* Features */}
-              <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28,paddingBottom:24,borderBottom:"1px solid #1e1e1e"}}>
+              <div style={{marginBottom:14}}>
+                <span style={{fontSize:58,fontWeight:900,color:"#fff",letterSpacing:"-.04em",lineHeight:1}}>{PRICE}</span>
+                <span style={{fontSize:22,color:"#666",fontWeight:500,marginLeft:4}}>€<span style={{fontSize:13}}>/mois</span></span>
+              </div>
+              <p style={{fontSize:13,color:"#777",marginBottom:22,lineHeight:1.55}}>Sans engagement · Paiement Stripe (flux plein écran, comme SaaS House)</p>
+              <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
                 {[
                   "Gestion illimitée créateurs & staff",
                   "Matchs TikTok Live & affiches",
-                  "Import Backstage automatisé",
-                  "Coach IA TikTok Live 2026",
-                  "Calcul des reversements diamants",
-                  "Support prioritaire Diamond's"
+                  "Import Backstage & Coach IA",
+                  "Reversements diamants & support",
                 ].map((f,i)=>(
                   <div key={i} style={{display:"flex",alignItems:"center",gap:10}}>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <circle cx="8" cy="8" r="7.5" stroke="#2563EB" strokeOpacity=".4"/>
-                      <path d="M5 8l2 2 4-4" stroke="#2563EB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <span style={{fontSize:13,color:"#999"}}>{f}</span>
+                    <div style={{width:22,height:22,borderRadius:"50%",background:`${T.payRed}18`,border:`1px solid ${T.payRed}50`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <div style={{width:7,height:7,borderRadius:"50%",background:T.payRed}}/>
+                    </div>
+                    <span style={{fontSize:13,color:"#bbb"}}>{f}</span>
                   </div>
                 ))}
               </div>
-
-              {/* Email display */}
-              <div style={{background:"#111",borderRadius:8,padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:8}}>
+              <div style={{background:"#111",borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:8,border:"1px solid #222"}}>
                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#555" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                <span style={{fontSize:13,color:"#666"}}>{auth.profile?.email}</span>
+                <span style={{fontSize:13,color:"#888"}}>{auth.profile?.email}</span>
               </div>
-
-              {/* Pay button */}
-              <a href={`${STRIPE_LINK}?prefilled_email=${encodeURIComponent(auth.profile?.email||"")}&client_reference_id=${encodeURIComponent(ag?.id||"")}`}
-                style={{display:"block",textDecoration:"none"}} target="_blank" rel="noopener noreferrer">
-                <button className="btn" style={{width:"100%",padding:"15px",fontSize:15,justifyContent:"center",borderRadius:10,background:"#2563EB"}}>
-                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                  Payer {PRICE}€/mois
-                </button>
-              </a>
-
-              {/* Security */}
-              <div style={{textAlign:"center",marginTop:14,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#333" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                <span style={{fontSize:11,color:"#333",letterSpacing:".04em"}}>SÉCURISÉ PAR STRIPE · CHIFFREMENT 256-BIT</span>
+              <button type="button" className="btn pay-cta-saas" style={{width:"100%",padding:"16px",fontSize:16,borderRadius:12,justifyContent:"center",display:"flex",alignItems:"center",gap:8}} onClick={()=>{
+                const u=`${STRIPE_LINK}?prefilled_email=${encodeURIComponent(auth.profile?.email||"")}${ag?.id?`&client_reference_id=${encodeURIComponent(ag.id)}`:""}`;
+                window.location.href=u;
+              }}>
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                Payer {PRICE}€/mois
+              </button>
+              <div style={{textAlign:"center",marginTop:14,fontSize:11,color:"#444",letterSpacing:".04em"}}>
+                SÉCURISÉ PAR STRIPE · CHIFFREMENT 256-BIT
               </div>
             </div>
           </div>
-
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0 4px"}}>
-            <button onClick={auth.reload} style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+            <button type="button" onClick={auth.reload} style={{background:"none",border:"none",color:"#777",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
               Déjà payé ? Actualiser →
             </button>
-            <button onClick={auth.signOut} style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Se déconnecter</button>
+            <button type="button" onClick={auth.signOut} style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Se déconnecter</button>
           </div>
         </div>
       </div>
@@ -2892,37 +2944,42 @@ export default function App(){
     <>
       <style>{css}</style>
       {isBlocked&&<BlockedScreen agencyName={ag?.name}/>}
-      <div style={{minHeight:"100vh",background:"#0F0F0F",display:"flex",fontFamily:"Inter,sans-serif"}}>
-        {/* SIDEBAR */}
-        <div style={{width:220,flexShrink:0,background:"#111",borderRight:"1px solid #1a1a1a",display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:10}}>
-          {/* Brand */}
-          <div style={{padding:"18px 16px 14px",borderBottom:"1px solid #1a1a1a",cursor:"pointer"}} onClick={()=>setTab("dash")}>
-            <Brand/>
-          </div>
-          {/* Nav */}
-          <div style={{padding:"10px 10px",flex:1,overflowY:"auto"}}>
-            <div style={{fontSize:10,fontWeight:600,color:"#333",textTransform:"uppercase",letterSpacing:".09em",padding:"8px 12px 4px",marginBottom:2}}>Navigation</div>
-            {nav.map(n=><button key={n.id} className={`nb${tab===n.id?" on":""}`} onClick={()=>setTab(n.id)}>{n.l}</button>)}
-          </div>
-          {/* User footer */}
-          <div style={{padding:"12px 14px",borderTop:"1px solid #1a1a1a"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:10,background:"#191919",marginBottom:8}}>
-              <AV name={(auth.profile?.tiktok_handle||auth.profile?.email||"?").replace("@","")[0]?.toUpperCase()||"?"} color="#2563EB" size={30}/>
-              <div style={{overflow:"hidden",minWidth:0,flex:1}}>
-                <div style={{fontSize:12,fontWeight:600,color:"#FFF",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{auth.profile?.tiktok_handle||auth.profile?.email}</div>
-                <div style={{fontSize:10,color:"#525252",textTransform:"capitalize"}}>{role}</div>
-              </div>
+      <div style={{minHeight:"100vh",background:"#0F0F0F",display:"flex",flexDirection:"column",fontFamily:"Inter,sans-serif"}}>
+        {isNarrow&&(
+          <header className="app-mob-bar" style={{alignItems:"center",gap:10,padding:"10px 14px",borderBottom:"1px solid #1a1a1a",background:"#0a0a0a",position:"sticky",top:0,zIndex:12}}>
+            <button type="button" onClick={()=>setNavOpen(true)} className="btng" style={{padding:"8px 12px",fontSize:18}} aria-label="Ouvrir le menu">☰</button>
+            <div style={{fontWeight:800,fontSize:14,color:"#fff",letterSpacing:"-.02em"}}>Diamond's</div>
+          </header>
+        )}
+        <div style={{display:"flex",flex:1,minHeight:0,position:"relative"}}>
+          {isNarrow&&navOpen&&<div className="app-scrim" onClick={()=>setNavOpen(false)}/>}
+          <aside className={`app-sidebar-m${navOpen?" open":""}`} style={{width:220,flexShrink:0,background:"#111",borderRight:"1px solid #1a1a1a",display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:isNarrow?30:10}}>
+            <div style={{padding:"18px 16px 14px",borderBottom:"1px solid #1a1a1a",cursor:"pointer"}} onClick={()=>{setTab("dash");setNavOpen(false);}}>
+              <Brand/>
             </div>
-            <button onClick={auth.signOut} style={{width:"100%",padding:"7px",borderRadius:8,border:"1px solid rgba(255,255,255,0.06)",background:"transparent",color:"#525252",fontSize:12,cursor:"pointer",fontFamily:"Inter,sans-serif",transition:"all .15s",textAlign:"center"}}
-              onMouseEnter={e=>{e.target.style.color="#EF4444";e.target.style.borderColor="rgba(239,68,68,0.2)"}}
-              onMouseLeave={e=>{e.target.style.color="#525252";e.target.style.borderColor="rgba(255,255,255,0.06)"}}>
-              Déconnexion
-            </button>
-          </div>
+            <div style={{padding:"10px 10px",flex:1,overflowY:"auto"}}>
+              <div style={{fontSize:10,fontWeight:600,color:"#444",textTransform:"uppercase",letterSpacing:".09em",padding:"8px 12px 4px",marginBottom:2}}>Navigation</div>
+              {nav.map(n=><button key={n.id} type="button" className={`nb${tab===n.id?" on":""}`} onClick={()=>{setTab(n.id);setNavOpen(false);}}>{n.l}</button>)}
+            </div>
+            <div style={{padding:"12px 14px",borderTop:"1px solid #1a1a1a"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:10,background:"#191919",marginBottom:8}}>
+                <AV name={(auth.profile?.tiktok_handle||auth.profile?.email||"?").replace("@","")[0]?.toUpperCase()||"?"} color="#2563EB" size={30}/>
+                <div style={{overflow:"hidden",minWidth:0,flex:1}}>
+                  <div style={{fontSize:12,fontWeight:600,color:"#FFF",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{auth.profile?.tiktok_handle||auth.profile?.email}</div>
+                  <div style={{fontSize:10,color:"#525252",textTransform:"capitalize"}}>{role}</div>
+                </div>
+              </div>
+              <button type="button" onClick={auth.signOut} style={{width:"100%",padding:"7px",borderRadius:8,border:"1px solid rgba(255,255,255,0.06)",background:"transparent",color:"#525252",fontSize:12,cursor:"pointer",fontFamily:"Inter,sans-serif",transition:"all .15s",textAlign:"center"}}
+                onMouseEnter={e=>{e.target.style.color="#EF4444";e.target.style.borderColor="rgba(239,68,68,0.2)"}}
+                onMouseLeave={e=>{e.target.style.color="#525252";e.target.style.borderColor="rgba(255,255,255,0.06)"}}>
+                Déconnexion
+              </button>
+            </div>
+          </aside>
+          <main className="app-main-pad" style={{flex:1,overflowY:"auto",padding:"28px 32px",background:"#0F0F0F",marginLeft:isNarrow?0:220,minHeight:isNarrow?"calc(100vh - 52px)":"100vh",width:"100%"}}>
+            {loadT?<div style={{textAlign:"center",padding:40,color:T.sec}}>Chargement…</div>:<View/>}
+          </main>
         </div>
-        <main style={{flex:1,overflowY:"auto",padding:"28px 32px",background:"#0F0F0F",marginLeft:220,minHeight:"100vh"}}>
-          {loadT?<div style={{textAlign:"center",padding:40,color:T.sec}}>Chargement…</div>:<View/>}
-        </main>
       </div>
     </>
   );
