@@ -11,15 +11,21 @@ const T={bg:"#080808",card:"rgba(255,255,255,0.03)",cardH:"rgba(255,255,255,0.05
 
 // Helper function for admin updates using regular Supabase client
 const executeAdminUpdate = async (table, id, updates) => {
+  console.log('executeAdminUpdate appelé avec:', { table, id, updates });
+  
   if (!sb) {
     throw new Error("Supabase non configuré");
   }
+  
+  console.log('Tentative de mise à jour Supabase...');
   
   const { data, error } = await sb
     .from(table)
     .update(updates)
     .eq('id', id)
     .select();
+  
+  console.log('Résultat Supabase:', { data, error });
   
   if (error) {
     throw new Error(error.message || "Erreur lors de la mise à jour");
