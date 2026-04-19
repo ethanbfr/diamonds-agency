@@ -116,9 +116,27 @@ const billingOk=(ag)=>!ag||ag.is_offered||ag.billing_status==="actif";
 
 /** Rôle affiché admin : agences mal enregistrées en "creator" (sans lien creators, ou 1er compte créé avec l'agence) */
 const enrichProfilesForAdmin=(profiles,agencies,creatorsRows)=>{
-  // Simple : tout profil avec agency_id = rôle agence
+  const linkedCreatorProfiles=new Set((creatorsRows||[]).map(c=>c.profile_id).filter(Boolean));
+  // Trouver les owners d'agences par correspondance temporelle (2h window)
+  const agencyOwnerIds=new Set();
+  (agencies||[]).forEach(ag=>{
+    const agT=new Date(ag.created_at).getTime();
+    // Le profil créé en même temps que l'agence ET qui n'est pas un vrai créateur
+    const candidates=(profiles||[]).filter(p=>{
+      if(p.role==="admin") return false;
+      const pT=new Date(p.created_at).getTime();
+      return Math.abs(pT-agT)<1000*60*120 && !linkedCreatorProfiles.has(p.id);
+    });
+    // Prendre le plus proche temporellement
+    if(candidates.length>0){
+      candidates.sort((a,b)=>Math.abs(new Date(a.created_at)-agT)-Math.abs(new Date(b.created_at)-agT));
+      agencyOwnerIds.add(candidates[0].id);
+    }
+  });
   return (profiles||[]).map(p=>{
-    const displayRole=(p.agency_id && p.role!=="admin") ? "agency" : p.role;
+    // Agency si: agency_id présent OU owner détecté par temps OU role déjà agency
+    const isAgency=p.role!=="admin"&&(!!p.agency_id||agencyOwnerIds.has(p.id)||p.role==="agency");
+    const displayRole=isAgency?"agency":p.role;
     return {...p,displayRole};
   });
 };
