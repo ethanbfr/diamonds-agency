@@ -1593,25 +1593,19 @@ function SettingsView({profile,reload}){
   const total=Object.values(pcts).reduce((s,v)=>s+v,0);
   const save=async()=>{
     if(!sb) return;setSaving(true);
-    // Save TikTok handle for non-agency/admin
-    if(!["agency","admin"].includes(profile?.role)&&profile?.id){
-      const handleVal=tiktokHandle.trim()?"@"+tiktokHandle.trim().replace(/^@/,""):"";
+    // Save TikTok handle (tout le monde)
+    if(profile?.id&&tiktokHandle.trim()){
+      const handleVal="@"+tiktokHandle.trim().replace(/^@/,"");
       await sb.from("profiles").update({tiktok_handle:handleVal}).eq("id",profile.id);
     }
-    // Save agency settings (RLS désactivé via SQL fix, sinon service key)
+    // Save agency settings - essaie direct d'abord (RLS off), sinon service key
     if(ag?.id){
-      try{
-        await executeAdminUpdate("agencies",ag.id,{
-          name:agName.trim()||ag.name,
-          pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,
-          min_days:minD,min_hours:minH,
-          director_can_import:perms.dir,manager_can_import:perms.mgr,
-          accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,
-          can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel
-        });
-      }catch(e){
-        // Fallback si RLS désactivé
-        await sb.from("agencies").update({name:agName.trim()||ag.name,pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel}).eq("id",ag.id);
+      const payload={name:agName.trim()||ag.name,pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel};
+      const {error:saveErr}=await sb.from("agencies").update(payload).eq("id",ag.id);
+      if(saveErr){
+        // RLS bloque → service key
+        try{ await executeAdminUpdate("agencies",ag.id,payload); }
+        catch(e2){ console.error("Save agency failed:",saveErr.message,e2.message); }
       }
     }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
@@ -2470,13 +2464,14 @@ function diamondsToEuros(diamonds) {
 }
 
 function CoachView({profile,creators,ag}){
+  const role=profile?.role;
+  const isAgencyOrAdminInit=role==="agency"||role==="admin";
   const [messages,setMessages]=useState([
-    {role:"assistant",content:(role==="agency"||role==="admin")?"Bonjour 👋 Je suis Diamond Coach Pro, ton assistant IA pour gérer et développer ton agence TikTok Live ! Recrutement, staff, stratégie, revenus, matchs… pose-moi toutes tes questions !":"Bonjour 👋 Je suis Diamond Coach, ton expert TikTok Live 2026 ! Diamants, viewers, PK Battles, stratégies… je suis là pour booster tes performances. Que veux-tu savoir ?"}
+    {role:"assistant",content:isAgencyOrAdminInit?"Bonjour 👋 Je suis Diamond Coach Pro, ton assistant IA pour gérer et développer ton agence TikTok Live ! Recrutement, staff, stratégie, revenus, matchs… pose-moi toutes tes questions !":"Bonjour 👋 Je suis Diamond Coach, ton expert TikTok Live 2026 ! Diamants, viewers, PK Battles, stratégies… je suis là pour booster tes performances. Que veux-tu savoir ?"}
   ]);
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
   const endRef=useRef();
-  const role=profile?.role;
   
   // Find creator data for context
   const myCreator=creators?.[0];
@@ -2489,7 +2484,7 @@ function CoachView({profile,creators,ag}){
   useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[messages]);
 
   // Prompt différent selon le rôle
-  const isAgencyOrAdmin = role==="agency"||role==="admin";
+  const isAgencyOrAdmin = isAgencyOrAdminInit;
   const SYSTEM_PROMPT = isAgencyOrAdmin ? `Tu es Diamond Coach Pro, l'assistant IA expert en gestion d'agence TikTok LIVE de Diamond's by Belive Academy.
 Tu conseilles les fondateurs d'agence sur tous les aspects : recrutement, gestion du staff, stratégie, revenus, créateurs.
 
