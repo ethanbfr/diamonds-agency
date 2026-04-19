@@ -224,97 +224,73 @@ const fetchAllLiveEntries=async()=>{if(!sb) return [];const {data}=await sb.from
 
 /* ─── SHARED UI ─────────────────────────── */
 const DiamondSVG=({size=40})=>(
-  <svg width={size} height={size} viewBox="0 0 48 52" style={{overflow:"visible",display:"block"}}>
+  <svg width={size} height={size} viewBox="0 0 48 54" style={{overflow:"visible",display:"block"}}>
     <defs>
-      {/* Vrai diamant : table + couronne + pavilion - coupe brillant */}
       <linearGradient id="dgTable" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#E8F4FF"/>
-        <stop offset="40%" stopColor="#BFE0FF"/>
-        <stop offset="100%" stopColor="#7EC8FF"/>
+        <stop offset="0%" stopColor="#FFFFFF"/>
+        <stop offset="30%" stopColor="#DBEAFE"/>
+        <stop offset="100%" stopColor="#93C5FD"/>
       </linearGradient>
       <linearGradient id="dgLeft" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#CCEEFF"/>
-        <stop offset="100%" stopColor="#99DDFF"/>
+        <stop offset="0%" stopColor="#EFF6FF"/>
+        <stop offset="100%" stopColor="#BFDBFE"/>
       </linearGradient>
       <linearGradient id="dgRight" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#88CCEE"/>
-        <stop offset="100%" stopColor="#55AADD"/>
+        <stop offset="0%" stopColor="#93C5FD"/>
+        <stop offset="100%" stopColor="#3B82F6"/>
       </linearGradient>
       <linearGradient id="dgPavL" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#AADDFF"/>
-        <stop offset="100%" stopColor="#5599CC"/>
+        <stop offset="0%" stopColor="#BFDBFE"/>
+        <stop offset="100%" stopColor="#2563EB"/>
       </linearGradient>
       <linearGradient id="dgPavR" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#77BBEE"/>
-        <stop offset="100%" stopColor="#336699"/>
+        <stop offset="0%" stopColor="#60A5FA"/>
+        <stop offset="100%" stopColor="#1D4ED8"/>
       </linearGradient>
       <linearGradient id="dgPavC" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#99CCFF"/>
-        <stop offset="100%" stopColor="#4488BB"/>
+        <stop offset="0%" stopColor="#93C5FD"/>
+        <stop offset="100%" stopColor="#2563EB"/>
       </linearGradient>
-      {/* Reflets arc-en-ciel */}
-      <linearGradient id="dgFire1" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#FF6B9D" stopOpacity="0.4"/>
-        <stop offset="50%" stopColor="#60A5FA" stopOpacity="0.3"/>
-        <stop offset="100%" stopColor="#34D399" stopOpacity="0.4"/>
+      <linearGradient id="dgShine" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9"/>
+        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0"/>
       </linearGradient>
-      <filter id="dgGlow">
-        <feGaussianBlur stdDeviation="2" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      <filter id="dgGlow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="2.5" result="blur"/>
+        <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.15  0 0 0 0 0.39  0 0 0 0 0.92  0 0 0 0.6 0" result="glow"/>
+        <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
       </filter>
     </defs>
-
-    {/* === COURONNE (crown) — partie haute === */}
-    {/* Table (facette centrale plate du dessus) */}
-    <polygon points="17,8 31,8 36,16 12,16" fill="url(#dgTable)" stroke="rgba(180,220,255,0.8)" strokeWidth="0.4"/>
-    {/* Facette couronne gauche haut */}
-    <polygon points="8,18 12,16 17,8 12,14" fill="url(#dgLeft)" stroke="rgba(150,200,255,0.6)" strokeWidth="0.3"/>
-    {/* Facette couronne droite haut */}
-    <polygon points="40,18 36,16 31,8 36,14" fill="url(#dgRight)" stroke="rgba(100,170,220,0.6)" strokeWidth="0.3"/>
-    {/* Facette couronne gauche bas */}
-    <polygon points="4,20 8,18 12,16 7,21" fill="url(#dgLeft)" stroke="rgba(150,200,255,0.5)" strokeWidth="0.3"/>
-    {/* Facette couronne droite bas */}
-    <polygon points="44,20 40,18 36,16 41,21" fill="url(#dgRight)" stroke="rgba(100,170,220,0.5)" strokeWidth="0.3"/>
-
-    {/* Ligne girdle (ceinture) */}
-    <line x1="4" y1="20" x2="44" y2="20" stroke="rgba(255,255,255,0.9)" strokeWidth="0.7"/>
-
-    {/* === PAVILION — partie basse effilée === */}
-    {/* Facette pavilion gauche */}
-    <polygon points="4,20 24,50 14,36" fill="url(#dgPavL)" stroke="rgba(100,170,220,0.5)" strokeWidth="0.3"/>
-    {/* Facette pavilion centre-gauche */}
-    <polygon points="14,36 24,50 19,28" fill="url(#dgPavC)" stroke="rgba(120,180,230,0.5)" strokeWidth="0.3"/>
-    {/* Facette pavilion centre */}
-    <polygon points="19,28 24,50 29,28" fill="url(#dgPavL)" stroke="rgba(140,190,240,0.5)" strokeWidth="0.3"/>
-    {/* Facette pavilion centre-droit */}
-    <polygon points="29,28 24,50 34,36" fill="url(#dgPavC)" stroke="rgba(100,160,210,0.5)" strokeWidth="0.3"/>
-    {/* Facette pavilion droit */}
-    <polygon points="34,36 24,50 44,20" fill="url(#dgPavR)" stroke="rgba(80,140,190,0.5)" strokeWidth="0.3"/>
-
-    {/* Lignes structurelles du pavilion */}
-    <line x1="4" y1="20" x2="14" y2="36" stroke="rgba(200,230,255,0.6)" strokeWidth="0.4"/>
-    <line x1="14" y1="36" x2="24" y2="50" stroke="rgba(180,215,245,0.7)" strokeWidth="0.4"/>
-    <line x1="24" y1="50" x2="34" y2="36" stroke="rgba(160,200,235,0.6)" strokeWidth="0.4"/>
-    <line x1="34" y1="36" x2="44" y2="20" stroke="rgba(140,185,225,0.6)" strokeWidth="0.4"/>
-    <line x1="4" y1="20" x2="19" y2="28" stroke="rgba(200,230,255,0.4)" strokeWidth="0.3"/>
-    <line x1="44" y1="20" x2="29" y2="28" stroke="rgba(200,230,255,0.4)" strokeWidth="0.3"/>
-
-    {/* Reflet arc-en-ciel (feu du diamant) */}
-    <polygon points="17,8 24,12 19,16 12,16" fill="url(#dgFire1)" opacity="0.7"/>
-    <polygon points="14,36 20,32 24,50" fill="#7EC8FF" opacity="0.2"/>
-
-    {/* Éclat blanc sur la table */}
-    <polygon points="20,9 26,9 28,13 22,14 18,12" fill="white" opacity="0.55"/>
-
-    {/* Contour global */}
-    <polygon points="17,8 31,8 36,16 44,20 34,36 24,50 14,36 4,20 12,16" fill="none" stroke="rgba(150,210,255,0.9)" strokeWidth="0.6" filter="url(#dgGlow)"/>
+    {/* Couronne */}
+    <polygon points="17,7 31,7 37,17 11,17" fill="url(#dgTable)" stroke="rgba(147,197,253,0.6)" strokeWidth="0.5"/>
+    <polygon points="6,20 11,17 17,7 11,15" fill="url(#dgLeft)" stroke="rgba(147,197,253,0.4)" strokeWidth="0.4"/>
+    <polygon points="42,20 37,17 31,7 37,15" fill="url(#dgRight)" stroke="rgba(59,130,246,0.5)" strokeWidth="0.4"/>
+    <polygon points="2,21 6,20 11,17 5,22" fill="url(#dgLeft)" stroke="rgba(147,197,253,0.3)" strokeWidth="0.3"/>
+    <polygon points="46,21 42,20 37,17 43,22" fill="url(#dgRight)" stroke="rgba(59,130,246,0.4)" strokeWidth="0.3"/>
+    {/* Girdle */}
+    <line x1="2" y1="21" x2="46" y2="21" stroke="rgba(255,255,255,0.95)" strokeWidth="0.8"/>
+    {/* Pavilion */}
+    <polygon points="2,21 24,52 13,37" fill="url(#dgPavL)" stroke="rgba(37,99,235,0.4)" strokeWidth="0.3"/>
+    <polygon points="13,37 24,52 18,28" fill="url(#dgPavC)" stroke="rgba(59,130,246,0.4)" strokeWidth="0.3"/>
+    <polygon points="18,28 24,52 30,28" fill="url(#dgPavL)" stroke="rgba(96,165,250,0.4)" strokeWidth="0.3"/>
+    <polygon points="30,28 24,52 35,37" fill="url(#dgPavC)" stroke="rgba(37,99,235,0.4)" strokeWidth="0.3"/>
+    <polygon points="35,37 24,52 46,21" fill="url(#dgPavR)" stroke="rgba(29,78,216,0.4)" strokeWidth="0.3"/>
+    {/* Lignes pavilion */}
+    <line x1="2" y1="21" x2="13" y2="37" stroke="rgba(147,197,253,0.7)" strokeWidth="0.5"/>
+    <line x1="13" y1="37" x2="24" y2="52" stroke="rgba(147,197,253,0.8)" strokeWidth="0.5"/>
+    <line x1="24" y1="52" x2="35" y2="37" stroke="rgba(96,165,250,0.7)" strokeWidth="0.5"/>
+    <line x1="35" y1="37" x2="46" y2="21" stroke="rgba(59,130,246,0.7)" strokeWidth="0.5"/>
+    <line x1="2" y1="21" x2="18" y2="28" stroke="rgba(147,197,253,0.5)" strokeWidth="0.4"/>
+    <line x1="46" y1="21" x2="30" y2="28" stroke="rgba(147,197,253,0.5)" strokeWidth="0.4"/>
+    {/* Reflet principal blanc */}
+    <polygon points="18,8 26,8 29,14 22,15 17,12" fill="url(#dgShine)" opacity="0.85"/>
+    {/* Éclat secondaire */}
+    <polygon points="11,17 16,14 18,18 13,19" fill="white" opacity="0.35"/>
+    {/* Contour avec glow bleu */}
+    <polygon points="17,7 31,7 37,17 46,21 35,37 24,52 13,37 2,21 11,17" fill="none" stroke="rgba(96,165,250,0.95)" strokeWidth="0.8" filter="url(#dgGlow)"/>
   </svg>
 );
-const Spk=({x,y,d})=>(
-  <div style={{position:"absolute",left:x,top:y,animation:`spk ${5+d}s ${d}s ease-in-out infinite`,pointerEvents:"none"}}>
-    <svg width="7" height="7" viewBox="0 0 8 8"><path d="M4 0L5 3 8 4 5 5 4 8 3 5 0 4 3 3Z" fill="rgba(180,130,255,.9)"/></svg>
-  </div>
-);
+const Spk=()=>null;
 const Brand=({big=false})=>(
   <div style={{display:"flex",alignItems:"center",gap:big?14:8}}>
     <div style={{position:"relative",width:big?60:28,height:big?60:28,flexShrink:0}}>
