@@ -48,7 +48,7 @@ const executeAdminUpdate = async (table, id, updates) => {
     throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
   }
   
-  // 204 No Content = succès (return=minimal), pas de body JSON
+  // 204 No Content = succès
   return true;
 };
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
@@ -112,6 +112,19 @@ select.inp option{background:#111;color:#fff}
   .admin-stat-grid{grid-template-columns:repeat(2,1fr)!important}
   .billing-card-actions{flex-direction:column!important;align-items:stretch!important}
   .billing-card-actions button{width:100%!important;justify-content:center!important}
+  .creators-table{min-width:unset!important}
+  .creators-table .cr{grid-template-columns:30px 1fr 80px 50px 60px!important}
+  .sc{padding:12px 14px!important}
+  .sc div:first-child{font-size:9px!important}
+  .sc div:nth-child(2){font-size:18px!important}
+}
+/* Tablette : sidebar fixe, pas de hamburger */
+@media (min-width:600px) and (max-width:899px){
+  .app-sidebar-m{transform:none!important;width:180px!important;position:fixed!important}
+  .app-sidebar-m.open{box-shadow:none!important}
+  .app-mob-bar{display:none!important}
+  .app-main-pad{margin-left:180px!important;padding:20px 18px!important}
+  .admin-stat-grid{grid-template-columns:repeat(2,1fr)!important}
 }
 @media (min-width:900px){
   .app-mob-bar{display:none}
@@ -434,8 +447,8 @@ function LoginPage(){
       const msg=error.message;
       if(msg.includes("Invalid login credentials")||msg.includes("invalid_credentials"))
         setErr("Email ou mot de passe incorrect");
-      else if(msg.includes("Email not confirmed"))
-        setErr("Compte non confirmé — contactez le support");
+      else if(msg.includes("Email not confirmed")||msg.includes("email_not_confirmed"))
+        setErr("Email non confirmé — contactez diamonds.saas@gmail.com");
       else if(msg.includes("Too many requests"))
         setErr("Trop de tentatives, attendez quelques minutes");
       else setErr("Erreur de connexion : "+msg);
@@ -1488,7 +1501,7 @@ function CreatorsView({profile,creators,agents,reload}){
                       </div>
                     </div>
                     {canName&&<div style={{fontSize:12,fontWeight:600,color:T.tx}}>{c.first_name} {c.last_name}</div>}
-                    {canPhone&&<div style={{fontSize:11,color:T.tx}}>{c.phone||"—"}</div>}
+                    {canPhone&&<div style={{fontSize:11,color:T.tx}}>{c.phone?c.phone.replace(/^(\+33|0033)/,"0").replace(/(\d{2})(?=\d)/g,"$1 ").trim():"—"}</div>}
                     <div style={{fontWeight:700,color:T.cy,fontSize:12}}>💎 {(c.diamonds||0).toLocaleString()}</div>
                     <div style={{fontWeight:600,fontSize:12,color:(c.days_live||0)>=(ag.min_days||20)?T.ok:T.ng}}>{c.days_live||0}j</div>
                     <div style={{fontWeight:600,fontSize:12,color:(c.hours_live||0)>=(ag.min_hours||40)?T.ok:T.ng}}>{c.hours_live||0}h</div>
