@@ -48,8 +48,9 @@ const executeAdminUpdate = async (table, id, updates) => {
     throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
   }
   
-  // 204 No Content = succès
-  return true;
+  const data = await response.json();
+  console.log('Mise à jour réussie via REST API:', data);
+  return data;
 };
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
@@ -112,19 +113,6 @@ select.inp option{background:#111;color:#fff}
   .admin-stat-grid{grid-template-columns:repeat(2,1fr)!important}
   .billing-card-actions{flex-direction:column!important;align-items:stretch!important}
   .billing-card-actions button{width:100%!important;justify-content:center!important}
-  .creators-table{min-width:unset!important}
-  .creators-table .cr{grid-template-columns:30px 1fr 80px 50px 60px!important}
-  .sc{padding:12px 14px!important}
-  .sc div:first-child{font-size:9px!important}
-  .sc div:nth-child(2){font-size:18px!important}
-}
-/* Tablette : sidebar fixe, pas de hamburger */
-@media (min-width:600px) and (max-width:899px){
-  .app-sidebar-m{transform:none!important;width:180px!important;position:fixed!important}
-  .app-sidebar-m.open{box-shadow:none!important}
-  .app-mob-bar{display:none!important}
-  .app-main-pad{margin-left:180px!important;padding:20px 18px!important}
-  .admin-stat-grid{grid-template-columns:repeat(2,1fr)!important}
 }
 @media (min-width:900px){
   .app-mob-bar{display:none}
@@ -447,8 +435,8 @@ function LoginPage(){
       const msg=error.message;
       if(msg.includes("Invalid login credentials")||msg.includes("invalid_credentials"))
         setErr("Email ou mot de passe incorrect");
-      else if(msg.includes("Email not confirmed")||msg.includes("email_not_confirmed"))
-        setErr("Email non confirmé — contactez diamonds.saas@gmail.com");
+      else if(msg.includes("Email not confirmed"))
+        setErr("Compte non confirmé — contactez le support");
       else if(msg.includes("Too many requests"))
         setErr("Trop de tentatives, attendez quelques minutes");
       else setErr("Erreur de connexion : "+msg);
@@ -1501,7 +1489,7 @@ function CreatorsView({profile,creators,agents,reload}){
                       </div>
                     </div>
                     {canName&&<div style={{fontSize:12,fontWeight:600,color:T.tx}}>{c.first_name} {c.last_name}</div>}
-                    {canPhone&&<div style={{fontSize:11,color:T.tx}}>{c.phone?c.phone.replace(/^(\+33|0033)/,"0").replace(/(\d{2})(?=\d)/g,"$1 ").trim():"—"}</div>}
+                    {canPhone&&<div style={{fontSize:11,color:T.tx}}>{c.phone||"—"}</div>}
                     <div style={{fontWeight:700,color:T.cy,fontSize:12}}>💎 {(c.diamonds||0).toLocaleString()}</div>
                     <div style={{fontWeight:600,fontSize:12,color:(c.days_live||0)>=(ag.min_days||20)?T.ok:T.ng}}>{c.days_live||0}j</div>
                     <div style={{fontWeight:600,fontSize:12,color:(c.hours_live||0)>=(ag.min_hours||40)?T.ok:T.ng}}>{c.hours_live||0}h</div>
@@ -1636,9 +1624,21 @@ function SettingsView({profile,reload}){
       const handleVal=tiktokHandle.trim()?"@"+tiktokHandle.trim().replace(/^@/,""):"";
       await sb.from("profiles").update({tiktok_handle:handleVal}).eq("id",profile.id);
     }
-    // Save agency settings if applicable
+    // Save agency settings
     if(ag?.id){
-      await sb.from("agencies").update({name:agName.trim()||ag.name,pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel}).eq("id",ag.id);
+      try{
+        await executeAdminUpdate("agencies",ag.id,{
+          name:agName.trim()||ag.name,
+          pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,
+          min_days:minD,min_hours:minH,
+          director_can_import:perms.dir,manager_can_import:perms.mgr,
+          accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,
+          can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel
+        });
+      }catch(e){
+        // Fallback direct
+        await sb.from("agencies").update({name:agName.trim()||ag.name,pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel}).eq("id",ag.id);
+      }
     }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
@@ -2062,36 +2062,51 @@ function BlockedAgenciesPanel({profile}){
   const [allAgencies,setAllAgencies]=useState([]);
   const [blocked,setBlocked]=useState([]);
   const [saving,setSaving]=useState(false);
+  const [savedOk,setSavedOk]=useState(false);
   const ag=profile?.agencies;
 
   useEffect(()=>{
-    fetchAllAgencies().then(d=>setAllAgencies(d.filter(a=>a.id!==ag?.id)));
-    if(ag?.blocked_agency_ids) setBlocked(ag.blocked_agency_ids);
+    if(!ag?.id) return;
+    fetchAllAgencies().then(d=>{
+      // Exclure sa propre agence de la liste
+      setAllAgencies(d.filter(a=>a.id!==ag.id));
+    });
+    // Charger les blocages existants
+    setBlocked(ag.blocked_agency_ids||[]);
   },[ag?.id]);
 
   const toggle=(id)=>setBlocked(b=>b.includes(id)?b.filter(x=>x!==id):[...b,id]);
+
   const save=async()=>{
-    if(!sb||!ag?.id) return;setSaving(true);
-    await sb.from("agencies").update({blocked_agency_ids:blocked}).eq("id",ag.id);
-    setSaving(false);
+    if(!ag?.id) return;
+    setSaving(true);
+    try{
+      await executeAdminUpdate("agencies",ag.id,{blocked_agency_ids:blocked});
+    }catch(e){
+      await sb?.from("agencies").update({blocked_agency_ids:blocked}).eq("id",ag.id);
+    }
+    setSaving(false);setSavedOk(true);setTimeout(()=>setSavedOk(false),2500);
   };
 
   if(allAgencies.length===0) return(
-    <div style={{fontSize:12,color:T.sec}}>Aucune autre agence inscrite sur Diamond's pour le moment.</div>
+    <div style={{fontSize:12,color:T.sec,padding:"10px 0"}}>Aucune autre agence inscrite sur Diamond's pour le moment.</div>
   );
   return(
     <div>
       <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Agences avec lesquelles vous <strong style={{color:T.ng}}>refusez</strong> les matchs :</div>
-      <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:12}}>
+      <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
         {allAgencies.map(a=>(
           <div key={a.id} onClick={()=>toggle(a.id)} style={{display:"flex",alignItems:"center",gap:11,padding:"9px 12px",borderRadius:9,background:blocked.includes(a.id)?`${T.ng}08`:"rgba(255,255,255,.02)",border:`1px solid ${blocked.includes(a.id)?T.ng+"30":T.b}`,cursor:"pointer",transition:"all .18s"}}>
-            <div style={{width:30,height:30,borderRadius:8,background:(a.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:a.color||T.acc,fontWeight:800,fontSize:13,flexShrink:0}}>{a.name[0]}</div>
+            <div style={{width:30,height:30,borderRadius:8,background:(a.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:a.color||T.acc,fontWeight:800,fontSize:13,flexShrink:0}}>{(a.name||"?")[0]}</div>
             <div style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{a.name}</div>
             <Tog on={blocked.includes(a.id)} onChange={()=>toggle(a.id)} color={T.ng}/>
           </div>
         ))}
       </div>
-      <button className="btn" style={{fontSize:12}} onClick={save} disabled={saving}>{saving?<Spin/>:"Enregistrer les blocages"}</button>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <button className="btn" style={{fontSize:12}} onClick={save} disabled={saving}>{saving?<Spin/>:"Enregistrer les blocages"}</button>
+        {savedOk&&<span style={{fontSize:12,color:T.ok}}>✓ Enregistré</span>}
+      </div>
     </div>
   );
 }
