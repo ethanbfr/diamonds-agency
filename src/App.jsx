@@ -224,72 +224,119 @@ const fetchAllLiveEntries=async()=>{if(!sb) return [];const {data}=await sb.from
 
 /* ─── SHARED UI ─────────────────────────── */
 const DiamondSVG=({size=40})=>(
-  <svg width={size} height={size} viewBox="0 0 48 54" style={{overflow:"visible",display:"block"}}>
+  <svg width={size} height={size} viewBox="0 0 120 130" style={{overflow:"visible",display:"block"}}>
     <defs>
-      <linearGradient id="dgTable" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#FFFFFF"/>
-        <stop offset="30%" stopColor="#DBEAFE"/>
-        <stop offset="100%" stopColor="#93C5FD"/>
+      {/* Palette bleu diamant */}
+      <linearGradient id="dg0" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#FFFFFF"/><stop offset="100%" stopColor="#DBEAFE"/></linearGradient>
+      <linearGradient id="dg1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#EFF6FF"/><stop offset="100%" stopColor="#93C5FD"/></linearGradient>
+      <linearGradient id="dg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#BFDBFE"/><stop offset="100%" stopColor="#3B82F6"/></linearGradient>
+      <linearGradient id="dg3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#93C5FD"/><stop offset="100%" stopColor="#2563EB"/></linearGradient>
+      <linearGradient id="dg4" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#60A5FA"/><stop offset="100%" stopColor="#1D4ED8"/></linearGradient>
+      <linearGradient id="dg5" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#3B82F6"/><stop offset="100%" stopColor="#1E3A8A"/></linearGradient>
+      <linearGradient id="dg6" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#2563EB"/><stop offset="100%" stopColor="#172554"/></linearGradient>
+      <linearGradient id="dgW" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95"/><stop offset="100%" stopColor="#FFFFFF" stopOpacity="0"/></linearGradient>
+      <linearGradient id="dgGirdle" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#93C5FD"/><stop offset="30%" stopColor="#FFFFFF"/><stop offset="60%" stopColor="#BFDBFE"/><stop offset="100%" stopColor="#60A5FA"/>
       </linearGradient>
-      <linearGradient id="dgLeft" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#EFF6FF"/>
-        <stop offset="100%" stopColor="#BFDBFE"/>
-      </linearGradient>
-      <linearGradient id="dgRight" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#93C5FD"/>
-        <stop offset="100%" stopColor="#3B82F6"/>
-      </linearGradient>
-      <linearGradient id="dgPavL" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#BFDBFE"/>
-        <stop offset="100%" stopColor="#2563EB"/>
-      </linearGradient>
-      <linearGradient id="dgPavR" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#60A5FA"/>
-        <stop offset="100%" stopColor="#1D4ED8"/>
-      </linearGradient>
-      <linearGradient id="dgPavC" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#93C5FD"/>
-        <stop offset="100%" stopColor="#2563EB"/>
-      </linearGradient>
-      <linearGradient id="dgShine" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9"/>
-        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0"/>
-      </linearGradient>
-      <filter id="dgGlow" x="-20%" y="-20%" width="140%" height="140%">
-        <feGaussianBlur stdDeviation="2.5" result="blur"/>
-        <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.15  0 0 0 0 0.39  0 0 0 0 0.92  0 0 0 0.6 0" result="glow"/>
-        <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+      <filter id="dfGlow" x="-40%" y="-40%" width="180%" height="180%">
+        <feGaussianBlur stdDeviation="4" result="b"/>
+        <feColorMatrix in="b" values="0 0 0 0 0.14 0 0 0 0 0.39 0 0 0 0 0.92 0 0 0 0.65 0" result="colored"/>
+        <feMerge><feMergeNode in="colored"/><feMergeNode in="SourceGraphic"/></feMerge>
       </filter>
+      <filter id="dfSoft"><feGaussianBlur stdDeviation="1"/></filter>
     </defs>
-    {/* Couronne */}
-    <polygon points="17,7 31,7 37,17 11,17" fill="url(#dgTable)" stroke="rgba(147,197,253,0.6)" strokeWidth="0.5"/>
-    <polygon points="6,20 11,17 17,7 11,15" fill="url(#dgLeft)" stroke="rgba(147,197,253,0.4)" strokeWidth="0.4"/>
-    <polygon points="42,20 37,17 31,7 37,15" fill="url(#dgRight)" stroke="rgba(59,130,246,0.5)" strokeWidth="0.4"/>
-    <polygon points="2,21 6,20 11,17 5,22" fill="url(#dgLeft)" stroke="rgba(147,197,253,0.3)" strokeWidth="0.3"/>
-    <polygon points="46,21 42,20 37,17 43,22" fill="url(#dgRight)" stroke="rgba(59,130,246,0.4)" strokeWidth="0.3"/>
-    {/* Girdle */}
-    <line x1="2" y1="21" x2="46" y2="21" stroke="rgba(255,255,255,0.95)" strokeWidth="0.8"/>
-    {/* Pavilion */}
-    <polygon points="2,21 24,52 13,37" fill="url(#dgPavL)" stroke="rgba(37,99,235,0.4)" strokeWidth="0.3"/>
-    <polygon points="13,37 24,52 18,28" fill="url(#dgPavC)" stroke="rgba(59,130,246,0.4)" strokeWidth="0.3"/>
-    <polygon points="18,28 24,52 30,28" fill="url(#dgPavL)" stroke="rgba(96,165,250,0.4)" strokeWidth="0.3"/>
-    <polygon points="30,28 24,52 35,37" fill="url(#dgPavC)" stroke="rgba(37,99,235,0.4)" strokeWidth="0.3"/>
-    <polygon points="35,37 24,52 46,21" fill="url(#dgPavR)" stroke="rgba(29,78,216,0.4)" strokeWidth="0.3"/>
-    {/* Lignes pavilion */}
-    <line x1="2" y1="21" x2="13" y2="37" stroke="rgba(147,197,253,0.7)" strokeWidth="0.5"/>
-    <line x1="13" y1="37" x2="24" y2="52" stroke="rgba(147,197,253,0.8)" strokeWidth="0.5"/>
-    <line x1="24" y1="52" x2="35" y2="37" stroke="rgba(96,165,250,0.7)" strokeWidth="0.5"/>
-    <line x1="35" y1="37" x2="46" y2="21" stroke="rgba(59,130,246,0.7)" strokeWidth="0.5"/>
-    <line x1="2" y1="21" x2="18" y2="28" stroke="rgba(147,197,253,0.5)" strokeWidth="0.4"/>
-    <line x1="46" y1="21" x2="30" y2="28" stroke="rgba(147,197,253,0.5)" strokeWidth="0.4"/>
-    {/* Reflet principal blanc */}
-    <polygon points="18,8 26,8 29,14 22,15 17,12" fill="url(#dgShine)" opacity="0.85"/>
-    {/* Éclat secondaire */}
-    <polygon points="11,17 16,14 18,18 13,19" fill="white" opacity="0.35"/>
-    {/* Contour avec glow bleu */}
-    <polygon points="17,7 31,7 37,17 46,21 35,37 24,52 13,37 2,21 11,17" fill="none" stroke="rgba(96,165,250,0.95)" strokeWidth="0.8" filter="url(#dgGlow)"/>
+
+    {/* ══ COURONNE ══ */}
+
+    {/* Table — facette plate centrale (octogone) */}
+    <polygon points="42,6 78,6 94,22 94,30 78,38 42,38 26,30 26,22"
+      fill="url(#dg0)" stroke="rgba(191,219,254,0.8)" strokeWidth="0.7"/>
+
+    {/* Facettes étoile (8 triangles depuis centre table vers bords table) */}
+    <polygon points="60,22 42,6 60,6"   fill="url(#dg1)" opacity="0.85"/>
+    <polygon points="60,22 78,6 60,6"   fill="url(#dg0)" opacity="0.6"/>
+    <polygon points="60,22 94,22 78,6"  fill="url(#dg2)" opacity="0.8"/>
+    <polygon points="60,22 94,30 94,22" fill="url(#dg3)" opacity="0.9"/>
+    <polygon points="60,22 78,38 94,30" fill="url(#dg4)" opacity="0.85"/>
+    <polygon points="60,22 60,38 78,38" fill="url(#dg3)" opacity="0.7"/>
+    <polygon points="60,22 42,38 60,38" fill="url(#dg2)" opacity="0.8"/>
+    <polygon points="60,22 26,30 42,38" fill="url(#dg3)" opacity="0.9"/>
+    <polygon points="60,22 26,22 26,30" fill="url(#dg2)" opacity="0.75"/>
+    <polygon points="60,22 42,6 26,22"  fill="url(#dg1)" opacity="0.7"/>
+
+    {/* Facettes upper-girdle (couronne externe - 8 triangles vers girdle) */}
+    <polygon points="42,6 26,22 10,28"  fill="url(#dg1)" stroke="rgba(147,197,253,0.4)" strokeWidth="0.5"/>
+    <polygon points="26,22 26,30 10,28" fill="url(#dg2)" stroke="rgba(147,197,253,0.3)" strokeWidth="0.4"/>
+    <polygon points="26,30 42,38 10,38" fill="url(#dg1)" stroke="rgba(147,197,253,0.3)" strokeWidth="0.4"/>
+    <polygon points="42,38 60,38 34,44" fill="url(#dg2)" stroke="rgba(96,165,250,0.3)" strokeWidth="0.4"/>
+    <polygon points="60,38 78,38 86,44" fill="url(#dg3)" stroke="rgba(59,130,246,0.3)" strokeWidth="0.4"/>
+    <polygon points="78,38 94,30 110,38" fill="url(#dg3)" stroke="rgba(59,130,246,0.3)" strokeWidth="0.4"/>
+    <polygon points="94,30 94,22 110,28" fill="url(#dg4)" stroke="rgba(37,99,235,0.3)" strokeWidth="0.4"/>
+    <polygon points="94,22 78,6 110,28" fill="url(#dg3)" stroke="rgba(59,130,246,0.4)" strokeWidth="0.5"/>
+    <polygon points="42,6 10,28 26,22"  fill="url(#dg1)" stroke="rgba(147,197,253,0.4)" strokeWidth="0.4"/>
+
+    {/* ══ GIRDLE — ligne lumineuse ══ */}
+    <path d="M10,28 L34,44 L60,48 L86,44 L110,28 L110,38 L86,50 L60,54 L34,50 L10,38 Z"
+      fill="none" stroke="url(#dgGirdle)" strokeWidth="1.4"/>
+    <path d="M10,33 L34,47 L60,51 L86,47 L110,33"
+      fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="0.6"/>
+
+    {/* ══ PAVILION ══ */}
+
+    {/* Facettes main pavilion (8 grandes facettes vers culet) */}
+    <polygon points="10,38 34,50 60,118"  fill="url(#dg2)" stroke="rgba(37,99,235,0.35)" strokeWidth="0.5"/>
+    <polygon points="34,50 34,64 60,118"  fill="url(#dg3)" stroke="rgba(59,130,246,0.3)" strokeWidth="0.4"/>
+    <polygon points="34,64 60,54 60,118"  fill="url(#dg2)" stroke="rgba(96,165,250,0.3)" strokeWidth="0.4"/>
+    <polygon points="60,54 86,64 60,118"  fill="url(#dg3)" stroke="rgba(147,197,253,0.3)" strokeWidth="0.4"/>
+    <polygon points="86,64 86,50 60,118"  fill="url(#dg4)" stroke="rgba(59,130,246,0.3)" strokeWidth="0.4"/>
+    <polygon points="86,50 110,38 60,118" fill="url(#dg5)" stroke="rgba(37,99,235,0.35)" strokeWidth="0.5"/>
+    <polygon points="10,28 10,38 34,50 34,44" fill="url(#dg2)" stroke="rgba(96,165,250,0.3)" strokeWidth="0.4"/>
+    <polygon points="110,28 110,38 86,50 86,44" fill="url(#dg5)" stroke="rgba(29,78,216,0.3)" strokeWidth="0.4"/>
+
+    {/* Facettes lower-girdle pavilion */}
+    <polygon points="10,38 34,44 34,50"  fill="url(#dg2)" stroke="rgba(96,165,250,0.25)" strokeWidth="0.3"/>
+    <polygon points="34,44 60,48 34,50"  fill="url(#dg3)" stroke="rgba(96,165,250,0.25)" strokeWidth="0.3"/>
+    <polygon points="60,48 86,44 86,50 60,54 34,50 60,48" fill="url(#dg3)" stroke="rgba(96,165,250,0.2)" strokeWidth="0.3"/>
+    <polygon points="86,44 110,38 86,50" fill="url(#dg4)" stroke="rgba(59,130,246,0.25)" strokeWidth="0.3"/>
+
+    {/* Lignes structurelles pavilion */}
+    <line x1="10" y1="38" x2="60" y2="118" stroke="rgba(147,197,253,0.6)" strokeWidth="0.7"/>
+    <line x1="34" y1="50" x2="60" y2="118" stroke="rgba(147,197,253,0.5)" strokeWidth="0.5"/>
+    <line x1="34" y1="64" x2="60" y2="118" stroke="rgba(147,197,253,0.4)" strokeWidth="0.4"/>
+    <line x1="60" y1="54" x2="60" y2="118" stroke="rgba(191,219,254,0.5)" strokeWidth="0.5"/>
+    <line x1="86" y1="64" x2="60" y2="118" stroke="rgba(96,165,250,0.4)" strokeWidth="0.4"/>
+    <line x1="86" y1="50" x2="60" y2="118" stroke="rgba(96,165,250,0.5)" strokeWidth="0.5"/>
+    <line x1="110" y1="38" x2="60" y2="118" stroke="rgba(59,130,246,0.6)" strokeWidth="0.7"/>
+
+    {/* ══ REFLETS ET ÉCLATS ══ */}
+
+    {/* Reflet principal blanc sur table */}
+    <polygon points="44,7 66,7 76,18 60,22 44,18 36,14" fill="url(#dgW)" opacity="0.9"/>
+
+    {/* Éclat vif coin gauche */}
+    <polygon points="28,23 38,17 42,24 32,28" fill="white" opacity="0.7"/>
+
+    {/* Éclat secondaire droite */}
+    <polygon points="80,10 88,16 84,21 77,16" fill="white" opacity="0.45"/>
+
+    {/* Reflet bleu clair pavilion gauche */}
+    <polygon points="12,40 28,48 20,72" fill="rgba(219,234,254,0.25)"/>
+
+    {/* Reflet pavilion droit */}
+    <polygon points="108,40 92,48 100,72" fill="rgba(147,197,253,0.2)"/>
+
+    {/* Culet - point de lumière à la pointe */}
+    <circle cx="60" cy="118" r="2.5" fill="rgba(147,197,253,0.9)" filter="url(#dfSoft)"/>
+    <circle cx="60" cy="118" r="1" fill="white" opacity="0.95"/>
+
+    {/* ══ CONTOUR GLOBAL avec glow bleu ══ */}
+    <polygon
+      points="42,6 78,6 94,22 110,28 110,38 86,50 60,54 34,50 10,38 10,28 26,22"
+      fill="none" stroke="rgba(96,165,250,0.9)" strokeWidth="0.9"
+      filter="url(#dfGlow)"/>
   </svg>
 );
+
 const Spk=()=>null;
 const Brand=({big=false})=>(
   <div style={{display:"flex",alignItems:"center",gap:big?14:8}}>
