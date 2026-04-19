@@ -48,9 +48,8 @@ const executeAdminUpdate = async (table, id, updates) => {
     throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
   }
   
-  const data = await response.json();
-  console.log('Mise à jour réussie via REST API:', data);
-  return data;
+  // 204 No Content = succès (return=minimal), pas de body JSON
+  return true;
 };
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
