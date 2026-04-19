@@ -11,47 +11,27 @@ const T={bg:"#080808",card:"rgba(255,255,255,0.03)",cardH:"rgba(255,255,255,0.05
 
 // Helper function for admin updates using direct REST API
 const executeAdminUpdate = async (table, id, updates) => {
-  console.log('executeAdminUpdate appelé avec:', { table, id, updates });
-  
-  if (!SB_URL || !SB_ANON) {
-    throw new Error("Supabase non configuré");
-  }
-  
-  console.log('Tentative de mise à jour via REST API...');
-  
-  // Ajouter updated_at pour contourner le trigger
-  const updatesWithTimestamp = {
-    ...updates,
-    updated_at: new Date().toISOString()
-  };
-  
-  console.log('Updates avec timestamp:', updatesWithTimestamp);
-  
-  const url = `${SB_URL}/rest/v1/${table}?id=eq.${id}`;
-  
-  const response = await fetch(url, {
+  if (!SB_URL) throw new Error("Supabase non configuré");
+  // SERVICE KEY bypass RLS - ANON KEY en fallback
+  const key = SB_SERVICE || SB_ANON;
+  const body = { ...updates, updated_at: new Date().toISOString() };
+  const response = await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
-      'apikey': SB_ANON,
-      'Authorization': `Bearer ${SB_ANON}`,
+      'apikey': key,
+      'Authorization': `Bearer ${key}`,
       'Prefer': 'return=minimal'
     },
-    body: JSON.stringify(updatesWithTimestamp)
+    body: JSON.stringify(body)
   });
-  
-  console.log('Response status:', response.status);
-  
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Erreur REST API:', errorText);
     throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
   }
-  
-  const data = await response.json();
-  console.log('Mise à jour réussie via REST API:', data);
-  return data;
+  return true;
 };
+
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
 const PRICE=149;
@@ -1624,21 +1604,16 @@ function SettingsView({profile,reload}){
       const handleVal=tiktokHandle.trim()?"@"+tiktokHandle.trim().replace(/^@/,""):"";
       await sb.from("profiles").update({tiktok_handle:handleVal}).eq("id",profile.id);
     }
-    // Save agency settings
+    // Save agency settings via service key (bypass RLS)
     if(ag?.id){
-      try{
-        await executeAdminUpdate("agencies",ag.id,{
-          name:agName.trim()||ag.name,
-          pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,
-          min_days:minD,min_hours:minH,
-          director_can_import:perms.dir,manager_can_import:perms.mgr,
-          accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,
-          can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel
-        });
-      }catch(e){
-        // Fallback direct
-        await sb.from("agencies").update({name:agName.trim()||ag.name,pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel}).eq("id",ag.id);
-      }
+      await executeAdminUpdate("agencies",ag.id,{
+        name:agName.trim()||ag.name,
+        pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,
+        min_days:minD,min_hours:minH,
+        director_can_import:perms.dir,manager_can_import:perms.mgr,
+        accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,
+        can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel
+      });
     }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
@@ -2062,51 +2037,46 @@ function BlockedAgenciesPanel({profile}){
   const [allAgencies,setAllAgencies]=useState([]);
   const [blocked,setBlocked]=useState([]);
   const [saving,setSaving]=useState(false);
-  const [savedOk,setSavedOk]=useState(false);
   const ag=profile?.agencies;
 
   useEffect(()=>{
     if(!ag?.id) return;
-    fetchAllAgencies().then(d=>{
-      // Exclure sa propre agence de la liste
-      setAllAgencies(d.filter(a=>a.id!==ag.id));
+    fetchAllAgencies().then(d=>setAllAgencies(d.filter(a=>a.id!==ag.id)));
+    // Recharger depuis DB pour avoir les vraies valeurs
+    sb?.from("agencies").select("blocked_agency_ids").eq("id",ag.id).single().then(({data})=>{
+      setBlocked(data?.blocked_agency_ids||[]);
     });
-    // Charger les blocages existants
-    setBlocked(ag.blocked_agency_ids||[]);
   },[ag?.id]);
 
   const toggle=(id)=>setBlocked(b=>b.includes(id)?b.filter(x=>x!==id):[...b,id]);
-
+  const [savedOk,setSavedOk]=useState(false);
   const save=async()=>{
-    if(!ag?.id) return;
-    setSaving(true);
+    if(!ag?.id) return;setSaving(true);
     try{
       await executeAdminUpdate("agencies",ag.id,{blocked_agency_ids:blocked});
+      setSavedOk(true);setTimeout(()=>setSavedOk(false),2500);
     }catch(e){
-      await sb?.from("agencies").update({blocked_agency_ids:blocked}).eq("id",ag.id);
+      alert("Erreur: "+e.message+"\n\nSi la colonne blocked_agency_ids n'existe pas, exécutez le SQL fix-agency-rls.sql dans Supabase.");
     }
-    setSaving(false);setSavedOk(true);setTimeout(()=>setSavedOk(false),2500);
+    setSaving(false);
   };
 
   if(allAgencies.length===0) return(
-    <div style={{fontSize:12,color:T.sec,padding:"10px 0"}}>Aucune autre agence inscrite sur Diamond's pour le moment.</div>
+    <div style={{fontSize:12,color:T.sec}}>Aucune autre agence inscrite sur Diamond's pour le moment.</div>
   );
   return(
     <div>
       <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Agences avec lesquelles vous <strong style={{color:T.ng}}>refusez</strong> les matchs :</div>
-      <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
+      <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:12}}>
         {allAgencies.map(a=>(
           <div key={a.id} onClick={()=>toggle(a.id)} style={{display:"flex",alignItems:"center",gap:11,padding:"9px 12px",borderRadius:9,background:blocked.includes(a.id)?`${T.ng}08`:"rgba(255,255,255,.02)",border:`1px solid ${blocked.includes(a.id)?T.ng+"30":T.b}`,cursor:"pointer",transition:"all .18s"}}>
-            <div style={{width:30,height:30,borderRadius:8,background:(a.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:a.color||T.acc,fontWeight:800,fontSize:13,flexShrink:0}}>{(a.name||"?")[0]}</div>
+            <div style={{width:30,height:30,borderRadius:8,background:(a.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:a.color||T.acc,fontWeight:800,fontSize:13,flexShrink:0}}>{a.name[0]}</div>
             <div style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{a.name}</div>
             <Tog on={blocked.includes(a.id)} onChange={()=>toggle(a.id)} color={T.ng}/>
           </div>
         ))}
       </div>
-      <div style={{display:"flex",alignItems:"center",gap:10}}>
-        <button className="btn" style={{fontSize:12}} onClick={save} disabled={saving}>{saving?<Spin/>:"Enregistrer les blocages"}</button>
-        {savedOk&&<span style={{fontSize:12,color:T.ok}}>✓ Enregistré</span>}
-      </div>
+      <div style={{display:"flex",alignItems:"center",gap:10}}><button className="btn" style={{fontSize:12}} onClick={save} disabled={saving}>{saving?<Spin/>:"Enregistrer les blocages"}</button>{savedOk&&<span style={{fontSize:12,color:T.ok}}>✓ Enregistré</span>}</div>
     </div>
   );
 }
@@ -2977,7 +2947,7 @@ export default function App(){
   if(!auth.user) return <><style>{css}</style><LoginPage/></>;
 
   // Gate: @TikTok obligatoire sauf admin/agency
-  const needsHandle = role && !["admin","agency"].includes(role) && auth.profile && !auth.profile.tiktok_handle;
+  const needsHandle = role && !["admin","agency"].includes(role) && !auth.profile?.agency_id && auth.profile && !auth.profile.tiktok_handle;
   if(needsHandle && tab!=="settings") {
     return(
       <>
@@ -3010,8 +2980,8 @@ export default function App(){
     );
   }
 
-  const isBlocked=role!=="admin"&&ag&&ag.billing_status==="impayé"&&!ag.is_offered;
-  const needsPayment=role==="agency"&&ag&&ag.billing_status==="essai"&&!ag.is_offered;
+  const isBlocked=role!=="admin"&&ag&&ag.billing_status==="impayé"&&!ag.is_offered&&(role==="agency"||auth.profile?.agency_id);
+  const needsPayment=(role==="agency"||auth.profile?.agency_id)&&ag&&ag.billing_status==="essai"&&!ag.is_offered;
   const nav=NAVS[role]||NAVS["admin"];
   const views={
     dash:    ()=>role==="admin"?<AdminDash setTab={setTab}/>:<DashView profile={auth.profile} creators={team.creators} agents={team.agents} managers={team.managers} directors={team.directors}/>,
