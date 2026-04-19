@@ -200,7 +200,7 @@ const genCode=async(agId,issuerId,issuerRole,targetRole)=>{
   });
   return insErr?null:code;
 };
-const getMyCodes=async(issuerId)=>{if(!sb) return [];const {data}=await sb.from("invite_codes").select("*").eq("issuer_id",issuerId).eq("used",false).order("created_at",{ascending:false});return data||[];};
+const getMyCodes=async(issuerId)=>{if(!sb) return [];const {data}=await sb.from("invite_codes").select("*").eq("issuer_id",issuerId).eq("used",false).gt("expires_at",new Date().toISOString()).order("created_at",{ascending:false});return data||[];};
 const getAgencyCodes=async(agId)=>{if(!sb) return [];const {data}=await sb.from("invite_codes").select("*").eq("agency_id",agId).eq("used",false).order("created_at",{ascending:false});return data||[];};
 const fetchSchedule=async(profileId)=>{if(!sb) return [];const {data}=await sb.from("schedules").select("*").eq("creator_profile_id",profileId);return data||[];};
 const saveScheduleSlot=async(slot)=>{
@@ -471,7 +471,10 @@ function LoginPage(){
       // For non-agency: upsert profile first then use code
       await sb.from("profiles").upsert({id:userId,email:email},{onConflict:"id"});
       const {error:cErr}=await sb.rpc("use_invite_code",{p_code:cleanCode,p_user_id:userId});
-      if(cErr){setErr("Code invalide ou expiré");setLoad(false);return;}
+      if(cErr){
+        // Fallback: marquer manuellement comme utilisé
+        await sb.from("invite_codes").update({used:true,used_by:userId}).eq("code",cleanCode);
+      }
     }
     setStep("confirm");setLoad(false);
   };
@@ -1122,20 +1125,17 @@ function CodesPanel({profile}){
           {codes.map(code=>(
             <div key={code.id} className="card" style={{padding:14,border:`1px solid ${COLORS[code.target_role]||T.acc}25`}}>
               <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                <div style={{flex:1}}><div style={{fontWeight:700,fontSize:12.5,color:T.tx}}>Invitation {code.target_role}</div>
-                  <div style={{fontSize:10.5,color:T.sec}}>Expire le {new Date(code.expires_at).toLocaleDateString("fr-FR")}</div></div>
                 <span className="tag" style={{background:`${COLORS[code.target_role]||T.acc}18`,color:COLORS[code.target_role]||T.acc}}>{code.target_role}</span>
+                <div style={{fontSize:10.5,color:T.sec,flex:1}}>Expire le {new Date(code.expires_at).toLocaleDateString("fr-FR")}</div>
+                <button className="btng" style={{padding:"3px 8px",fontSize:10.5,color:T.ng,borderColor:`${T.ng}30`}} onClick={async()=>{await sb?.from("invite_codes").delete().eq("id",code.id);const fresh=await getMyCodes(profile.id);setCodes(fresh);}}>✕ Supprimer</button>
               </div>
-              <div style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"7px 11px",border:`1px solid ${COLORS[code.target_role]||T.acc}20`,marginBottom:7}}>
-                <code style={{flex:1,fontSize:13.5,fontWeight:900,fontFamily:"monospace",letterSpacing:".1em",color:COLORS[code.target_role]||T.acc}}>{code.code}</code>
-                <button className="btng" style={{padding:"3px 8px",fontSize:10.5,borderColor:`${COLORS[code.target_role]||T.acc}30`,color:COLORS[code.target_role]||T.acc}} onClick={()=>cp(code.code)}>
-                  {copied===code.code?"✓ Copié":"Copier"}
+              <div style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"10px 14px",border:`1px solid ${COLORS[code.target_role]||T.acc}30`}}>
+                <code style={{flex:1,fontSize:16,fontWeight:900,fontFamily:"monospace",letterSpacing:".12em",color:COLORS[code.target_role]||T.acc}}>{code.code}</code>
+                <button className="btng" style={{padding:"5px 12px",fontSize:11,borderColor:`${COLORS[code.target_role]||T.acc}40`,color:COLORS[code.target_role]||T.acc}} onClick={()=>cp(code.code)}>
+                  {copied===code.code?"✓ Copié !":"Copier"}
                 </button>
               </div>
-              <div style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"6px 10px",border:`1px solid ${T.b}`}}>
-                <code style={{flex:1,fontSize:10,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{BASE}?c={code.code}</code>
-                <button className="btng" style={{padding:"3px 8px",fontSize:10.5}} onClick={()=>cp(`u-${code.id}`)}>{copied===`u-${code.id}`?"✓":"Copier"}</button>
-              </div>
+              <div style={{fontSize:11,color:T.sec,marginTop:8,textAlign:"center"}}>⚠️ Partage uniquement le code — le lien ne fonctionne pas</div>
             </div>
           ))}
         </div>
@@ -2120,10 +2120,13 @@ function BlockedAgenciesPanel({profile}){
       <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Agences avec lesquelles vous <strong style={{color:T.ng}}>refusez</strong> les matchs :</div>
       <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:12}}>
         {allAgencies.map(a=>(
-          <div key={a.id} onClick={()=>toggle(a.id)} style={{display:"flex",alignItems:"center",gap:11,padding:"9px 12px",borderRadius:9,background:blocked.includes(a.id)?`${T.ng}08`:"rgba(255,255,255,.02)",border:`1px solid ${blocked.includes(a.id)?T.ng+"30":T.b}`,cursor:"pointer",transition:"all .18s"}}>
-            <div style={{width:30,height:30,borderRadius:8,background:(a.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:a.color||T.acc,fontWeight:800,fontSize:13,flexShrink:0}}>{a.name[0]}</div>
+          <div key={a.id} style={{display:"flex",alignItems:"center",gap:11,padding:"9px 12px",borderRadius:9,background:blocked.includes(a.id)?`${T.ng}08`:"rgba(255,255,255,.02)",border:`1px solid ${blocked.includes(a.id)?T.ng+"30":T.b}`,cursor:"pointer",transition:"all .18s"}}
+            onClick={()=>setBlocked(prev=>prev.includes(a.id)?prev.filter(x=>x!==a.id):[...prev,a.id])}>
+            <div style={{width:30,height:30,borderRadius:8,background:(a.color||T.acc)+"18",display:"flex",alignItems:"center",justifyContent:"center",color:a.color||T.acc,fontWeight:800,fontSize:13,flexShrink:0}}>{(a.name||"?")[0]}</div>
             <div style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{a.name}</div>
-            <Tog on={blocked.includes(a.id)} onChange={()=>toggle(a.id)} color={T.ng}/>
+            <div style={{width:38,height:20,borderRadius:10,background:blocked.includes(a.id)?T.ng:"rgba(255,255,255,.15)",position:"relative",flexShrink:0,transition:"background .2s",pointerEvents:"none"}}>
+              <div style={{position:"absolute",top:2,left:blocked.includes(a.id)?"21px":"3px",width:16,height:16,borderRadius:"50%",background:"white",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.4)"}}/>
+            </div>
           </div>
         ))}
       </div>
