@@ -188,8 +188,17 @@ const doCreateAgency=async(name,slug,color)=>{
 };
 const genCode=async(agId,issuerId,issuerRole,targetRole)=>{
   if(!sb) return null;
+  // Essaie via RPC
   const {data,error}=await sb.rpc("generate_invite_code",{p_agency_id:agId,p_issuer_id:issuerId,p_issuer_role:issuerRole,p_target_role:targetRole});
-  return error?null:data;
+  if(!error&&data) return data;
+  // Fallback: insertion directe sans passer par la fonction PL/pgSQL
+  const slug=(await sb.from("agencies").select("slug").eq("id",agId).single())?.data?.slug||"AG";
+  const code=(slug+"-"+targetRole+"-"+Math.random().toString(36).slice(-6)).toUpperCase();
+  const {error:insErr}=await sb.from("invite_codes").insert({
+    code,agency_id:agId,issuer_id:issuerId,target_role:targetRole,used:false,
+    expires_at:new Date(Date.now()+30*24*3600*1000).toISOString()
+  });
+  return insErr?null:code;
 };
 const getMyCodes=async(issuerId)=>{if(!sb) return [];const {data}=await sb.from("invite_codes").select("*").eq("issuer_id",issuerId).eq("used",false).order("created_at",{ascending:false});return data||[];};
 const getAgencyCodes=async(agId)=>{if(!sb) return [];const {data}=await sb.from("invite_codes").select("*").eq("agency_id",agId).eq("used",false).order("created_at",{ascending:false});return data||[];};
@@ -2506,7 +2515,7 @@ function AdminPosterTemplatesView(){
 
 
 /* ─── COACH IA ──────────────────────────── */
-const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_KEY||"";
+const GROQ_KEY = import.meta.env.VITE_GROQ_KEY||"";
 const TIKTOK_RATE = 0.017; // ~0.017€ par diamant (taux TikTok officiel)
 
 function diamondsToEuros(diamonds) {
@@ -2589,33 +2598,31 @@ Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un co
     setMessages(newMessages);
     setInput("");
     setLoading(true);
-    if(!ANTHROPIC_KEY){
-      setMessages(m=>[...m,{role:"assistant",content:"⚠️ Clé API manquante. Dans Vercel → Settings → Environment Variables, ajoute VITE_ANTHROPIC_KEY avec ta clé Claude (sk-ant-...) puis redéploie."}]);
+    if(!GROQ_KEY){
+      setMessages(m=>[...m,{role:"assistant",content:"⚠️ Clé Groq manquante.\nVercel → Settings → Environment Variables → ajoute VITE_GROQ_KEY avec ta clé Groq (gsk_...) → Redeploy.\n\nGroq est 100% gratuit sur groq.com"}]);
       setLoading(false);return;
     }
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
+      const res=await fetch("https://api.groq.com/openai/v1/chat/completions",{
         method:"POST",
         headers:{
           "Content-Type":"application/json",
-          "x-api-key":ANTHROPIC_KEY,
-          "anthropic-version":"2023-06-01",
-          "anthropic-beta":"web-search-2025-03-05"
+          "Authorization":"Bearer "+GROQ_KEY
         },
         body:JSON.stringify({
-          model:"claude-sonnet-4-6",
+          model:"llama-3.3-70b-versatile",
           max_tokens:1000,
-          system:SYSTEM_PROMPT,
-          tools:[{type:"web_search_20250305",name:"web_search",max_uses:2}],
-          messages:newMessages.map(m=>({role:m.role,content:m.content}))
+          messages:[
+            {role:"system",content:SYSTEM_PROMPT},
+            ...newMessages.map(m=>({role:m.role,content:m.content}))
+          ]
         })
       });
       const data=await res.json();
       if(data.error){
-        setMessages(m=>[...m,{role:"assistant",content:"⚠️ Erreur API: "+data.error.message}]);
+        setMessages(m=>[...m,{role:"assistant",content:"⚠️ Erreur Groq: "+data.error.message}]);
       } else {
-        const textBlocks=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text);
-        const reply=textBlocks.join(" ")||"Désolé, je n'ai pas pu répondre. Réessaie !";
+        const reply=data.choices?.[0]?.message?.content||"Désolé, réessaie !";
         setMessages(m=>[...m,{role:"assistant",content:reply}]);
       }
     }catch(e){
@@ -2654,7 +2661,7 @@ Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un co
           <div style={{width:40,height:40,borderRadius:12,background:"rgba(37,99,235,0.15)",border:"1px solid rgba(37,99,235,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🤖</div>
           <div>
             <h1 style={{fontSize:20,fontWeight:700,color:"#fff",letterSpacing:"-.02em"}}>Coach IA TikTok Live</h1>
-            <p style={{fontSize:12,color:"#555"}}>Propulsé par Groq · Spécialisé TikTok Live</p>
+            <p style={{fontSize:12,color:"#555"}}>Propulsé par Groq (gratuit) · Spécialisé TikTok Live</p>
           </div>
         </div>
         {/* Creator stats banner */}
