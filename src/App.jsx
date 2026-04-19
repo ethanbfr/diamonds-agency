@@ -7,7 +7,7 @@ const SB_SERVICE = import.meta.env.VITE_SUPABASE_SERVICE_KEY || "";
 const sb = SB_URL ? createClient(SB_URL, SB_ANON) : null;
 const sbAdmin = SB_URL && SB_SERVICE ? createClient(SB_URL, SB_SERVICE) : null;
 
-const T={bg:"#080808",card:"rgba(255,255,255,0.03)",cardH:"rgba(255,255,255,0.05)",b:"rgba(255,255,255,0.06)",acc:"#2563EB",accL:"#3B82F6",glow:"rgba(37,99,235,0.35)",sec:"#6B7280",ok:"#22C55E",ng:"#EF4444",go:"#F59E0B",pu:"#60A5FA",cy:"#22D3EE",tx:"#FFFFFF",txD:"#A1A1AA",stripe:"#2563EB",payRed:"#FF0033",payRedGlow:"rgba(255,0,51,0.45)"};
+const T={bg:"#080808",card:"rgba(255,255,255,0.03)",cardH:"rgba(255,255,255,0.05)",b:"rgba(255,255,255,0.06)",acc:"#2563EB",accL:"#3B82F6",glow:"rgba(37,99,235,0.35)",sec:"#6B7280",ok:"#22C55E",ng:"#EF4444",go:"#F59E0B",pu:"#60A5FA",cy:"#22D3EE",tx:"#FFFFFF",txD:"#A1A1AA",stripe:"#2563EB",payRed:"#2563EB",payRedGlow:"rgba(37,99,235,0.45)"};
 
 // Helper function for admin updates using direct REST API
 const executeAdminUpdate = async (table, id, updates) => {
@@ -97,8 +97,8 @@ select.inp option{background:#111;color:#fff}
   .app-mob-bar{display:none}
   .members-layout{flex-direction:row!important;align-items:flex-start!important}
 }
-.pay-cta-saas{background:linear-gradient(180deg,#FF1A44 0%,#FF0033 100%)!important;color:#fff!important;border:none!important;font-weight:800!important;letter-spacing:.02em;box-shadow:0 10px 40px rgba(255,0,51,.35),0 0 0 1px rgba(255,255,255,.08) inset}
-.pay-cta-saas:hover{filter:brightness(1.06);box-shadow:0 12px 44px rgba(255,0,51,.45),0 0 0 1px rgba(255,255,255,.1) inset}
+.pay-cta-saas{background:linear-gradient(180deg,#2563EB 0%,#1D4ED8 100%)!important;color:#fff!important;border:none!important;font-weight:800!important;letter-spacing:.02em;box-shadow:0 10px 40px rgba(37,99,235,.35),0 0 0 1px rgba(255,255,255,.08) inset}
+.pay-cta-saas:hover{filter:brightness(1.12);box-shadow:0 12px 44px rgba(37,99,235,.45),0 0 0 1px rgba(255,255,255,.1) inset}
 `;
 
 
@@ -346,7 +346,7 @@ const billingTag=(s,isOffered)=>{
 
 /* ─── NAV ───────────────────────────────── */
 const NAVS={
-  admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"invite_agencies",l:"Inviter agences"},{id:"members",l:"👥 Membres"},{id:"all_users",l:"Utilisateurs"},{id:"all_creators",l:"Créateurs"},{id:"all_staff",l:"Staff"},{id:"all_matches",l:"Matchs"},{id:"all_schedules",l:"Plannings"},{id:"all_lives",l:"Lives"},{id:"poster_templates",l:"Templates affiches"}],
+  admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"invite_agencies",l:"Inviter agences"},{id:"members",l:"👥 Membres"},{id:"all_users",l:"Utilisateurs"},{id:"all_creators",l:"Créateurs"},{id:"all_staff",l:"Staff"},{id:"all_matches",l:"Matchs"},{id:"all_schedules",l:"Plannings"},{id:"all_lives",l:"Lives"},{id:"poster_templates",l:"Templates affiches"},{id:"coach",l:"Coach IA 🤖"}],
   agency:  [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Liens d'invitation"},{id:"matches",l:"Matchs"},{id:"settings",l:"Paramètres"},{id:"coach",l:"Coach IA 🤖"}],
   director:[{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
   manager: [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
@@ -493,7 +493,7 @@ function LoginPage(){
 
   if(step==="payment") return(
     <div style={{minHeight:"100vh",background:"#000",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px 18px calc(28px + env(safe-area-inset-bottom, 12px))",boxSizing:"border-box"}}>
-      <div style={{position:"fixed",inset:0,background:"radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255,0,51,.12), transparent 55%)",pointerEvents:"none"}}/>
+      <div style={{position:"fixed",inset:0,background:"radial-gradient(ellipse 80% 50% at 50% -20%, rgba(37,99,235,.12), transparent 55%)",pointerEvents:"none"}}/>
       <div style={{width:"100%",maxWidth:440,position:"relative",zIndex:1}}>
         <div style={{textAlign:"center",marginBottom:24}}>
           <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><Brand big={true}/></div>
@@ -502,7 +502,7 @@ function LoginPage(){
         </div>
         <div style={{background:"#0A0A0A",borderRadius:20,border:"1px solid rgba(255,255,255,.08)",padding:"26px 22px",marginBottom:14,boxShadow:"0 0 0 1px rgba(255,0,51,.06), 0 24px 80px rgba(0,0,0,.55)"}}>
           <div style={{marginBottom:18}}>
-            <span style={{background:`linear-gradient(90deg,${T.payRed},#FF4466)`,borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:800,color:"#fff",letterSpacing:".12em"}}>ABONNEMENT MENSUEL</span>
+            <span style={{background:`linear-gradient(90deg,${T.acc},${T.accL})`,borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:800,color:"#fff",letterSpacing:".12em"}}>ABONNEMENT MENSUEL</span>
           </div>
           <div style={{marginBottom:16}}>
             <span style={{fontSize:56,fontWeight:900,color:"#fff",letterSpacing:"-.04em"}}>{PRICE}</span>
@@ -892,7 +892,7 @@ function AdminAgencies(){
                 {!ag.is_offered&&(
                   <button type="button" disabled={!!busy} onClick={()=>updateBilling(ag.id,"is_offered",true)} style={{
                     fontSize:12,padding:"8px 12px",width:"100%",borderRadius:8,border:`1px solid ${T.payRed}55`,
-                    background:`linear-gradient(180deg,rgba(255,0,51,.2),rgba(255,0,51,.08))`,color:"#FFF",cursor:"pointer",fontFamily:"inherit",fontWeight:600,
+                    background:`linear-gradient(180deg,rgba(37,99,235,.2),rgba(37,99,235,.08))`,color:"#FFF",cursor:"pointer",fontFamily:"inherit",fontWeight:600,
                     boxShadow:`0 0 16px ${T.payRedGlow}`
                   }}>
                     ♥ Offrir gratuitement
@@ -996,7 +996,7 @@ function AdminBilling(){
               )}
               {!ag.is_offered&&(
                 <button type="button" disabled={!!busy} onClick={()=>update(ag.id,"is_offered",true)} style={{
-                  fontSize:10,padding:"4px 8px",width:"100%",borderRadius:8,border:`1px solid ${T.payRed}55`,background:`linear-gradient(180deg,rgba(255,0,51,.2),rgba(255,0,51,.08))`,color:"#FFF",cursor:"pointer",fontFamily:"inherit",fontWeight:600,
+                  fontSize:10,padding:"4px 8px",width:"100%",borderRadius:8,border:`1px solid ${T.payRed}55`,background:`linear-gradient(180deg,rgba(37,99,235,.2),rgba(37,99,235,.08))`,color:"#FFF",cursor:"pointer",fontFamily:"inherit",fontWeight:600,
                   boxShadow:`0 0 16px ${T.payRedGlow}`
                 }}>
                   ♥ Offrir
@@ -2471,7 +2471,7 @@ function diamondsToEuros(diamonds) {
 
 function CoachView({profile,creators,ag}){
   const [messages,setMessages]=useState([
-    {role:"assistant",content:"Bonjour 👋 Je suis ton Coach TikTok Live ! Je suis là pour t'aider à progresser, booster tes performances et répondre à toutes tes questions sur le live TikTok. Que veux-tu savoir ?"}
+    {role:"assistant",content:(role==="agency"||role==="admin")?"Bonjour 👋 Je suis Diamond Coach Pro, ton assistant IA pour gérer et développer ton agence TikTok Live ! Recrutement, staff, stratégie, revenus, matchs… pose-moi toutes tes questions !":"Bonjour 👋 Je suis Diamond Coach, ton expert TikTok Live 2026 ! Diamants, viewers, PK Battles, stratégies… je suis là pour booster tes performances. Que veux-tu savoir ?"}
   ]);
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
@@ -2488,7 +2488,28 @@ function CoachView({profile,creators,ag}){
 
   useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[messages]);
 
-  const SYSTEM_PROMPT = `Tu es Diamond Coach, l'assistant IA expert TikTok LIVE de Diamond's by Belive Academy.
+  // Prompt différent selon le rôle
+  const isAgencyOrAdmin = role==="agency"||role==="admin";
+  const SYSTEM_PROMPT = isAgencyOrAdmin ? `Tu es Diamond Coach Pro, l'assistant IA expert en gestion d'agence TikTok LIVE de Diamond's by Belive Academy.
+Tu conseilles les fondateurs d'agence sur tous les aspects : recrutement, gestion du staff, stratégie, revenus, créateurs.
+
+━━━ CONTEXTE AGENCE ━━━
+Tu peux parler librement de : gestion de créateurs, recrutement, reversements, organisation du staff (agents/managers/directeurs), stratégie de croissance d'agence, matchs TikTok Live, import Backstage, objectifs mensuels.
+Taux TikTok : 0.017€/diamant (net TikTok au créateur avant reversement agence).
+
+━━━ EXPERTISE AGENCE TIKTOK LIVE 2026 ━━━
+- Recrutement créateurs : cibler les profils avec 10k+ followers, régularité de live, engagement > 3%
+- Structure agence optimale : 1 manager pour 3-5 agents, 1 agent pour 8-12 créateurs
+- Objectifs standards : 20 jours de live / 40h minimum par créateur par mois
+- Revenus : créateurs = 55%, agent = 10%, manager = 5%, directeur = 3%, agence = reste
+- Matchs TikTok Live : boostent visibilité des créateurs de 30-50% et génèrent plus de diamants
+- Import Backstage mensuel essentiel pour suivre les performances précises
+- Peak hours France : 19h-22h semaine, 14h-18h weekend
+- Stratégie de rétention : bonus créateurs performants, coaching personnalisé, objectifs progressifs
+- Partenariats inter-agences : matchs PK avec agences amies pour booster tout le monde
+
+Style : professionnel mais dynamique, emojis, conseils actionnables et chiffrés, max 4 paragraphes.`
+  : `Tu es Diamond Coach, l'assistant IA expert TikTok LIVE de Diamond's by Belive Academy.
 Tu as accès aux dernières informations TikTok Live 2026 et tu te mets à jour en permanence.
 
 ━━━ RÈGLES ABSOLUES ━━━
@@ -2503,47 +2524,15 @@ ${days<minDays?"⚠️ "+(minDays-days)+" jours manquants pour l'objectif":"✅ 
 ${hours<minHours?"⚠️ "+(minHours-hours)+"h manquantes pour l'objectif":"✅ Objectif heures atteint"}
 
 ━━━ CONVERSIONS DIAMANTS → EUROS ━━━
-100💎=1.70€ · 500💎=8.50€ · 1k💎=17€ · 5k💎=85€ · 10k💎=170€ · 50k💎=850€ · 100k💎=1700€ · 1M💎=17 000€
+100💎=1.70€ · 1k💎=17€ · 10k💎=170€ · 100k💎=1700€ · 1M💎=17 000€
 
-━━━ CONNAISSANCES TIKTOK LIVE 2026 ━━━
-
-ALGORITHME 2026:
-- Boost initial les 3 premières minutes sont cruciales (plus de viewers = plus de reach)
-- La régularité prime sur la durée (algorithme favorise les lives quotidiens 30-60min)
-- Les PK Battles boostent massivement la visibilité si tu gagnes
-- Les "LIVE Tasks" (missions en live) augmentent le reach de 30-50%
-- TikTok favorise les créateurs avec un taux d'engagement élevé (dons/viewers)
-
-NOUVELLES FONCTIONNALITÉS 2026:
-- LIVE Shopping intégré avec panier d'achat en direct
-- Multi-guest jusqu'à 5 personnes en simultané
-- LIVE Subscription v2 avec badges exclusifs personnalisés
-- Creator Awards mensuels avec bonus diamants
-- TikTok LIVE Studio desktop amélioré (overlays, scènes)
-- "Series" : enchaîner plusieurs lives thématiques
-- Analytics LIVE temps réel améliorés
-
-CADEAUX 2026 (les plus populaires):
-- Rose 1💎 · Finger Heart 5💎 · TikTok 9💎 · Sun Cream 50💎 · Drama Queen 1000💎
-- Interstellar 3000💎 · Planet 15000💎 · TikTok Universe 34999💎 · Lion 29999💎
-- Galaxy 1000💎 · Motorcycle 5000💎
-
-STRATÉGIES AVANCÉES 2026:
-- "Warm-up" : commencer par interagir dans d'autres lives avant de lancer le sien
-- Utiliser les trending sounds/hashtags dans le titre du live
-- Programmation hebdomadaire fixe = fidélisation audience
-- Collaborations PK Battle avec créateurs du même niveau (+/- 30% de diamants)
-- Lives de "niche" convertissent mieux (cuisine, sport, gaming, beauté, humour)
+━━━ TIKTOK LIVE 2026 ━━━
+- 3 premières minutes cruciales · Régularité > durée · PK Battles boostent la visibilité
 - Peak hours France : 19h-22h semaine · 14h-18h weekend
-
-LEVEL UP & BADGES:
-- Niveau LIVE basé sur heures totales + diamants reçus
-- Badge créateur visible pendant le live (boost confiance)
+- Cadeaux populaires : Rose 1💎 · Drama Queen 1000💎 · Lion 29999💎 · Universe 34999💎
 - Paliers : Bronze → Silver → Gold → Platinum → Diamond
-- Level Diamond = accès aux features exclusives
 
-Tu utilises des recherches web récentes pour rester à jour. Si on te demande une nouveauté 2026, recherche et donne la meilleure réponse possible.
-Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un conseil actionnable.`
+Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un conseil actionnable.`;
 
 
 
@@ -2583,16 +2572,22 @@ Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un co
     setLoading(false);
   };
 
-  const suggestions=[
+  const suggestions=isAgencyOrAdmin?[
+    "Comment recruter de bons créateurs ?",
+    "Quelle structure de staff est optimale ?",
+    "Comment booster les revenus de mon agence ?",
+    "Stratégies pour les matchs TikTok Live ?",
+    "Comment motiver mes créateurs ?",
+  ]:[
     "Comment augmenter mes diamants ?",
     `J'ai ${diamonds} 💎, combien ça fait en euros ?`,
-    "Quels sont les meilleurs horaires pour lancer un live ?",
-    "Comment attirer plus de viewers ?",
+    "Meilleurs horaires pour un live ?",
+    "Comment gagner un PK Battle ?",
     "Conseils pour mon objectif ce mois ?",
   ];
 
-  // Check if coach is enabled for this agency
-  if(ag&&ag.coach_enabled===false) return(
+  // coach_enabled check : seulement pour les non-agences/non-admin
+  if(ag&&ag.coach_enabled===false&&role!=="agency"&&role!=="admin") return(
     <div style={{textAlign:"center",padding:"60px 20px"}}>
       <div style={{fontSize:40,marginBottom:16}}>🤖</div>
       <h2 style={{fontSize:20,fontWeight:700,color:"#fff",marginBottom:8}}>Coach IA désactivé</h2>
@@ -2993,6 +2988,7 @@ export default function App(){
     planning:()=><PlanningView profile={auth.profile}/>,
     my_lives:()=><MyLivesView profile={auth.profile}/>,
     coach:   ()=><CoachView profile={auth.profile} creators={team.creators} ag={auth.profile?.agencies}/>,
+    // Admin coach aussi accessible
     invite_agencies:()=><AdminInviteAgencies/>,
     members:()=><AdminMembersView/>,
     all_users:()=><AdminAllUsersView/>,
@@ -3010,7 +3006,7 @@ export default function App(){
     <>
       <style>{css}</style>
       <div style={{minHeight:"100vh",background:"#000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px 18px calc(28px + env(safe-area-inset-bottom, 12px))",fontFamily:"Inter,sans-serif",boxSizing:"border-box"}}>
-        <div style={{position:"fixed",inset:0,background:"radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255,0,51,.12), transparent 55%)",pointerEvents:"none"}}/>
+        <div style={{position:"fixed",inset:0,background:"radial-gradient(ellipse 80% 50% at 50% -20%, rgba(37,99,235,.12), transparent 55%)",pointerEvents:"none"}}/>
         <div style={{width:"100%",maxWidth:440,position:"relative",zIndex:1}}>
           <div style={{textAlign:"center",marginBottom:24}}>
             <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><Brand big={true}/></div>
@@ -3020,7 +3016,7 @@ export default function App(){
           <div style={{background:"#0A0A0A",borderRadius:20,border:"1px solid rgba(255,255,255,.08)",overflow:"hidden",marginBottom:14,boxShadow:"0 0 0 1px rgba(255,0,51,.06), 0 24px 80px rgba(0,0,0,.55)"}}>
             <div style={{padding:"22px 24px 26px"}}>
               <div style={{marginBottom:16}}>
-                <span style={{background:`linear-gradient(90deg,${T.payRed},#FF4466)`,borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:800,color:"#fff",letterSpacing:".12em"}}>ABONNEMENT MENSUEL</span>
+                <span style={{background:`linear-gradient(90deg,${T.acc},${T.accL})`,borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:800,color:"#fff",letterSpacing:".12em"}}>ABONNEMENT MENSUEL</span>
               </div>
               <div style={{marginBottom:14}}>
                 <span style={{fontSize:58,fontWeight:900,color:"#fff",letterSpacing:"-.04em",lineHeight:1}}>{PRICE}</span>
