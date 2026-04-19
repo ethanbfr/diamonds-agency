@@ -347,10 +347,10 @@ const billingTag=(s,isOffered)=>{
 /* ─── NAV ───────────────────────────────── */
 const NAVS={
   admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"invite_agencies",l:"Inviter agences"},{id:"members",l:"👥 Membres"},{id:"all_users",l:"Utilisateurs"},{id:"all_creators",l:"Créateurs"},{id:"all_staff",l:"Staff"},{id:"all_matches",l:"Matchs"},{id:"all_schedules",l:"Plannings"},{id:"all_lives",l:"Lives"},{id:"poster_templates",l:"Templates affiches"},{id:"coach",l:"Coach IA 🤖"}],
-  agency:  [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Liens d'invitation"},{id:"matches",l:"Matchs"},{id:"settings",l:"Paramètres"},{id:"coach",l:"Coach IA 🤖"}],
+  agency:  [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Codes d'invitation"},{id:"matches",l:"Matchs"},{id:"settings",l:"Paramètres"},{id:"coach",l:"Coach IA 🤖"}],
   director:[{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
   manager: [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
-  agent:   [{id:"dash",l:"Dashboard"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mon lien"},{id:"settings",l:"Paramètres"}],
+  agent:   [{id:"dash",l:"Dashboard"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mon code"},{id:"settings",l:"Paramètres"}],
   creator: [{id:"dash",l:"Mon espace"},{id:"planning",l:"Mon planning"},{id:"my_lives",l:"Mes lives"},{id:"matches",l:"Mes matchs"},{id:"coach",l:"Coach IA 🤖"}],
 };
 
@@ -709,6 +709,8 @@ function AdminAgencies(){
   const [agencies,setAgencies]=useState([]);
   const [sel,setSel]=useState(null);
   const [viewDash,setViewDash]=useState(null);
+  const [viewTeam,setViewTeam]=useState(null);
+  const [agTeam,setAgTeam]=useState({creators:[],agents:[],managers:[],directors:[]});
   const [showForm,setShowForm]=useState(false);
   const [name,setName]=useState("");
   const [slug,setSlug]=useState("");
@@ -774,6 +776,54 @@ function AdminAgencies(){
     }
   };
   const cp=(k)=>{setCopied(k);setTimeout(()=>setCopied(null),2000);};
+
+  if(viewTeam) return(
+    <div className="fup">
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+        <button className="btng" onClick={()=>{setViewTeam(null);setAgTeam({creators:[],agents:[],managers:[],directors:[]});}}>← Retour</button>
+        <h1 style={{fontSize:18,fontWeight:800,color:T.tx}}>Équipe — {viewTeam.name}</h1>
+        {billingTag(viewTeam.billing_status,viewTeam.is_offered)}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+        <SC label="Directeurs" val={agTeam.directors.length} accent={T.acc}/>
+        <SC label="Managers" val={agTeam.managers.length}/>
+        <SC label="Agents" val={agTeam.agents.length}/>
+        <SC label="Créateurs" val={agTeam.creators.length} accent={T.ok}/>
+      </div>
+      {agTeam.creators.length>0&&(
+        <div className="card" style={{overflow:"hidden",marginBottom:12}}>
+          <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Créateurs</div>
+          {agTeam.creators.map(c=>(
+            <div key={c.id} className="cr" style={{gridTemplateColumns:"1fr 90px 55px 55px 80px"}}>
+              <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>{c.pseudo||"—"}</div>
+              <div style={{fontWeight:700,color:T.pu,fontSize:12}}>💎 {(c.diamonds||0).toLocaleString()}</div>
+              <div style={{fontSize:12,color:T.sec}}>{c.days_live||0}j</div>
+              <div style={{fontSize:12,color:T.sec}}>{c.hours_live||0}h</div>
+              <span className="tag" style={{background:calcPayout(viewTeam,c).eligible?`${T.ok}18`:`${T.ng}18`,color:calcPayout(viewTeam,c).eligible?T.ok:T.ng}}>{calcPayout(viewTeam,c).eligible?"éligible":"bloqué"}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {agTeam.agents.length>0&&(
+        <div className="card" style={{overflow:"hidden",marginBottom:12}}>
+          <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Agents</div>
+          {agTeam.agents.map(a=><div key={a.id} className="cr" style={{gridTemplateColumns:"1fr 1fr"}}><div style={{fontSize:12.5,color:T.tx}}>{a.name||"—"}</div><div style={{fontSize:11,color:T.sec}}>{a.email}</div></div>)}
+        </div>
+      )}
+      {agTeam.managers.length>0&&(
+        <div className="card" style={{overflow:"hidden",marginBottom:12}}>
+          <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Managers</div>
+          {agTeam.managers.map(m=><div key={m.id} className="cr" style={{gridTemplateColumns:"1fr 1fr"}}><div style={{fontSize:12.5,color:T.tx}}>{m.name||"—"}</div><div style={{fontSize:11,color:T.sec}}>{m.email}</div></div>)}
+        </div>
+      )}
+      {agTeam.directors.length>0&&(
+        <div className="card" style={{overflow:"hidden",marginBottom:12}}>
+          <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Directeurs</div>
+          {agTeam.directors.map(d=><div key={d.id} className="cr" style={{gridTemplateColumns:"1fr 1fr"}}><div style={{fontSize:12.5,color:T.tx}}>{d.name||"—"}</div><div style={{fontSize:11,color:T.sec}}>{d.email}</div></div>)}
+        </div>
+      )}
+    </div>
+  );
 
   if(viewDash) return(
     <div className="fup">
@@ -878,8 +928,9 @@ function AdminAgencies(){
                     <span style={{fontSize:11.5,color:T.sec}}>Slug {ag.slug} · reversement créa {ag.pct_creator||55}%</span>
                   </div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-                    <button type="button" className="btng" style={{fontSize:12,padding:"8px 12px"}} onClick={()=>{setSel(ag);loadCodes(ag.id);}}>Codes invitation</button>
-                    <button type="button" className="btng" style={{fontSize:12,padding:"8px 12px"}} onClick={()=>setViewDash(ag)}>Dashboard agence</button>
+                    <button type="button" className="btng" style={{fontSize:12,padding:"8px 12px"}} onClick={()=>{setSel(ag);loadCodes(ag.id);}}>Codes</button>
+                    <button type="button" className="btng" style={{fontSize:12,padding:"8px 12px"}} onClick={()=>setViewDash(ag)}>Dashboard</button>
+                    <button type="button" className="btng" style={{fontSize:12,padding:"8px 12px",color:T.ok,borderColor:`${T.ok}40`}} onClick={()=>{setViewTeam(ag);fetchTeam(ag.id).then(setAgTeam);}}>👥 Équipe</button>
                   </div>
                 </div>
               </div>
@@ -1044,7 +1095,7 @@ function CodesPanel({profile}){
   if(!targets.length) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucun lien disponible pour votre rôle.</div>;
   return(
     <div className="fup">
-      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:6}}>Liens d'invitation</h1>
+      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:6}}>Codes d'invitation</h1>
       <p style={{fontSize:12,color:T.sec,marginBottom:14}}>Chaque code est <strong style={{color:T.tx}}>unique et personnel</strong> — deux agents n'ont jamais le même code.</p>
       <div className="card" style={{padding:14,marginBottom:14}}>
         <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Générer un nouveau code</div>
@@ -2538,8 +2589,11 @@ Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un co
     setMessages(newMessages);
     setInput("");
     setLoading(true);
+    if(!ANTHROPIC_KEY){
+      setMessages(m=>[...m,{role:"assistant",content:"⚠️ Clé API manquante. Dans Vercel → Settings → Environment Variables, ajoute VITE_ANTHROPIC_KEY avec ta clé Claude (sk-ant-...) puis redéploie."}]);
+      setLoading(false);return;
+    }
     try{
-      // Use Anthropic API with web search for real-time TikTok 2026 updates
       const res=await fetch("https://api.anthropic.com/v1/messages",{
         method:"POST",
         headers:{
@@ -2549,20 +2603,23 @@ Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un co
           "anthropic-beta":"web-search-2025-03-05"
         },
         body:JSON.stringify({
-          model:"claude-opus-4-5",
-          max_tokens:800,
+          model:"claude-sonnet-4-6",
+          max_tokens:1000,
           system:SYSTEM_PROMPT,
           tools:[{type:"web_search_20250305",name:"web_search",max_uses:2}],
           messages:newMessages.map(m=>({role:m.role,content:m.content}))
         })
       });
       const data=await res.json();
-      // Extract text from content blocks (may include tool_use blocks)
-      const textBlocks=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text);
-      const reply=textBlocks.join(" ")||"Désolé, je n'ai pas pu répondre. Réessaie !";
-      setMessages(m=>[...m,{role:"assistant",content:reply}]);
+      if(data.error){
+        setMessages(m=>[...m,{role:"assistant",content:"⚠️ Erreur API: "+data.error.message}]);
+      } else {
+        const textBlocks=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text);
+        const reply=textBlocks.join(" ")||"Désolé, je n'ai pas pu répondre. Réessaie !";
+        setMessages(m=>[...m,{role:"assistant",content:reply}]);
+      }
     }catch(e){
-      setMessages(m=>[...m,{role:"assistant",content:"⚠️ Erreur de connexion. Vérifiez la configuration."}]);
+      setMessages(m=>[...m,{role:"assistant",content:"⚠️ Erreur réseau: "+e.message}]);
     }
     setLoading(false);
   };
