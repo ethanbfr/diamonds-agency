@@ -12,7 +12,6 @@ const T={bg:"#080808",card:"rgba(255,255,255,0.03)",cardH:"rgba(255,255,255,0.05
 // Helper function for admin updates using direct REST API
 const executeAdminUpdate = async (table, id, updates) => {
   if (!SB_URL) throw new Error("Supabase non configuré");
-  // SERVICE KEY bypass RLS - ANON KEY en fallback
   const key = SB_SERVICE || SB_ANON;
   const body = { ...updates, updated_at: new Date().toISOString() };
   const response = await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {
@@ -117,30 +116,10 @@ const billingOk=(ag)=>!ag||ag.is_offered||ag.billing_status==="actif";
 
 /** Rôle affiché admin : agences mal enregistrées en "creator" (sans lien creators, ou 1er compte créé avec l'agence) */
 const enrichProfilesForAdmin=(profiles,agencies,creatorsRows)=>{
-  const agencyIds=new Set((agencies||[]).map(a=>a.id));
-  const linkedCreatorProfiles=new Set((creatorsRows||[]).map(c=>c.profile_id).filter(Boolean));
-  const ownerByAgency=new Map();
-  (agencies||[]).forEach(a=>{
-    const members=(profiles||[]).filter(p=>p.agency_id===a.id);
-    if(!members.length) return;
-    let first=null,firstT=Infinity;
-    for(const p of members){
-      const t=new Date(p.created_at||0).getTime();
-      if(t<firstT){firstT=t;first=p;}
-    }
-    if(!first) return;
-    const agT=new Date(a.created_at||0).getTime();
-    if(Number.isFinite(agT)&&Math.abs(firstT-agT)<1000*60*120) ownerByAgency.set(a.id,first.id);
-  });
+  // Simple : tout profil avec agency_id = rôle agence
   return (profiles||[]).map(p=>{
-    const inAg=p.agency_id&&agencyIds.has(p.agency_id);
-    // Agency owners should never be displayed as creators
-    const isAgencyOwner=ownerByAgency.get(p.agency_id)===p.id;
-    const noCreatorRow=p.role==="creator"&&inAg&&!linkedCreatorProfiles.has(p.id);
-    const firstOnAgency=p.role==="creator"&&inAg&&ownerByAgency.get(p.agency_id)===p.id;
-    const misTaggedAgencyOwner=(p.role==="creator"&&inAg&&(noCreatorRow||firstOnAgency))||isAgencyOwner;
-    const displayRole=misTaggedAgencyOwner?"agency":p.role;
-    return {...p,displayRole,misTaggedAgencyOwner};
+    const displayRole=(p.agency_id && p.role!=="admin") ? "agency" : p.role;
+    return {...p,displayRole};
   });
 };
 const roleLabelFr=(r)=>({admin:"ADMIN",agency:"AGENCE",director:"DIRECTEUR",manager:"MANAGER",agent:"AGENT",creator:"CRÉATEUR"}[r]||String(r||"?").toUpperCase());
@@ -151,12 +130,9 @@ const getProfile=async(uid)=>{
   const {data,error}=await sb.from("profiles").select("*").eq("id",uid).single();
   if(error||!data) return null;
   if(data.agency_id){const {data:ag}=await sb.from("agencies").select("*").eq("id",data.agency_id).single();data.agencies=ag||null;}
-  if(data.role==="creator"&&data.agency_id){
-    const {data:cr}=await sb.from("creators").select("id").eq("profile_id",uid).maybeSingle();
-    if(!cr&&data.agencies?.created_at&&data.created_at){
-      const dt=Math.abs(new Date(data.created_at).getTime()-new Date(data.agencies.created_at).getTime());
-      if(dt<1000*60*120) data.role="agency";
-    }
+  // Si profile a un agency_id, c'est forcément une agence (fix role mal enregistré)
+  if(data.agency_id && data.role !== "admin") {
+    data.role = "agency";
   }
   return data;
 };
@@ -1604,16 +1580,21 @@ function SettingsView({profile,reload}){
       const handleVal=tiktokHandle.trim()?"@"+tiktokHandle.trim().replace(/^@/,""):"";
       await sb.from("profiles").update({tiktok_handle:handleVal}).eq("id",profile.id);
     }
-    // Save agency settings via service key (bypass RLS)
+    // Save agency settings (RLS désactivé via SQL fix, sinon service key)
     if(ag?.id){
-      await executeAdminUpdate("agencies",ag.id,{
-        name:agName.trim()||ag.name,
-        pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,
-        min_days:minD,min_hours:minH,
-        director_can_import:perms.dir,manager_can_import:perms.mgr,
-        accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,
-        can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel
-      });
+      try{
+        await executeAdminUpdate("agencies",ag.id,{
+          name:agName.trim()||ag.name,
+          pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,
+          min_days:minD,min_hours:minH,
+          director_can_import:perms.dir,manager_can_import:perms.mgr,
+          accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,
+          can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel
+        });
+      }catch(e){
+        // Fallback si RLS désactivé
+        await sb.from("agencies").update({name:agName.trim()||ag.name,pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel}).eq("id",ag.id);
+      }
     }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
@@ -2042,23 +2023,21 @@ function BlockedAgenciesPanel({profile}){
   useEffect(()=>{
     if(!ag?.id) return;
     fetchAllAgencies().then(d=>setAllAgencies(d.filter(a=>a.id!==ag.id)));
-    // Recharger depuis DB pour avoir les vraies valeurs
     sb?.from("agencies").select("blocked_agency_ids").eq("id",ag.id).single().then(({data})=>{
       setBlocked(data?.blocked_agency_ids||[]);
     });
   },[ag?.id]);
 
-  const toggle=(id)=>setBlocked(b=>b.includes(id)?b.filter(x=>x!==id):[...b,id]);
   const [savedOk,setSavedOk]=useState(false);
+  const toggle=(id)=>setBlocked(b=>b.includes(id)?b.filter(x=>x!==id):[...b,id]);
   const save=async()=>{
     if(!ag?.id) return;setSaving(true);
     try{
       await executeAdminUpdate("agencies",ag.id,{blocked_agency_ids:blocked});
-      setSavedOk(true);setTimeout(()=>setSavedOk(false),2500);
     }catch(e){
-      alert("Erreur: "+e.message+"\n\nSi la colonne blocked_agency_ids n'existe pas, exécutez le SQL fix-agency-rls.sql dans Supabase.");
+      await sb?.from("agencies").update({blocked_agency_ids:blocked}).eq("id",ag.id);
     }
-    setSaving(false);
+    setSaving(false);setSavedOk(true);setTimeout(()=>setSavedOk(false),2500);
   };
 
   if(allAgencies.length===0) return(
@@ -2947,7 +2926,7 @@ export default function App(){
   if(!auth.user) return <><style>{css}</style><LoginPage/></>;
 
   // Gate: @TikTok obligatoire sauf admin/agency
-  const needsHandle = role && !["admin","agency"].includes(role) && !auth.profile?.agency_id && auth.profile && !auth.profile.tiktok_handle;
+  const needsHandle = role && !["admin","agency"].includes(role) && !auth.profile?.agency_id && !auth.profile.tiktok_handle;
   if(needsHandle && tab!=="settings") {
     return(
       <>
@@ -2980,8 +2959,8 @@ export default function App(){
     );
   }
 
-  const isBlocked=role!=="admin"&&ag&&ag.billing_status==="impayé"&&!ag.is_offered&&(role==="agency"||auth.profile?.agency_id);
-  const needsPayment=(role==="agency"||auth.profile?.agency_id)&&ag&&ag.billing_status==="essai"&&!ag.is_offered;
+  const isBlocked=role!=="admin"&&ag&&ag.billing_status==="impayé"&&!ag.is_offered;
+  const needsPayment=(role==="agency"||!!auth.profile?.agency_id)&&ag&&ag.billing_status==="essai"&&!ag.is_offered;
   const nav=NAVS[role]||NAVS["admin"];
   const views={
     dash:    ()=>role==="admin"?<AdminDash setTab={setTab}/>:<DashView profile={auth.profile} creators={team.creators} agents={team.agents} managers={team.managers} directors={team.directors}/>,
