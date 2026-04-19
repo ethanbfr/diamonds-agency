@@ -2959,8 +2959,8 @@ export default function App(){
     );
   }
 
-  const isBlocked=role!=="admin"&&ag&&ag.billing_status==="impayé"&&!ag.is_offered;
-  const needsPayment=(role==="agency"||!!auth.profile?.agency_id)&&ag&&ag.billing_status==="essai"&&!ag.is_offered;
+  const isBlocked=role!=="admin"&&role!=="agency"&&!auth.profile?.agency_id&&ag&&ag.billing_status==="impayé"&&!ag.is_offered;
+  const needsPayment=(role==="agency"||!!auth.profile?.agency_id)&&ag&&ag.billing_status==="impayé"&&!ag.is_offered;
   const nav=NAVS[role]||NAVS["admin"];
   const views={
     dash:    ()=>role==="admin"?<AdminDash setTab={setTab}/>:<DashView profile={auth.profile} creators={team.creators} agents={team.agents} managers={team.managers} directors={team.directors}/>,
