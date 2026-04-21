@@ -1640,8 +1640,8 @@ function ImportView({profile,reload}){
         <div style={{fontSize:11.5,color:T.sec,marginTop:2}}>{ag.last_import_count} créateurs · Valide jusqu'au <strong style={{color:T.ok}}>{new Date(ag.last_import_expiry).toLocaleDateString("fr-FR")}</strong></div>
       </div>}
       {err&&<div style={{padding:"8px 11px",borderRadius:9,background:"rgba(244,67,54,.1)",border:"1px solid rgba(244,67,54,.2)",fontSize:12,color:T.ng,marginBottom:12}}>{err}</div>}
-      {phase==="idle"&&<div 
-        onClick={()=>inputRef.current?.click()} 
+      {phase==="idle"&&<div
+        onClick={()=>inputRef.current?.click()}
         onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)go(f);}}
         onDragOver={e=>e.preventDefault()}
         style={{border:`2px dashed ${T.b}`,borderRadius:16,padding:"36px 28px",textAlign:"center",cursor:"pointer",transition:"border-color .2s"}}
@@ -1675,6 +1675,7 @@ function SettingsView({profile,reload}){
   const ag=profile?.agencies;
   const isAgencyOrAdmin=role==="agency"||role==="admin";
   const isStaff=["director","manager","agent"].includes(role);
+  const avatarRef=useRef();
 
   // @ TikTok
   const [tiktokHandle,setTiktokHandle]=useState((profile?.tiktok_handle||"").replace(/^@/,""));
@@ -1686,6 +1687,33 @@ function SettingsView({profile,reload}){
     const handleVal=tiktokHandle.trim()?"@"+tiktokHandle.trim().replace(/^@/,""):"";
     await sb.from("profiles").update({tiktok_handle:handleVal||null}).eq("id",profile.id);
     setSavingHandle(false);setSavedHandle(true);setTimeout(()=>setSavedHandle(false),2500);reload?.();
+  };
+
+  // Photo de profil
+  const [avatarPreview,setAvatarPreview]=useState(profile?.tiktok_avatar_url||null);
+  const [avatarUrl,setAvatarUrl]=useState(profile?.tiktok_avatar_url||"");
+  const [savingAvatar,setSavingAvatar]=useState(false);
+  const [avatarMsg,setAvatarMsg]=useState("");
+  const onAvatarFile=async(file)=>{
+    if(!file) return;
+    if(file.size>5*1024*1024){setAvatarMsg("❌ Image trop lourde (max 5 Mo)");return;}
+    setSavingAvatar(true);setAvatarMsg("");
+    // Stocker en base64 dans le profil directement
+    const reader=new FileReader();
+    reader.onload=async(e)=>{
+      const b64=e.target.result;
+      setAvatarPreview(b64);
+      await sb.from("profiles").update({tiktok_avatar_url:b64}).eq("id",profile.id);
+      setSavingAvatar(false);setAvatarMsg("✓ Photo enregistrée");setTimeout(()=>setAvatarMsg(""),3000);reload?.();
+    };
+    reader.readAsDataURL(file);
+  };
+  const saveAvatarUrl=async()=>{
+    if(!avatarUrl.trim()){setAvatarMsg("❌ URL requise");return;}
+    setSavingAvatar(true);setAvatarMsg("");
+    setAvatarPreview(avatarUrl.trim());
+    await sb.from("profiles").update({tiktok_avatar_url:avatarUrl.trim()}).eq("id",profile.id);
+    setSavingAvatar(false);setAvatarMsg("✓ Photo enregistrée");setTimeout(()=>setAvatarMsg(""),3000);reload?.();
   };
 
   // Email
@@ -1732,35 +1760,56 @@ function SettingsView({profile,reload}){
     if(ag?.id){
       const payload={name:agName.trim()||ag.name,pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel};
       const {error:saveErr}=await sb.from("agencies").update(payload).eq("id",ag.id);
-      if(saveErr){
-        try{ await executeAdminUpdate("agencies",ag.id,payload); }
-        catch(e2){ console.error("Save agency failed:",saveErr.message,e2.message); }
-      }
+      if(saveErr){try{await executeAdminUpdate("agencies",ag.id,payload);}catch(e2){console.error(e2);}}
     }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
 
   return(
     <div className="fup">
-      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>
-        {isAgencyOrAdmin?"Paramètres":"Mon profil"}
-      </h1>
+      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>{isAgencyOrAdmin?"Paramètres":"Mon profil"}</h1>
 
-      {/* @ TikTok — tous les rôles */}
+      {/* ── Photo de profil ── */}
+      <div className="card" style={{padding:18,marginBottom:12}}>
+        <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Photo de profil</div>
+        <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14}}>
+          <div style={{width:72,height:72,borderRadius:"50%",background:"#222",border:"2px solid #333",overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            {avatarPreview
+              ?<img src={avatarPreview} alt="avatar" style={{width:"100%",height:"100%",objectFit:"cover"}} onError={()=>setAvatarPreview(null)}/>
+              :<span style={{fontSize:28,color:"#444"}}>👤</span>}
+          </div>
+          <div style={{flex:1}}>
+            <p style={{fontSize:12,color:T.sec,marginBottom:8}}>Photo affichée sur tes affiches de match TikTok Live</p>
+            <input ref={avatarRef} type="file" accept="image/*" style={{display:"none"}} onChange={e=>onAvatarFile(e.target.files[0])}/>
+            <button className="btn" style={{fontSize:12,padding:"7px 14px"}} onClick={()=>avatarRef.current?.click()} disabled={savingAvatar}>
+              {savingAvatar?<Spin/>:"📷"} Uploader une photo
+            </button>
+          </div>
+        </div>
+        <div style={{fontSize:11,fontWeight:600,color:T.sec,textTransform:"uppercase",letterSpacing:".07em",marginBottom:6}}>Ou colle l'URL de ta photo TikTok</div>
+        <div style={{display:"flex",gap:8}}>
+          <input className="inp" value={avatarUrl} onChange={e=>setAvatarUrl(e.target.value)} placeholder="https://p16-sign.tiktokcdn.com/..." style={{flex:1,fontSize:12}}/>
+          <button className="btn" style={{fontSize:12,padding:"9px 14px",flexShrink:0}} onClick={saveAvatarUrl} disabled={savingAvatar||!avatarUrl.trim()}>OK</button>
+        </div>
+        {avatarMsg&&<div style={{marginTop:8,fontSize:12,color:avatarMsg.startsWith("✓")?T.ok:T.ng}}>{avatarMsg}</div>}
+        <p style={{fontSize:11,color:"#444",marginTop:6}}>💡 Sur TikTok : va sur ton profil → appuie longuement sur ta photo → "Copier le lien"</p>
+      </div>
+
+      {/* ── @ TikTok ── */}
       <div className="card" style={{padding:18,marginBottom:12}}>
         <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Mon @ TikTok</div>
         <div style={{position:"relative",marginBottom:8}}>
           <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:T.sec,fontSize:14,pointerEvents:"none"}}>@</span>
           <input className="inp" value={tiktokHandle} onChange={e=>setTiktokHandle(e.target.value.replace(/^@/,""))} placeholder="tonpseudo" style={{paddingLeft:28}}/>
         </div>
-        <p style={{fontSize:11,color:"#555",marginBottom:12}}>Identique à ton @ TikTok exact · Apparaît sur les affiches de match</p>
+        <p style={{fontSize:11,color:"#555",marginBottom:10}}>Identique à ton @ TikTok exact · Apparaît sur les affiches de match</p>
         <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10}}>
           {savedHandle&&<span style={{fontSize:12,color:T.ok}}>✓ Enregistré</span>}
           <button className="btn" style={{fontSize:13,padding:"9px 18px"}} onClick={saveHandle} disabled={savingHandle}>{savingHandle?<Spin/>:"✓"} Sauvegarder</button>
         </div>
       </div>
 
-      {/* Modifier email — tous les rôles */}
+      {/* ── Modifier email ── */}
       <div className="card" style={{padding:18,marginBottom:12}}>
         <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:4}}>Modifier mon email</div>
         <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Email actuel : <strong style={{color:T.tx}}>{profile?.email}</strong></div>
@@ -1771,7 +1820,7 @@ function SettingsView({profile,reload}){
         </div>
       </div>
 
-      {/* Modifier mot de passe — tous les rôles */}
+      {/* ── Modifier mot de passe ── */}
       <div className="card" style={{padding:18,marginBottom:12}}>
         <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Modifier mon mot de passe</div>
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:10}}>
@@ -1787,7 +1836,7 @@ function SettingsView({profile,reload}){
         </div>
       </div>
 
-      {/* Info agence en lecture seule — staff uniquement */}
+      {/* ── Info agence lecture seule — staff ── */}
       {isStaff&&ag&&(
         <div className="card" style={{padding:18,marginBottom:12}}>
           <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Mon agence</div>
@@ -1802,7 +1851,7 @@ function SettingsView({profile,reload}){
         </div>
       )}
 
-      {/* Paramètres agence complets — agency/admin uniquement */}
+      {/* ── Paramètres agence — agency/admin uniquement ── */}
       {isAgencyOrAdmin&&(<>
         <div className="card" style={{padding:18,marginBottom:12}}>
           <div style={{fontWeight:600,fontSize:13,color:T.tx,marginBottom:12}}>Informations de l'agence</div>
