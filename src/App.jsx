@@ -1670,53 +1670,66 @@ function ImportView({profile,reload}){
   };
 
   const doImport = async () => {
-    if(!preview||preview.length===0) return;
+    if(!preview||preview.length===0||!sb||!ag?.id) return;
     setPhase("load");setProg(0);setErr("");
     let p=0;const iv=setInterval(()=>{p=Math.min(p+Math.random()*14+5,90);setProg(Math.round(p));},110);
-
-    // 1. Upsert dans la table creators (via RPC existant)
-    const rowsForRpc = preview.map(r=>({tiktok_id:r.tiktok_id,pseudo:r.pseudo,diamonds:r.diamonds,days_live:r.days_live,hours_live:r.hours_live}));
-    const res = await importBackstage(ag?.id, profile?.id, rowsForRpc);
-    clearInterval(iv);setProg(80);
-
-    if(res?.error){setErr(res.error);setPhase("idle");return;}
-
-    // 2. Linking : relier chaque @TikTok aux profils inscrits (créateurs ET staff)
-    if(sb && ag?.id){
-      const [{data:creatorsData},{data:profilesData}] = await Promise.all([
+    let updated=0;
+    try{
+      // 1. Upsert direct sans RPC pour eviter l'erreur updated_at
+      for(const r of preview){
+        const {data:existing}=await sb.from("creators")
+          .select("id")
+          .eq("agency_id",ag.id)
+          .or("tiktok_id.eq."+r.tiktok_id+",pseudo.eq."+r.pseudo)
+          .maybeSingle();
+        if(existing?.id){
+          await sb.from("creators").update({
+            diamonds:r.diamonds, days_live:r.days_live, hours_live:r.hours_live,
+          }).eq("id",existing.id);
+        } else {
+          await sb.from("creators").insert({
+            agency_id:ag.id, tiktok_id:r.tiktok_id, pseudo:r.pseudo,
+            diamonds:r.diamonds, days_live:r.days_live, hours_live:r.hours_live,
+          });
+        }
+        updated++;
+      }
+      // 2. Mise a jour last_import sur l'agence
+      const expDate=new Date();expDate.setMonth(expDate.getMonth()+1);expDate.setDate(15);
+      await sb.from("agencies").update({
+        last_import_date:new Date().toISOString(),
+        last_import_count:updated,
+        last_import_expiry:expDate.toISOString(),
+      }).eq("id",ag.id);
+      clearInterval(iv);setProg(80);
+      // 3. Linking @TikTok -> profils inscrits (createurs ET staff)
+      const [{data:creatorsData},{data:profilesData}]=await Promise.all([
         sb.from("creators").select("id,tiktok_id,pseudo,profile_id").eq("agency_id",ag.id),
         sb.from("profiles").select("id,tiktok_handle,role").eq("agency_id",ag.id),
       ]);
-      if(creatorsData && profilesData){
-        // Pour chaque profil inscrit (y compris staff), on cherche son creator record
+      if(creatorsData&&profilesData){
         for(const prof of profilesData){
           if(!prof.tiktok_handle) continue;
-          const handle = normHandle(prof.tiktok_handle);
-          // Cherche dans la liste importée ET dans les creators existants
-          const creatorRow = creatorsData.find(c =>
-            normHandle(c.pseudo) === handle ||
-            normHandle(c.tiktok_id) === handle
-          );
-          if(creatorRow && creatorRow.profile_id !== prof.id){
+          const handle=normHandle(prof.tiktok_handle);
+          const creatorRow=creatorsData.find(c=>normHandle(c.pseudo)===handle||normHandle(c.tiktok_id)===handle);
+          if(creatorRow&&creatorRow.profile_id!==prof.id){
             await sb.from("creators").update({profile_id:prof.id}).eq("id",creatorRow.id);
           }
-          // Si le staff est aussi créateur : met à jour ses stats depuis l'import
           if(["director","manager","agent"].includes(prof.role)){
-            const importedRow = preview.find(r => normHandle(r.pseudo)===handle || normHandle(r.tiktok_id)===handle);
-            if(importedRow && creatorRow){
+            const imp=preview.find(r=>normHandle(r.pseudo)===handle||normHandle(r.tiktok_id)===handle);
+            if(imp&&creatorRow){
               await sb.from("creators").update({
-                diamonds: importedRow.diamonds,
-                days_live: importedRow.days_live,
-                hours_live: importedRow.hours_live,
-                profile_id: prof.id,
+                diamonds:imp.diamonds, days_live:imp.days_live, hours_live:imp.hours_live, profile_id:prof.id,
               }).eq("id",creatorRow.id);
             }
           }
         }
       }
+    }catch(e){
+      clearInterval(iv);setErr("Erreur import : "+e.message);setPhase("idle");return;
     }
     setProg(100);
-    setTimeout(()=>{setRes(res);setPhase("done");reload?.();},300);
+    setTimeout(()=>{setRes({updated});setPhase("done");reload?.();},300);
   };
 
   const expiry=()=>{const d=new Date();d.setMonth(d.getMonth()+1);d.setDate(15);return d.toLocaleDateString("fr-FR");};
