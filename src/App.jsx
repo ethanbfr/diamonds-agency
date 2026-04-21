@@ -533,7 +533,7 @@ function LoginPage(){
         <div style={{textAlign:"center",marginBottom:24}}>
           <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><Brand big={true}/></div>
           <p style={{fontSize:16,fontWeight:700,color:"#fff",letterSpacing:"-.02em"}}>Active ton espace agence</p>
-          <p style={{fontSize:13,color:"#888",marginTop:6}}>Un paiement sécurisé · Accès immédiat après validation</p>
+          <p style={{fontSize:13,color:"#888",marginTop:6}}>Un paiement sécurisé - Accès immédiat après validation</p>
         </div>
         <div style={{background:"#0A0A0A",borderRadius:20,border:"1px solid rgba(255,255,255,.08)",padding:"26px 22px",marginBottom:14,boxShadow:"0 0 0 1px rgba(255,0,51,.06), 0 24px 80px rgba(0,0,0,.55)"}}>
           <div style={{marginBottom:18}}>
@@ -543,7 +543,7 @@ function LoginPage(){
             <span style={{fontSize:56,fontWeight:900,color:"#fff",letterSpacing:"-.04em"}}>{PRICE}</span>
             <span style={{fontSize:22,color:"#666",fontWeight:500,marginLeft:4}}>€<span style={{fontSize:13}}>/mois</span></span>
           </div>
-          <p style={{fontSize:13,color:"#777",marginBottom:22,lineHeight:1.55}}>Sans engagement · Résiliable · Paiement Stripe (comme SaaS House)</p>
+          <p style={{fontSize:13,color:"#777",marginBottom:22,lineHeight:1.55}}>Sans engagement - Résiliable - Paiement Stripe (comme SaaS House)</p>
           {[
             "Gestion illimitée de créateurs",
             "Matchs TikTok Live & affiches",
@@ -565,7 +565,7 @@ function LoginPage(){
               🔒 Payer {PRICE}€/mois
             </button>
             <div style={{textAlign:"center",fontSize:11,color:"#444",marginTop:14,letterSpacing:".04em"}}>
-              SÉCURISÉ PAR STRIPE · CHIFFREMENT 256-BIT
+              SÉCURISÉ PAR STRIPE - CHIFFREMENT 256-BIT
             </div>
           </div>
         </div>
@@ -613,7 +613,7 @@ function LoginPage(){
             {mode==="register"&&(
               <div>
                 <label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".08em"}}>Code d'invitation</label>
-                <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="NOVA-AGENT-XXXXXX · ou AGENCE-XXXXXX" style={{fontFamily:"monospace",letterSpacing:".06em"}}/>
+                <input className="inp" value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="NOVA-AGENT-XXXXXX - ou AGENCE-XXXXXX" style={{fontFamily:"monospace",letterSpacing:".06em"}}/>
               </div>
             )}
 
@@ -645,7 +645,7 @@ function LoginPage(){
 
         <div style={{textAlign:"center"}}>
           <p style={{fontSize:12,color:"#333"}}>Problème ? <a href={`mailto:${CONTACT}`} style={{color:"#2563EB",textDecoration:"none"}}>Contacter Diamond's</a></p>
-          <p style={{fontSize:11,color:"#2a2a2a",marginTop:6,letterSpacing:".05em"}}>🔒 SÉCURISÉ · DONNÉES CHIFFRÉES</p>
+          <p style={{fontSize:11,color:"#2a2a2a",marginTop:6,letterSpacing:".05em"}}>🔒 SÉCURISÉ - DONNÉES CHIFFRÉES</p>
         </div>
       </div>
     </div>
@@ -662,11 +662,11 @@ function AdminDash({setTab}){
   return(
     <div className="fup">
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:10,fontWeight:700,color:T.acc,textTransform:"uppercase",letterSpacing:".1em",marginBottom:3}}>Super Admin · Belive Academy</div>
+        <div style={{fontSize:10,fontWeight:700,color:T.acc,textTransform:"uppercase",letterSpacing:".1em",marginBottom:3}}>Super Admin - Belive Academy</div>
         <h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Vue globale</h1>
       </div>
       <div className="admin-stat-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-        <SC label="MRR" val={mrr+"€"} sub={`${PRICE}€/agence · hors offerts`} accent={T.acc}/>
+        <SC label="MRR" val={mrr+"€"} sub={`${PRICE}€/agence - hors offerts`} accent={T.acc}/>
         <SC label="ARR estimé" val={mrr*12+"€"} sub="Projection"/>
         <SC label="Agences actives" val={paying.length} sub="Payantes" accent={T.ok}/>
         <SC label="Offerts ♥" val={agencies.filter(a=>a.is_offered).length} sub="Hors MRR" accent={T.cy}/>
@@ -830,7 +830,7 @@ function AdminAgencies(){
           <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Créateurs</div>
           {agTeam.creators.map(c=>(
             <div key={c.id} className="cr" style={{gridTemplateColumns:"1fr 90px 55px 55px 80px"}}>
-              <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>{c.pseudo||"—"}</div>
+              <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>{c.pseudo||"---"}</div>
               <div style={{fontWeight:700,color:T.pu,fontSize:12}}>💎 {(c.diamonds||0).toLocaleString()}</div>
               <div style={{fontSize:12,color:T.sec}}>{c.days_live||0}j</div>
               <div style={{fontSize:12,color:T.sec}}>{c.hours_live||0}h</div>
@@ -842,19 +842,19 @@ function AdminAgencies(){
       {agTeam.agents.length>0&&(
         <div className="card" style={{overflow:"hidden",marginBottom:12}}>
           <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Agents</div>
-          {agTeam.agents.map(a=><div key={a.id} className="cr" style={{gridTemplateColumns:"1fr 1fr"}}><div style={{fontSize:12.5,color:T.tx}}>{a.name||"—"}</div><div style={{fontSize:11,color:T.sec}}>{a.email}</div></div>)}
+          {agTeam.agents.map(a=><div key={a.id} className="cr" style={{gridTemplateColumns:"1fr 1fr"}}><div style={{fontSize:12.5,color:T.tx}}>{a.name||"---"}</div><div style={{fontSize:11,color:T.sec}}>{a.email}</div></div>)}
         </div>
       )}
       {agTeam.managers.length>0&&(
         <div className="card" style={{overflow:"hidden",marginBottom:12}}>
           <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Managers</div>
-          {agTeam.managers.map(m=><div key={m.id} className="cr" style={{gridTemplateColumns:"1fr 1fr"}}><div style={{fontSize:12.5,color:T.tx}}>{m.name||"—"}</div><div style={{fontSize:11,color:T.sec}}>{m.email}</div></div>)}
+          {agTeam.managers.map(m=><div key={m.id} className="cr" style={{gridTemplateColumns:"1fr 1fr"}}><div style={{fontSize:12.5,color:T.tx}}>{m.name||"---"}</div><div style={{fontSize:11,color:T.sec}}>{m.email}</div></div>)}
         </div>
       )}
       {agTeam.directors.length>0&&(
         <div className="card" style={{overflow:"hidden",marginBottom:12}}>
           <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Directeurs</div>
-          {agTeam.directors.map(d=><div key={d.id} className="cr" style={{gridTemplateColumns:"1fr 1fr"}}><div style={{fontSize:12.5,color:T.tx}}>{d.name||"—"}</div><div style={{fontSize:11,color:T.sec}}>{d.email}</div></div>)}
+          {agTeam.directors.map(d=><div key={d.id} className="cr" style={{gridTemplateColumns:"1fr 1fr"}}><div style={{fontSize:12.5,color:T.tx}}>{d.name||"---"}</div><div style={{fontSize:11,color:T.sec}}>{d.email}</div></div>)}
         </div>
       )}
     </div>
@@ -891,7 +891,7 @@ function AdminAgencies(){
       </div>
       <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Codes actifs non utilisés</div>
       {(codes[sel.id]||[]).length===0?(
-        <div style={{textAlign:"center",padding:"24px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:12,fontSize:12}}>Aucun code · Génère des codes ci-dessus</div>
+        <div style={{textAlign:"center",padding:"24px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:12,fontSize:12}}>Aucun code - Génère des codes ci-dessus</div>
       ):(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {(codes[sel.id]||[]).map(code=>(
@@ -960,7 +960,7 @@ function AdminAgencies(){
                   <div style={{fontWeight:800,fontSize:15,color:T.tx,marginBottom:6}}>{ag.name}</div>
                   <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:8,marginBottom:6}}>
                     {billingTag(ag.billing_status,ag.is_offered)}
-                    <span style={{fontSize:11.5,color:T.sec}}>Slug {ag.slug} · reversement créa {ag.pct_creator||55}%</span>
+                    <span style={{fontSize:11.5,color:T.sec}}>Slug {ag.slug} - reversement créa {ag.pct_creator||55}%</span>
                   </div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
                     <button type="button" className="btng" style={{fontSize:12,padding:"8px 12px"}} onClick={()=>{setSel(ag);loadCodes(ag.id);}}>Codes</button>
@@ -1056,7 +1056,7 @@ function AdminBilling(){
         <SC label="Offerts ♥" val={offertCount} sub="Hors MRR" accent={T.cy}/>
       </div>
       <div style={{padding:"12px 16px",borderRadius:10,background:"rgba(37,99,235,.06)",border:"1px solid rgba(37,99,235,.15)",fontSize:13,color:T.tx,marginBottom:14,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
-        <span>Abonnement <strong style={{color:T.acc}}>{PRICE}€/mois</strong> par agence · Paiement via Stripe</span>
+        <span>Abonnement <strong style={{color:T.acc}}>{PRICE}€/mois</strong> par agence - Paiement via Stripe</span>
         <button type="button" className="btn pay-cta-saas" style={{fontSize:12,padding:"8px 16px"}} onClick={()=>{window.location.href=STRIPE_LINK;}}>Ouvrir le paiement Stripe →</button>
       </div>
       <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Toutes les agences</div>
@@ -1143,7 +1143,7 @@ function CodesPanel({profile}){
         </div>
       </div>
       {loading?<div style={{textAlign:"center",padding:20,color:T.sec}}>Chargement…</div>:
-      codes.length===0?<div style={{textAlign:"center",padding:"24px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:12}}>Aucun code actif · Génère un code ci-dessus</div>:(
+      codes.length===0?<div style={{textAlign:"center",padding:"24px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:12}}>Aucun code actif - Génère un code ci-dessus</div>:(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {codes.map(code=>(
             <div key={code.id} className="card" style={{padding:14,border:`1px solid ${COLORS[code.target_role]||T.acc}25`}}>
@@ -1188,7 +1188,7 @@ function PlanningView({profile}){
   return(
     <div className="fup">
       <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:4}}>Mon planning live</h1>
-      <p style={{fontSize:12,color:T.sec,marginBottom:14}}>Indique tes dispo · Ton staff peut voir ce planning pour organiser tes matchs · Tu peux modifier à tout moment</p>
+      <p style={{fontSize:12,color:T.sec,marginBottom:14}}>Indique tes dispo - Ton staff peut voir ce planning pour organiser tes matchs - Tu peux modifier à tout moment</p>
       {loading?<div style={{textAlign:"center",padding:20,color:T.sec}}>Chargement…</div>:(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {DAYS.map((day,i)=>{
@@ -1265,7 +1265,7 @@ function MyLivesView({profile}){
     <div className="fup">
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
         <div><h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Mes lives</h1>
-          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Saisis tes lives manuellement · Connexion TikTok directe bientôt</p></div>
+          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Saisis tes lives manuellement - Connexion TikTok directe bientôt</p></div>
         <button className="btn" style={{fontSize:12}} onClick={()=>setShowForm(!showForm)}>+ Ajouter un live</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
@@ -1298,7 +1298,7 @@ function MyLivesView({profile}){
       {loading?<div style={{textAlign:"center",padding:20,color:T.sec}}>Chargement…</div>:
       entries.length===0?(
         <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
-          Aucun live enregistré · Ajoute ton premier live ci-dessus
+          Aucun live enregistré - Ajoute ton premier live ci-dessus
           <div style={{marginTop:10,fontSize:11,color:T.sec}}>Connexion TikTok directe bientôt ✨</div>
         </div>
       ):(
@@ -1310,7 +1310,7 @@ function MyLivesView({profile}){
               <div style={{fontWeight:700,color:T.cy,fontSize:12}}>💎 {(e.diamonds||0).toLocaleString()}</div>
               <div style={{fontSize:12,color:T.sec}}>{Math.round((e.duration_minutes||0)/60*10)/10}h</div>
               <div style={{fontSize:12,color:T.sec}}>👁 {(e.viewers||0).toLocaleString()}</div>
-              <div style={{fontSize:11.5,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.notes||"—"}</div>
+              <div style={{fontSize:11.5,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.notes||"---"}</div>
             </div>
           ))}
         </div>
@@ -1378,7 +1378,7 @@ function MatchesView({profile,creators}){
     <div className="fup">
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
         <div><h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Matchs TikTok Live</h1>
-          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Matchs intra et inter-agences · Matchmaking automatique par niveau de diamants</p></div>
+          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Matchs intra et inter-agences - Matchmaking automatique par niveau de diamants</p></div>
         {canCreate&&<button className="btn" style={{fontSize:12}} onClick={()=>setShowCreate(!showCreate)}>+ Créer un match</button>}
       </div>
 
@@ -1440,8 +1440,8 @@ function MatchesView({profile,creators}){
           {matches.filter(m=>m.status==="pending"&&!m.creator_b).map(m=>(
             <div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,background:"rgba(255,255,255,.03)",marginBottom:7,border:`1px solid ${T.b}`}}>
               <div style={{flex:1}}>
-                <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>Match ouvert · {m.match_date?new Date(m.match_date).toLocaleDateString("fr-FR"):"Date libre"}</div>
-                <div style={{fontSize:11,color:T.sec}}>{m.match_time||"Heure libre"} · {m.is_inter_agency?"Inter-agences":"Intra-agence"}</div>
+                <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>Match ouvert - {m.match_date?new Date(m.match_date).toLocaleDateString("fr-FR"):"Date libre"}</div>
+                <div style={{fontSize:11,color:T.sec}}>{m.match_time||"Heure libre"} - {m.is_inter_agency?"Inter-agences":"Intra-agence"}</div>
               </div>
               <button className="btn" style={{fontSize:11.5,padding:"5px 12px",background:`linear-gradient(135deg,${T.ok},#00E676)`}}>Postuler</button>
             </div>
@@ -1457,7 +1457,7 @@ function MatchesView({profile,creators}){
           <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Matchs programmés</div>
           {matches.map(m=>(
             <div key={m.id} className="cr" style={{gridTemplateColumns:"100px 1fr 80px 90px 80px"}}>
-              <div style={{fontWeight:700,fontSize:12,color:T.tx}}>{m.match_date?new Date(m.match_date).toLocaleDateString("fr-FR"):"—"}</div>
+              <div style={{fontWeight:700,fontSize:12,color:T.tx}}>{m.match_date?new Date(m.match_date).toLocaleDateString("fr-FR"):"---"}</div>
               <div>
                 <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>Match {m.is_inter_agency?"inter":"intra"}-agence</div>
                 <div style={{fontSize:10.5,color:T.sec}}>{m.match_time||"?"}</div>
@@ -1522,7 +1522,7 @@ function CreatorsView({profile,creators,agents,reload}){
       </div>
       {creators.length===0?(
         <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
-          Aucun créateur · Invitez-en via vos liens
+          Aucun créateur - Invitez-en via vos liens
         </div>
       ):(
         <div className="card" style={{overflow:"hidden"}}>
@@ -1546,7 +1546,7 @@ function CreatorsView({profile,creators,agents,reload}){
                       </div>
                     </div>
                     {canName&&<div style={{fontSize:12,fontWeight:600,color:T.tx}}>{c.first_name} {c.last_name}</div>}
-                    {canPhone&&<div style={{fontSize:11,color:T.tx}}>{c.phone||"—"}</div>}
+                    {canPhone&&<div style={{fontSize:11,color:T.tx}}>{c.phone||"---"}</div>}
                     <div style={{fontWeight:700,color:T.cy,fontSize:12}}>💎 {(c.diamonds||0).toLocaleString()}</div>
                     <div style={{fontWeight:600,fontSize:12,color:(c.days_live||0)>=(ag.min_days||20)?T.ok:T.ng}}>{c.days_live||0}j</div>
                     <div style={{fontWeight:600,fontSize:12,color:(c.hours_live||0)>=(ag.min_hours||40)?T.ok:T.ng}}>{c.hours_live||0}h</div>
@@ -1585,14 +1585,12 @@ function CreatorsView({profile,creators,agents,reload}){
 }
 
 /* ─── IMPORT BACKSTAGE ──────────────────── */
-// Lit le XLSX officiel TikTok Backstage (colonnes françaises) via SheetJS
 const parseBackstageXLSX = async (file) => {
   const XLSX = await import("https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs");
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array" });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-  // Cherche la ligne d-en-tete (contient le mot utilisateur)
   let headerIdx = raw.findIndex(r => r.some(c => {
     const s = String(c).toLowerCase();
     return s.includes("utilisateur") || s.includes("username");
@@ -1613,37 +1611,66 @@ const parseBackstageXLSX = async (file) => {
     const tiktok_id = String(r[iId] ?? "").trim();
     const pseudo    = String(r[iPseudo] ?? "").trim();
     if (!pseudo && !tiktok_id) continue;
-    const hoursRaw  = parseFloat(String(r[iHours] ?? "0").replace(",", ".")) || 0;
+    const hoursRaw = parseFloat(String(r[iHours] ?? "0").replace(",", ".")) || 0;
     rows.push({
       tiktok_id,
       pseudo,
-      group_name:   String(r[iGroup]   ?? "").trim(),
-      agent_email:  String(r[iAgent]   ?? "").trim(),
-      diamonds:     Math.round(parseFloat(String(r[iDiamonds] ?? "0").replace(",", ".")) || 0),
-      days_live:    Math.round(parseFloat(String(r[iDays]     ?? "0").replace(",", ".")) || 0),
-      hours_live:   Math.round(hoursRaw * 10) / 10,
+      group_name:  String(r[iGroup]   ?? "").trim(),
+      agent_email: String(r[iAgent]   ?? "").trim(),
+      diamonds:    Math.round(parseFloat(String(r[iDiamonds] ?? "0").replace(",", ".")) || 0),
+      days_live:   Math.round(parseFloat(String(r[iDays]     ?? "0").replace(",", ".")) || 0),
+      hours_live:  Math.round(hoursRaw * 10) / 10,
     });
   }
   return rows;
 };
 
-// Normalise un handle TikTok pour la comparaison
 const normHandle = (h) => String(h || "").replace(/^@/, "").trim().toLowerCase();
+
+// Etape guide Backstage
+const BACKSTAGE_STEPS = [
+  { icon: "1", label: "Ouvre", desc: "backstage.tiktok.com" },
+  { icon: "2", label: "Va dans", desc: "Donnees / Donnees du createur" },
+  { icon: "3", label: "Clique", desc: "Exporter" },
+  { icon: "4", label: "Selectionne", desc: "Tous les createurs puis confirme" },
+  { icon: "5", label: "Telecharge", desc: "le fichier .xlsx et importe-le ici" },
+];
 
 function ImportView({profile,reload}){
   const [phase,setPhase]=useState("idle");
   const [prog,setProg]=useState(0);
   const [result,setRes]=useState(null);
   const [err,setErr]=useState("");
-  const [preview,setPreview]=useState(null); // rows parsed before confirming
+  const [preview,setPreview]=useState(null);
+  const [prevHistory,setPrevHistory]=useState(null); // historique mois precedent
+  const [showHistory,setShowHistory]=useState(false);
   const inputRef=useRef();
   const ag=profile?.agencies;
   const canImport=()=>{const r=profile?.role;if(r==="agency"||r==="admin") return true;if(r==="director"&&ag?.director_can_import) return true;if(r==="manager"&&ag?.manager_can_import) return true;return false;};
 
+  // Charge l'historique du mois precedent depuis import_history
+  useEffect(()=>{
+    if(!sb||!ag?.id) return;
+    sb.from("import_history")
+      .select("*")
+      .eq("agency_id",ag.id)
+      .order("imported_at",{ascending:false})
+      .limit(1)
+      .then(({data})=>{if(data?.[0]) setPrevHistory(data[0]);});
+  },[ag?.id]);
+
+  // Calcule si on est dans les 15 premiers jours apres un import precedent
+  const now = new Date();
+  const importDate = ag?.last_import_date ? new Date(ag.last_import_date) : null;
+  const importMonth = importDate ? importDate.getMonth() : -1;
+  const currentMonth = now.getMonth();
+  const isNewMonth = importDate && currentMonth !== importMonth;
+  const dayOfMonth = now.getDate();
+  const inGracePeriod = isNewMonth && dayOfMonth <= 15; // 15 premiers jours du nouveau mois
+
   const go=async(file)=>{
     if(!file) return;
     setErr("");setPreview(null);
-    // Accepte XLSX ou CSV
     const isXlsx = file.name.match(/\.xlsx?$/i) || file.type.includes("spreadsheet");
     let rows=[];
     if(isXlsx){
@@ -1654,14 +1681,13 @@ function ImportView({profile,reload}){
         setErr("Erreur lecture XLSX : "+e.message);setPhase("idle");return;
       }
     } else {
-      // Fallback CSV legacy
       const text = await file.text?.() ?? "";
       const lines = text.split(/\r?\n/).filter(Boolean);
       const dataLines = lines.length>1&&isNaN(lines[0].split("\t")[0])?lines.slice(1):lines;
       rows = dataLines.map(line=>{
         const p = line.split("\t");
         if(p.length<2) return null;
-        return {tiktok_id:p[0]?.trim(), pseudo:p[1]?.trim(), diamonds:+(p[19]||0), days_live:+(p[20]||0), hours_live:+(p[21]||0)};
+        return {tiktok_id:p[0]?.trim(),pseudo:p[1]?.trim(),diamonds:+(p[19]||0),days_live:+(p[20]||0),hours_live:+(p[21]||0)};
       }).filter(Boolean);
     }
     if(rows.length===0){setErr("Fichier vide ou format non reconnu. Utilise l'export XLSX officiel TikTok Backstage.");setPhase("idle");return;}
@@ -1675,7 +1701,21 @@ function ImportView({profile,reload}){
     let p=0;const iv=setInterval(()=>{p=Math.min(p+Math.random()*14+5,90);setProg(Math.round(p));},110);
     let updated=0;
     try{
-      // 1. Upsert direct sans RPC pour eviter l'erreur updated_at
+      // 0. Sauvegarde l'historique actuel avant d'ecraser (si import existant)
+      if(ag?.last_import_date){
+        const {data:currentCreators}=await sb.from("creators")
+          .select("pseudo,tiktok_id,diamonds,days_live,hours_live")
+          .eq("agency_id",ag.id);
+        if(currentCreators?.length){
+          await sb.from("import_history").insert({
+            agency_id:ag.id,
+            imported_at:ag.last_import_date,
+            creator_count:currentCreators.length,
+            snapshot:currentCreators,
+          });
+        }
+      }
+      // 1. Upsert direct sans RPC
       for(const r of preview){
         const {data:existing}=await sb.from("creators")
           .select("id")
@@ -1684,17 +1724,17 @@ function ImportView({profile,reload}){
           .maybeSingle();
         if(existing?.id){
           await sb.from("creators").update({
-            diamonds:r.diamonds, days_live:r.days_live, hours_live:r.hours_live,
+            diamonds:r.diamonds,days_live:r.days_live,hours_live:r.hours_live,
           }).eq("id",existing.id);
         } else {
           await sb.from("creators").insert({
-            agency_id:ag.id, tiktok_id:r.tiktok_id, pseudo:r.pseudo,
-            diamonds:r.diamonds, days_live:r.days_live, hours_live:r.hours_live,
+            agency_id:ag.id,tiktok_id:r.tiktok_id,pseudo:r.pseudo,
+            diamonds:r.diamonds,days_live:r.days_live,hours_live:r.hours_live,
           });
         }
         updated++;
       }
-      // 2. Mise a jour last_import sur l'agence
+      // 2. Mise a jour last_import
       const expDate=new Date();expDate.setMonth(expDate.getMonth()+1);expDate.setDate(15);
       await sb.from("agencies").update({
         last_import_date:new Date().toISOString(),
@@ -1702,7 +1742,7 @@ function ImportView({profile,reload}){
         last_import_expiry:expDate.toISOString(),
       }).eq("id",ag.id);
       clearInterval(iv);setProg(80);
-      // 3. Linking @TikTok -> profils inscrits (createurs ET staff)
+      // 3. Linking @TikTok -> profils
       const [{data:creatorsData},{data:profilesData}]=await Promise.all([
         sb.from("creators").select("id,tiktok_id,pseudo,profile_id").eq("agency_id",ag.id),
         sb.from("profiles").select("id,tiktok_handle,role").eq("agency_id",ag.id),
@@ -1719,12 +1759,15 @@ function ImportView({profile,reload}){
             const imp=preview.find(r=>normHandle(r.pseudo)===handle||normHandle(r.tiktok_id)===handle);
             if(imp&&creatorRow){
               await sb.from("creators").update({
-                diamonds:imp.diamonds, days_live:imp.days_live, hours_live:imp.hours_live, profile_id:prof.id,
+                diamonds:imp.diamonds,days_live:imp.days_live,hours_live:imp.hours_live,profile_id:prof.id,
               }).eq("id",creatorRow.id);
             }
           }
         }
       }
+      // Recharge l'historique
+      const {data:hist}=await sb.from("import_history").select("*").eq("agency_id",ag.id).order("imported_at",{ascending:false}).limit(1);
+      if(hist?.[0]) setPrevHistory(hist[0]);
     }catch(e){
       clearInterval(iv);setErr("Erreur import : "+e.message);setPhase("idle");return;
     }
@@ -1732,81 +1775,157 @@ function ImportView({profile,reload}){
     setTimeout(()=>{setRes({updated});setPhase("done");reload?.();},300);
   };
 
-  const expiry=()=>{const d=new Date();d.setMonth(d.getMonth()+1);d.setDate(15);return d.toLocaleDateString("fr-FR");};
-  if(!canImport()) return <div style={{padding:"20px 16px",borderRadius:13,background:"rgba(244,67,54,.08)",border:"1px solid rgba(244,67,54,.2)",fontSize:13.5,color:T.ng}}>⛔ Permission refusée.</div>;
+  const fmtDate=(d)=>d?new Date(d).toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"}):"---";
+  if(!canImport()) return <div style={{padding:"20px 16px",borderRadius:13,background:"rgba(244,67,54,.08)",border:"1px solid rgba(244,67,54,.2)",fontSize:13.5,color:T.ng}}>Permission refusee.</div>;
 
   return(
     <div className="fup">
       <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:4}}>Import Backstage</h1>
-      <p style={{fontSize:12,color:T.sec,marginBottom:14}}>Export XLSX officiel TikTok · Données <strong style={{color:T.tx}}>remplacées</strong> à chaque import · Matching automatique des @</p>
-      {ag?.last_import_date&&<div className="card" style={{padding:13,background:"rgba(0,200,83,.06)",border:"1px solid rgba(0,200,83,.2)",marginBottom:12}}>
-        <div style={{fontWeight:700,fontSize:13,color:T.tx}}>Dernier import : {new Date(ag.last_import_date).toLocaleDateString("fr-FR")}</div>
-        <div style={{fontSize:11.5,color:T.sec,marginTop:2}}>{ag.last_import_count} créateurs · Valide jusqu'au <strong style={{color:T.ok}}>{new Date(ag.last_import_expiry).toLocaleDateString("fr-FR")}</strong></div>
-      </div>}
+      <p style={{fontSize:12,color:T.sec,marginBottom:16}}>Export XLSX officiel TikTok - Historique conserve - Matching automatique des @</p>
 
-      {/* Info box */}
-      <div style={{padding:"10px 14px",borderRadius:10,background:"rgba(37,99,235,.07)",border:"1px solid rgba(37,99,235,.18)",marginBottom:14,fontSize:12,color:"#93C5FD",lineHeight:1.6}}>
-        💡 <strong>Comment faire :</strong> Va sur TikTok Backstage → Gérer les créateurs → <em>Exporter</em> → télécharge le fichier <strong>.xlsx</strong> et dépose-le ici. Le système relie automatiquement chaque @ à ton staff et tes créateurs.
+      {/* Guide pas-a-pas */}
+      <div style={{background:"rgba(37,99,235,.06)",border:"1px solid rgba(37,99,235,.18)",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
+        <div style={{fontSize:12,fontWeight:700,color:"#93C5FD",marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+          <span>📋</span> Ou trouver le fichier sur TikTok Backstage
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {BACKSTAGE_STEPS.map((s,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10}}>
+              <div style={{width:22,height:22,borderRadius:"50%",background:"rgba(37,99,235,.25)",border:"1px solid rgba(37,99,235,.4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#93C5FD",flexShrink:0,marginTop:1}}>{s.icon}</div>
+              <div>
+                <span style={{fontSize:12,fontWeight:600,color:T.tx}}>{s.label} </span>
+                <span style={{fontSize:12,color:T.sec}}>{s.desc}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{marginTop:12,padding:"8px 11px",borderRadius:8,background:"rgba(255,179,0,.08)",border:"1px solid rgba(255,179,0,.2)",fontSize:11.5,color:"#FCD34D"}}>
+          Chemin exact : <strong>Donnees</strong> &gt; <strong>Donnees du createur</strong> &gt; bouton <strong>Exporter</strong> &gt; selectionne <strong>tous</strong> les createurs
+        </div>
       </div>
+
+      {/* Statut import actuel */}
+      {ag?.last_import_date&&(
+        <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}}>
+          <div className="card" style={{flex:1,padding:"12px 14px",background:"rgba(34,197,94,.05)",border:"1px solid rgba(34,197,94,.2)"}}>
+            <div style={{fontSize:10,fontWeight:700,color:T.ok,textTransform:"uppercase",letterSpacing:".07em",marginBottom:4}}>Import actuel</div>
+            <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{fmtDate(ag.last_import_date)}</div>
+            <div style={{fontSize:11,color:T.sec,marginTop:2}}>{ag.last_import_count} createurs</div>
+            {ag.last_import_expiry&&<div style={{fontSize:11,color:dayOfMonth>15&&isNewMonth?T.ng:T.ok,marginTop:3}}>
+              Valide jusqu'au {fmtDate(ag.last_import_expiry)}
+            </div>}
+          </div>
+          {prevHistory&&(
+            <div className="card" style={{flex:1,padding:"12px 14px",background:"rgba(255,255,255,.02)",border:`1px solid ${T.b}`}}>
+              <div style={{fontSize:10,fontWeight:700,color:T.sec,textTransform:"uppercase",letterSpacing:".07em",marginBottom:4}}>Mois precedent</div>
+              <div style={{fontWeight:700,fontSize:13,color:T.txD}}>{fmtDate(prevHistory.imported_at)}</div>
+              <div style={{fontSize:11,color:T.sec,marginTop:2}}>{prevHistory.creator_count} createurs</div>
+              <button className="btng" style={{fontSize:10,marginTop:6,padding:"2px 8px"}} onClick={()=>setShowHistory(h=>!h)}>
+                {showHistory?"Masquer":"Voir historique"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Historique mois precedent */}
+      {showHistory&&prevHistory?.snapshot&&(
+        <div className="card" style={{overflow:"hidden",marginBottom:14}}>
+          <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.b}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{fontWeight:700,fontSize:13,color:T.tx}}>Historique — {fmtDate(prevHistory.imported_at)}</div>
+            <span className="tag" style={{background:"rgba(255,255,255,.06)",color:T.sec}}>{prevHistory.creator_count} createurs</span>
+          </div>
+          <div className="cr" style={{gridTemplateColumns:"1fr 90px 50px 55px",background:"rgba(255,255,255,.02)",fontSize:10,fontWeight:600,color:T.sec,textTransform:"uppercase"}}>
+            <div>@ TikTok</div><div>Diamants</div><div>Jours</div><div>Heures</div>
+          </div>
+          {(prevHistory.snapshot||[]).slice(0,20).map((c,i)=>(
+            <div key={i} className="cr" style={{gridTemplateColumns:"1fr 90px 50px 55px"}}>
+              <div style={{fontWeight:500,fontSize:12.5,color:T.txD}}>@{c.pseudo||"---"}</div>
+              <div style={{fontWeight:700,color:T.sec,fontSize:12}}>💎 {(c.diamonds||0).toLocaleString()}</div>
+              <div style={{fontSize:12,color:T.sec}}>{c.days_live||0}j</div>
+              <div style={{fontSize:12,color:T.sec}}>{c.hours_live||0}h</div>
+            </div>
+          ))}
+          {(prevHistory.snapshot||[]).length>20&&<div style={{padding:"8px 14px",fontSize:11,color:T.sec}}>… et {prevHistory.snapshot.length-20} autres</div>}
+        </div>
+      )}
+
+      {/* Grace period : on est dans les 15 premiers jours du mois suivant */}
+      {inGracePeriod&&phase==="idle"&&(
+        <div style={{padding:"10px 14px",borderRadius:10,background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",marginBottom:14,fontSize:12,color:"#FCD34D"}}>
+          Vous etes dans la periode de transition (1-15 du mois). L'import precedent reste visible. Importez le nouveau mois quand vous etes pret.
+        </div>
+      )}
 
       {err&&<div style={{padding:"8px 11px",borderRadius:9,background:"rgba(244,67,54,.1)",border:"1px solid rgba(244,67,54,.2)",fontSize:12,color:T.ng,marginBottom:12}}>{err}</div>}
 
-      {(phase==="idle"||phase==="parsing")&&<div
-        onClick={()=>inputRef.current?.click()}
-        onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)go(f);}}
-        onDragOver={e=>e.preventDefault()}
-        style={{border:`2px dashed ${T.b}`,borderRadius:16,padding:"36px 28px",textAlign:"center",cursor:phase==="parsing"?"default":"pointer",transition:"border-color .2s",opacity:phase==="parsing"?0.6:1}}
-        onMouseEnter={e=>{if(phase==="idle")e.currentTarget.style.borderColor=T.acc;}} onMouseLeave={e=>e.currentTarget.style.borderColor=T.b}>
-        <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>go(e.target.files[0])}/>
-        <div style={{fontSize:34,marginBottom:10}}>{phase==="parsing"?"⏳":"📊"}</div>
-        <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:4}}>{phase==="parsing"?"Lecture du fichier…":"Dépose l'export TikTok Backstage ici"}</div>
-        <div style={{fontSize:11.5,color:T.sec,marginBottom:12}}>Fichier <strong style={{color:T.tx}}>.xlsx</strong> officiel TikTok · Glisse ou clique pour choisir</div>
-        {phase==="idle"&&<button className="btn" style={{fontSize:12}} onClick={e=>{e.stopPropagation();inputRef.current?.click();}}>Choisir le fichier XLSX</button>}
-      </div>}
+      {/* Zone de depot */}
+      {(phase==="idle"||phase==="parsing")&&(
+        <div
+          onClick={()=>inputRef.current?.click()}
+          onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)go(f);}}
+          onDragOver={e=>e.preventDefault()}
+          style={{border:`2px dashed ${T.b}`,borderRadius:16,padding:"32px 24px",textAlign:"center",cursor:phase==="parsing"?"default":"pointer",transition:"border-color .2s",opacity:phase==="parsing"?0.6:1}}
+          onMouseEnter={e=>{if(phase==="idle")e.currentTarget.style.borderColor=T.acc;}}
+          onMouseLeave={e=>e.currentTarget.style.borderColor=T.b}>
+          <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>go(e.target.files[0])}/>
+          <div style={{fontSize:32,marginBottom:8}}>{phase==="parsing"?"⏳":"📊"}</div>
+          <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:4}}>
+            {phase==="parsing"?"Lecture du fichier…":"Depose l'export TikTok Backstage ici"}
+          </div>
+          <div style={{fontSize:11.5,color:T.sec,marginBottom:12}}>Fichier <strong style={{color:T.tx}}>.xlsx</strong> officiel TikTok</div>
+          {phase==="idle"&&<button className="btn" style={{fontSize:12}} onClick={e=>{e.stopPropagation();inputRef.current?.click();}}>Choisir le fichier XLSX</button>}
+        </div>
+      )}
 
+      {/* Preview avant confirmation */}
       {phase==="preview"&&preview&&(
         <div>
           <div className="card" style={{padding:16,marginBottom:14,background:"rgba(37,99,235,.06)",border:"1px solid rgba(37,99,235,.2)"}}>
-            <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:4}}>✅ {preview.length} créateurs détectés</div>
-            <div style={{fontSize:12,color:T.sec,marginBottom:14}}>Vérifie l'aperçu ci-dessous puis confirme l'import. Les données diamants, jours et heures seront mises à jour pour chaque @ trouvé dans ton agence.</div>
+            <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:4}}>{preview.length} createurs detectes dans le fichier</div>
+            <div style={{fontSize:12,color:T.sec,marginBottom:14}}>Les stats diamants, jours et heures seront mis a jour. L'historique du mois precedent sera sauvegarde automatiquement.</div>
             <div style={{display:"flex",gap:8}}>
-              <button className="btn" style={{fontSize:13}} onClick={doImport}>Confirmer l'import →</button>
+              <button className="btn" style={{fontSize:13}} onClick={doImport}>Confirmer l'import</button>
               <button className="btng" onClick={()=>{setPhase("idle");setPreview(null);}}>Annuler</button>
             </div>
           </div>
           <div className="card" style={{overflow:"hidden"}}>
-            <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Aperçu (5 premiers)</div>
-            <div className="cr" style={{gridTemplateColumns:"140px 80px 50px 60px",background:"rgba(255,255,255,.02)",fontSize:10,fontWeight:600,color:T.sec,textTransform:"uppercase"}}>
-              <div>@ TikTok</div><div>💎 Diamants</div><div>Jours</div><div>Heures</div>
+            <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Aperçu — 5 premiers</div>
+            <div className="cr" style={{gridTemplateColumns:"1fr 90px 50px 55px",background:"rgba(255,255,255,.02)",fontSize:10,fontWeight:600,color:T.sec,textTransform:"uppercase"}}>
+              <div>@ TikTok</div><div>Diamants</div><div>Jours</div><div>Heures</div>
             </div>
             {preview.slice(0,5).map((r,i)=>(
-              <div key={i} className="cr" style={{gridTemplateColumns:"140px 80px 50px 60px"}}>
+              <div key={i} className="cr" style={{gridTemplateColumns:"1fr 90px 50px 55px"}}>
                 <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>@{r.pseudo}</div>
                 <div style={{fontWeight:700,color:T.cy,fontSize:12}}>💎 {(r.diamonds||0).toLocaleString()}</div>
                 <div style={{fontSize:12,color:T.sec}}>{r.days_live}j</div>
                 <div style={{fontSize:12,color:T.sec}}>{r.hours_live}h</div>
               </div>
             ))}
-            {preview.length>5&&<div style={{padding:"8px 14px",fontSize:11,color:T.sec}}>… et {preview.length-5} autres créateurs</div>}
+            {preview.length>5&&<div style={{padding:"8px 14px",fontSize:11,color:T.sec}}>… et {preview.length-5} autres createurs</div>}
           </div>
         </div>
       )}
 
-      {phase==="load"&&<div className="card" style={{padding:"36px 28px",textAlign:"center"}}>
-        <div style={{width:44,height:44,borderRadius:"50%",border:"3px solid rgba(37,99,235,.2)",borderTop:`3px solid ${T.acc}`,animation:"sp2 .8s linear infinite",margin:"0 auto 13px"}}/>
-        <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:4}}>Import en cours…</div>
-        <div style={{fontSize:11.5,color:T.sec,marginBottom:13}}>Mise à jour des stats + matching des @</div>
-        <div style={{height:5,background:"rgba(255,255,255,.08)",borderRadius:20,overflow:"hidden"}}><div style={{height:"100%",borderRadius:20,width:`${prog}%`,background:`linear-gradient(90deg,${T.acc},${T.cy})`,transition:"width .1s"}}/></div>
-        <div style={{marginTop:6,fontSize:11,color:T.sec}}>{prog}%</div>
-      </div>}
+      {phase==="load"&&(
+        <div className="card" style={{padding:"36px 28px",textAlign:"center"}}>
+          <div style={{width:44,height:44,borderRadius:"50%",border:"3px solid rgba(37,99,235,.2)",borderTop:`3px solid ${T.acc}`,animation:"sp2 .8s linear infinite",margin:"0 auto 13px"}}/>
+          <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:4}}>Import en cours…</div>
+          <div style={{fontSize:11.5,color:T.sec,marginBottom:13}}>Sauvegarde historique + mise a jour + matching des @</div>
+          <div style={{height:5,background:"rgba(255,255,255,.08)",borderRadius:20,overflow:"hidden"}}><div style={{height:"100%",borderRadius:20,width:`${prog}%`,background:`linear-gradient(90deg,${T.acc},${T.cy})`,transition:"width .1s"}}/></div>
+          <div style={{marginTop:6,fontSize:11,color:T.sec}}>{prog}%</div>
+        </div>
+      )}
 
-      {phase==="done"&&<div className="card" style={{padding:24,textAlign:"center"}}>
-        <div style={{fontSize:28,marginBottom:10}}>✅</div>
-        <div style={{fontSize:18,fontWeight:800,color:T.tx,marginBottom:4}}>Import réussi !</div>
-        <div style={{fontSize:12.5,color:T.sec,marginBottom:6}}><strong style={{color:T.tx}}>{result?.updated??(preview?.length??"?")} créateurs</strong> mis à jour</div>
-        <div style={{fontSize:12,color:T.sec,marginBottom:16}}>Valide jusqu'au <strong style={{color:T.ok}}>{expiry()}</strong> · @ reliés automatiquement à vos profils</div>
-        <button className="btng" onClick={()=>{setPhase("idle");setRes(null);setPreview(null);}}>Importer un autre fichier</button>
-      </div>}
+      {phase==="done"&&(
+        <div className="card" style={{padding:24,textAlign:"center"}}>
+          <div style={{fontSize:28,marginBottom:10}}>✅</div>
+          <div style={{fontSize:18,fontWeight:800,color:T.tx,marginBottom:4}}>Import reussi !</div>
+          <div style={{fontSize:12.5,color:T.sec,marginBottom:4}}><strong style={{color:T.tx}}>{result?.updated??(preview?.length??"?")} createurs</strong> mis a jour</div>
+          <div style={{fontSize:12,color:T.sec,marginBottom:16}}>Historique du mois precedent sauvegarde - @ relies automatiquement</div>
+          <button className="btng" onClick={()=>{setPhase("idle");setRes(null);setPreview(null);}}>Importer un autre fichier</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1944,7 +2063,7 @@ function SettingsView({profile,reload}){
           <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:T.sec,fontSize:14,pointerEvents:"none"}}>@</span>
           <input className="inp" value={tiktokHandle} onChange={e=>setTiktokHandle(e.target.value.replace(/^@/,""))} placeholder="tonpseudo" style={{paddingLeft:28}}/>
         </div>
-        <p style={{fontSize:11,color:"#555",marginBottom:10}}>Identique à ton @ TikTok exact · Apparaît sur les affiches de match</p>
+        <p style={{fontSize:11,color:"#555",marginBottom:10}}>Identique à ton @ TikTok exact - Apparaît sur les affiches de match</p>
         <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10}}>
           {savedHandle&&<span style={{fontSize:12,color:T.ok}}>✓ Enregistré</span>}
           <button className="btn" style={{fontSize:13,padding:"9px 18px"}} onClick={saveHandle} disabled={savingHandle}>{savingHandle?<Spin/>:"✓"} Sauvegarder</button>
@@ -1983,7 +2102,7 @@ function SettingsView({profile,reload}){
         <div className="card" style={{padding:18,marginBottom:12}}>
           <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Mon agence</div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {[{l:"Agence",v:ag.name,c:T.tx},{l:"Mon rôle",v:roleLabelFr(role),c:T.acc},{l:"Part créateur",v:(ag.pct_creator||55)+"%",c:T.ok},{l:"Objectif mensuel",v:(ag.min_days||20)+"j · "+(ag.min_hours||40)+"h",c:T.tx}].map((item,i)=>(
+            {[{l:"Agence",v:ag.name,c:T.tx},{l:"Mon rôle",v:roleLabelFr(role),c:T.acc},{l:"Part créateur",v:(ag.pct_creator||55)+"%",c:T.ok},{l:"Objectif mensuel",v:(ag.min_days||20)+"j - "+(ag.min_hours||40)+"h",c:T.tx}].map((item,i)=>(
               <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
                 <span style={{color:T.sec}}>{item.l}</span>
                 <span style={{color:item.c,fontWeight:600}}>{item.v}</span>
@@ -2058,7 +2177,7 @@ function DashView({profile,creators,agents,managers,directors}){
   const role=profile?.role;
   if(role==="creator"){
     const c=creators[0];
-    if(!c) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucune donnée · Contactez votre agent.</div>;
+    if(!c) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucune donnée - Contactez votre agent.</div>;
     const p=calcPayout(ag,c);
     const dp=Math.min(100,Math.round((c.days_live||0)/(ag?.min_days||20)*100));
     const hp=Math.min(100,Math.round((c.hours_live||0)/(ag?.min_hours||40)*100));
@@ -2086,18 +2205,18 @@ function DashView({profile,creators,agents,managers,directors}){
       </div>
     );
   }
-  if(!ag) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucune agence liée · Contactez l'administrateur.</div>;
+  if(!ag) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucune agence liée - Contactez l'administrateur.</div>;
   const okBoth=creators.filter(c=>calcPayout(ag,c).eligible).length;
   const total=creators.length;
   const pct=total>0?Math.round(okBoth/total*100):0;
   return(
     <div className="fup">
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:10,fontWeight:700,color:T.acc,textTransform:"uppercase",letterSpacing:".1em",marginBottom:3}}>{{agency:"Fondateur · Agence",director:"Directeur",manager:"Manager",agent:"Agent"}[role]}</div>
+        <div style={{fontSize:10,fontWeight:700,color:T.acc,textTransform:"uppercase",letterSpacing:".1em",marginBottom:3}}>{{agency:"Fondateur - Agence",director:"Directeur",manager:"Manager",agent:"Agent"}[role]}</div>
         <h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>{ag.name}</h1>
       </div>
       {ag.last_import_date&&<div style={{padding:"9px 12px",borderRadius:10,background:"rgba(0,200,83,.06)",border:"1px solid rgba(0,200,83,.2)",fontSize:12,color:T.tx,marginBottom:12}}>
-        💾 Import du <strong>{new Date(ag.last_import_date).toLocaleDateString("fr-FR")}</strong> · Valide jusqu'au <strong style={{color:T.ok}}>{new Date(ag.last_import_expiry).toLocaleDateString("fr-FR")}</strong>
+        💾 Import du <strong>{new Date(ag.last_import_date).toLocaleDateString("fr-FR")}</strong> - Valide jusqu'au <strong style={{color:T.ok}}>{new Date(ag.last_import_expiry).toLocaleDateString("fr-FR")}</strong>
       </div>}
       <div className="glow" style={{padding:18,marginBottom:12}}>
         <div style={{display:"flex",alignItems:"flex-end",gap:10,marginBottom:12}}>
@@ -2139,7 +2258,7 @@ function TeamView({agents,managers,directors}){
         ))}
       </div>
       {items.length===0?(
-        <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>Aucun {tab.slice(0,-1)} · Invitez-en via vos liens</div>
+        <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>Aucun {tab.slice(0,-1)} - Invitez-en via vos liens</div>
       ):(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {items.map(p=>(
@@ -2309,7 +2428,7 @@ function PosterPreview({tmpl,cA,cB,matchDate,matchTime,isInter,mini=false}){
         <div style={{width:"100%"}}>
           <div style={{border:`${mini?1:2}px solid ${tmpl.acc}99`,borderRadius:f(12),background:`${tmpl.acc}18`,backdropFilter:"blur(4px)",padding:`${f(10)}px ${f(16)}px`,textAlign:"center",boxShadow:`0 0 ${f(20)}px ${tmpl.acc}30`}}>
             <div style={{fontSize:f(7),letterSpacing:3,color:`${tmpl.acc}cc`,fontFamily:"Arial,sans-serif",marginBottom:f(3)}}>RENDEZ-VOUS</div>
-            <div style={{fontSize:f(20),fontWeight:900,color:tmpl.txt,textShadow:`0 0 15px ${tmpl.acc}`,lineHeight:1.1}}>LE {date} · {time}</div>
+            <div style={{fontSize:f(20),fontWeight:900,color:tmpl.txt,textShadow:`0 0 15px ${tmpl.acc}`,lineHeight:1.1}}>LE {date} - {time}</div>
           </div>
           <div style={{textAlign:"center",marginTop:f(6),fontSize:f(7),color:`${tmpl.acc}50`,letterSpacing:2,fontFamily:"Arial,sans-serif"}}>DIAMOND'S BY BELIVE ACADEMY</div>
         </div>
@@ -2610,7 +2729,7 @@ function AdminAllCreatorsView(){
           </div>
           {filtered.map(c=>(
             <div key={c.id} className="cr" style={{gridTemplateColumns:"1fr 90px 55px 55px 80px"}}>
-              <div style={{fontWeight:500,fontSize:12.5,color:T.tx}}>{c.pseudo||"—"}</div>
+              <div style={{fontWeight:500,fontSize:12.5,color:T.tx}}>{c.pseudo||"---"}</div>
               <div style={{fontWeight:700,color:T.acc,fontSize:12}}>{(c.diamonds||0).toLocaleString()}</div>
               <div style={{fontSize:12,color:(c.days_live||0)>=20?T.ok:T.txD}}>{c.days_live||0}j</div>
               <div style={{fontSize:12,color:(c.hours_live||0)>=40?T.ok:T.txD}}>{c.hours_live||0}h</div>
@@ -2666,8 +2785,8 @@ function AdminAllStaffView(){
         {filtered.map(s=>(
           <div key={s.id} className="cr" style={{gridTemplateColumns:"36px 1fr 100px 90px"}}>
             <AV name={(s.name||"?").slice(0,2)} color={tC[s.type]||T.acc} size={28}/>
-            <div><div style={{fontWeight:500,fontSize:12.5,color:T.tx}}>{s.name||"—"}</div><div style={{fontSize:11,color:T.sec}}>{s.email}</div></div>
-            <div style={{fontSize:11,color:T.sec}}>{s.phone||"—"}</div>
+            <div><div style={{fontWeight:500,fontSize:12.5,color:T.tx}}>{s.name||"---"}</div><div style={{fontSize:11,color:T.sec}}>{s.email}</div></div>
+            <div style={{fontSize:11,color:T.sec}}>{s.phone||"---"}</div>
             <span className="tag" style={{background:`${tC[s.type]}15`,color:tC[s.type]}}>{s.type}</span>
           </div>
         ))}
@@ -2703,11 +2822,11 @@ function AdminAllMatchesView(){
         </div>
         {matches.map(m=>(
           <div key={m.id} className="cr" style={{gridTemplateColumns:"100px 1fr 80px 90px 85px"}}>
-            <div style={{fontWeight:500,fontSize:12,color:T.tx}}>{m.match_date?new Date(m.match_date).toLocaleDateString("fr-FR"):"—"}</div>
+            <div style={{fontWeight:500,fontSize:12,color:T.tx}}>{m.match_date?new Date(m.match_date).toLocaleDateString("fr-FR"):"---"}</div>
             <div style={{fontSize:12,color:T.txD}}>Match {m.is_inter_agency?"inter":"intra"}-agence</div>
-            <div style={{fontSize:12,color:T.sec}}>{m.match_time||"—"}</div>
+            <div style={{fontSize:12,color:T.sec}}>{m.match_time||"---"}</div>
             <span className="tag" style={{background:m.is_inter_agency?`${T.acc}15`:"rgba(255,255,255,0.05)",color:m.is_inter_agency?T.acc:T.sec}}>{m.is_inter_agency?"Inter":"Intra"}</span>
-            <span className="tag" style={{background:`${sC[m.status]||T.go}15`,color:sC[m.status]||T.go}}>{sL[m.status]||"—"}</span>
+            <span className="tag" style={{background:`${sC[m.status]||T.go}15`,color:sC[m.status]||T.go}}>{sL[m.status]||"---"}</span>
           </div>
         ))}
       </div>}
@@ -2739,9 +2858,9 @@ function AdminAllSchedulesView(){
         </div>
         {schedules.map(s=>(
           <div key={s.id} className="cr" style={{gridTemplateColumns:"80px 120px 1fr 80px"}}>
-            <div style={{fontWeight:500,fontSize:12,color:T.tx}}>{DAYS[s.day_of_week]||"—"}</div>
-            <div style={{fontSize:12,color:T.txD}}>{s.start_time?.slice(0,5)||"—"} → {s.end_time?.slice(0,5)||"—"}</div>
-            <div style={{fontSize:11,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.notes||"—"}</div>
+            <div style={{fontWeight:500,fontSize:12,color:T.tx}}>{DAYS[s.day_of_week]||"---"}</div>
+            <div style={{fontSize:12,color:T.txD}}>{s.start_time?.slice(0,5)||"---"} → {s.end_time?.slice(0,5)||"---"}</div>
+            <div style={{fontSize:11,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.notes||"---"}</div>
             <span className="tag" style={{background:s.accept_inter_agency?`${T.acc}15`:"rgba(255,255,255,0.05)",color:s.accept_inter_agency?T.acc:T.sec}}>{s.accept_inter_agency?"Inter":"Intra"}</span>
           </div>
         ))}
@@ -2774,7 +2893,7 @@ function AdminAllLivesView(){
         <SC label="Total" val={lives.length} accent={T.acc}/>
         <SC label="💎 Diamants" val={totalD.toLocaleString()} accent={T.acc}/>
         <SC label="👁 Spectateurs" val={totalV.toLocaleString()}/>
-        <SC label="Durée moy." val={lives.length?`${Math.round(lives.reduce((s,l)=>s+(l.duration_minutes||0),0)/lives.length)}min`:"—"}/>
+        <SC label="Durée moy." val={lives.length?`${Math.round(lives.reduce((s,l)=>s+(l.duration_minutes||0),0)/lives.length)}min`:"---"}/>
       </div>
       <div style={{display:"flex",justifyContent:"flex-end",marginBottom:14}}>
         <select className="inp" value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{width:150}}>
@@ -2796,7 +2915,7 @@ function AdminAllLivesView(){
             <div style={{fontWeight:700,color:T.acc,fontSize:12}}>{(l.diamonds||0).toLocaleString()}</div>
             <div style={{fontSize:12,color:T.txD}}>{Math.round((l.duration_minutes||0)/60*10)/10}h</div>
             <div style={{fontSize:12,color:T.txD}}>{(l.viewers||0).toLocaleString()}</div>
-            <div style={{fontSize:11,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.notes||"—"}</div>
+            <div style={{fontSize:11,color:T.sec,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.notes||"---"}</div>
           </div>
         ))}
       </div>}
@@ -2896,17 +3015,17 @@ Tu as accès aux dernières informations TikTok Live 2026 et tu te mets à jour 
 • Rester 100% sur l'univers TikTok Live
 
 ━━━ STATS DU CRÉATEUR ━━━
-Jours live : ${days}/${minDays} · Heures : ${hours}h/${minHours}h · Diamants : ${diamonds.toLocaleString()} 💎 ≈ ${diamondsToEuros(diamonds)}€
+Jours live : ${days}/${minDays} - Heures : ${hours}h/${minHours}h - Diamants : ${diamonds.toLocaleString()} 💎 ≈ ${diamondsToEuros(diamonds)}€
 ${days<minDays?"⚠️ "+(minDays-days)+" jours manquants pour l'objectif":"✅ Objectif jours atteint"}
 ${hours<minHours?"⚠️ "+(minHours-hours)+"h manquantes pour l'objectif":"✅ Objectif heures atteint"}
 
 ━━━ CONVERSIONS DIAMANTS → EUROS ━━━
-100💎=1.70€ · 1k💎=17€ · 10k💎=170€ · 100k💎=1700€ · 1M💎=17 000€
+100💎=1.70€ - 1k💎=17€ - 10k💎=170€ - 100k💎=1700€ - 1M💎=17 000€
 
 ━━━ TIKTOK LIVE 2026 ━━━
-- 3 premières minutes cruciales · Régularité > durée · PK Battles boostent la visibilité
-- Peak hours France : 19h-22h semaine · 14h-18h weekend
-- Cadeaux populaires : Rose 1💎 · Drama Queen 1000💎 · Lion 29999💎 · Universe 34999💎
+- 3 premières minutes cruciales - Régularité > durée - PK Battles boostent la visibilité
+- Peak hours France : 19h-22h semaine - 14h-18h weekend
+- Cadeaux populaires : Rose 1💎 - Drama Queen 1000💎 - Lion 29999💎 - Universe 34999💎
 - Paliers : Bronze → Silver → Gold → Platinum → Diamond
 
 Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un conseil actionnable.`;
@@ -2983,7 +3102,7 @@ Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un co
           <div style={{width:40,height:40,borderRadius:12,background:"rgba(37,99,235,0.15)",border:"1px solid rgba(37,99,235,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🤖</div>
           <div>
             <h1 style={{fontSize:20,fontWeight:700,color:"#fff",letterSpacing:"-.02em"}}>Coach IA TikTok Live</h1>
-            <p style={{fontSize:12,color:"#555"}}>Propulsé par Groq (gratuit) · Spécialisé TikTok Live</p>
+            <p style={{fontSize:12,color:"#555"}}>Propulsé par Groq (gratuit) - Spécialisé TikTok Live</p>
           </div>
         </div>
         {/* Creator stats banner */}
@@ -3080,7 +3199,7 @@ function CreatorTargetsModal({creator,ag,onClose,onSave}){
         <p style={{fontSize:13,color:"#555",marginBottom:20}}>Pour <strong style={{color:"#2563EB"}}>{creator?.pseudo||"ce créateur"}</strong></p>
 
         <div style={{background:"rgba(37,99,235,0.06)",border:"1px solid rgba(37,99,235,0.12)",borderRadius:10,padding:"10px 14px",marginBottom:20,fontSize:12,color:"#666"}}>
-          Objectifs généraux : {ag?.min_days||20}j / {ag?.min_hours||40}h · Si non défini ici, les objectifs généraux s'appliquent
+          Objectifs généraux : {ag?.min_days||20}j / {ag?.min_hours||40}h - Si non défini ici, les objectifs généraux s'appliquent
         </div>
 
         <div style={{display:"flex",flexDirection:"column",gap:16,marginBottom:24}}>
@@ -3192,7 +3311,7 @@ function AdminMembersView(){
     <div className="fup">
       <div style={{marginBottom:20}}>
         <h1 style={{fontSize:22,fontWeight:700,color:"#fff",marginBottom:4,letterSpacing:"-.02em"}}>Gestion des membres</h1>
-        <p style={{fontSize:13,color:"#555"}}>Recherche par email ou @ TikTok · Réinitialise les mots de passe</p>
+        <p style={{fontSize:13,color:"#555"}}>Recherche par email ou @ TikTok - Réinitialise les mots de passe</p>
       </div>
 
       {/* Stats */}
@@ -3249,7 +3368,7 @@ function AdminMembersView(){
               {/* User info */}
               <div style={{background:"#111",borderRadius:8,padding:"10px 12px",marginBottom:16}}>
                 <div style={{fontSize:12,fontWeight:600,color:"#fff",marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{selected.email}</div>
-                <div style={{fontSize:11,color:"#555"}}>{selected.tiktok_handle||"Pas de @ TikTok"} · <span style={{color:roleColor[selected.displayRole]||"#555"}}>{roleLabelFr(selected.displayRole)}</span></div>
+                <div style={{fontSize:11,color:"#555"}}>{selected.tiktok_handle||"Pas de @ TikTok"} - <span style={{color:roleColor[selected.displayRole]||"#555"}}>{roleLabelFr(selected.displayRole)}</span></div>
               </div>
 
               {/* New password */}
@@ -3392,7 +3511,7 @@ export default function App(){
           <div style={{textAlign:"center",marginBottom:24}}>
             <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><Brand big={true}/></div>
             <p style={{fontSize:17,fontWeight:800,color:"#fff",letterSpacing:"-.02em"}}>Débloque ton agence TikTok</p>
-            <p style={{fontSize:13,color:"#888",marginTop:8,lineHeight:1.5}}>Un paiement sécurisé · Accès complet Diamond's</p>
+            <p style={{fontSize:13,color:"#888",marginTop:8,lineHeight:1.5}}>Un paiement sécurisé - Accès complet Diamond's</p>
           </div>
           <div style={{background:"#0A0A0A",borderRadius:20,border:"1px solid rgba(255,255,255,.08)",overflow:"hidden",marginBottom:14,boxShadow:"0 0 0 1px rgba(255,0,51,.06), 0 24px 80px rgba(0,0,0,.55)"}}>
             <div style={{padding:"22px 24px 26px"}}>
@@ -3403,7 +3522,7 @@ export default function App(){
                 <span style={{fontSize:58,fontWeight:900,color:"#fff",letterSpacing:"-.04em",lineHeight:1}}>{PRICE}</span>
                 <span style={{fontSize:22,color:"#666",fontWeight:500,marginLeft:4}}>€<span style={{fontSize:13}}>/mois</span></span>
               </div>
-              <p style={{fontSize:13,color:"#777",marginBottom:22,lineHeight:1.55}}>Sans engagement · Paiement Stripe (flux plein écran, comme SaaS House)</p>
+              <p style={{fontSize:13,color:"#777",marginBottom:22,lineHeight:1.55}}>Sans engagement - Paiement Stripe (flux plein écran, comme SaaS House)</p>
               <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
                 {[
                   "Gestion illimitée créateurs & staff",
@@ -3431,7 +3550,7 @@ export default function App(){
                 Payer {PRICE}€/mois
               </button>
               <div style={{textAlign:"center",marginTop:14,fontSize:11,color:"#444",letterSpacing:".04em"}}>
-                SÉCURISÉ PAR STRIPE · CHIFFREMENT 256-BIT
+                SÉCURISÉ PAR STRIPE - CHIFFREMENT 256-BIT
               </div>
             </div>
           </div>
