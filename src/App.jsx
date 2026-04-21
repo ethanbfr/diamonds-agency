@@ -383,7 +383,7 @@ const NAVS={
   director:[{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
   manager: [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
   agent:   [{id:"dash",l:"Dashboard"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mon code"},{id:"settings",l:"Paramètres"}],
-  creator: [{id:"dash",l:"Mon espace"},{id:"planning",l:"Mon planning"},{id:"my_lives",l:"Mes lives"},{id:"matches",l:"Mes matchs"},{id:"coach",l:"Coach IA 🤖"}],
+  creator: [{id:"dash",l:"Mon espace"},{id:"planning",l:"Mon planning"},{id:"my_lives",l:"Mes lives"},{id:"matches",l:"Mes matchs"},{id:"coach",l:"Coach IA 🤖"},{id:"settings",l:"Mon profil"}],
 };
 
 /* ─── AUTH ──────────────────────────────── */
@@ -1594,14 +1594,21 @@ function ImportView({profile,reload}){
   const ag=profile?.agencies;
   const canImport=()=>{const r=profile?.role;if(r==="agency"||r==="admin") return true;if(r==="director"&&ag?.director_can_import) return true;if(r==="manager"&&ag?.manager_can_import) return true;return false;};
   const go=async(file)=>{
+    if(!file) return;
     setPhase("load");setProg(0);setErr("");
-    const text=await file?.text?.()??"";;
-    const rows=text.split("\n").slice(1).filter(Boolean).map(line=>{
+    // Accept any file: CSV, TXT, or files without extension (Backstage exports)
+    const text=await file.text?.()??"";;
+    // Auto-detect delimiter and parse
+    const lines=text.split(/\r?\n/).filter(Boolean);
+    // Skip header line if it looks like a header (contains letters in first field)
+    const dataLines=lines.length>1&&isNaN(lines[0].split(",")[0])?lines.slice(1):lines;
+    const rows=dataLines.filter(Boolean).map(line=>{
       const [tiktok_id,pseudo,diamonds,days_live,hours_live]=line.split(",");
       return {tiktok_id:tiktok_id?.trim(),pseudo:pseudo?.trim(),diamonds:+(diamonds||0),days_live:+(days_live||0),hours_live:+(hours_live||0)};
-    }).filter(r=>r.tiktok_id);
+    }).filter(r=>r.tiktok_id&&r.tiktok_id.trim());
+    if(rows.length===0){setErr("Fichier vide ou format non reconnu. Attendu : tiktok_id, pseudo, diamonds, days_live, hours_live");setPhase("idle");return;}
     let p=0;const iv=setInterval(()=>{p=Math.min(p+Math.random()*14+5,90);setProg(Math.round(p));},110);
-    const res=await importBackstage(ag?.id,profile?.id,rows.length?rows:[]);
+    const res=await importBackstage(ag?.id,profile?.id,rows);
     clearInterval(iv);setProg(100);
     setTimeout(async()=>{
       if(res?.error){setErr(res.error);setPhase("idle");}
@@ -1636,12 +1643,18 @@ function ImportView({profile,reload}){
         <div style={{fontSize:11.5,color:T.sec,marginTop:2}}>{ag.last_import_count} créateurs · Valide jusqu'au <strong style={{color:T.ok}}>{new Date(ag.last_import_expiry).toLocaleDateString("fr-FR")}</strong></div>
       </div>}
       {err&&<div style={{padding:"8px 11px",borderRadius:9,background:"rgba(244,67,54,.1)",border:"1px solid rgba(244,67,54,.2)",fontSize:12,color:T.ng,marginBottom:12}}>{err}</div>}
-      {phase==="idle"&&<div onClick={()=>inputRef.current?.click()} style={{border:`2px dashed ${T.b}`,borderRadius:16,padding:"36px 28px",textAlign:"center",cursor:"pointer",transition:"border-color .2s"}}
+      {phase==="idle"&&<div 
+        onClick={()=>inputRef.current?.click()} 
+        onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)go(f);}}
+        onDragOver={e=>e.preventDefault()}
+        style={{border:`2px dashed ${T.b}`,borderRadius:16,padding:"36px 28px",textAlign:"center",cursor:"pointer",transition:"border-color .2s"}}
         onMouseEnter={e=>e.currentTarget.style.borderColor=T.acc} onMouseLeave={e=>e.currentTarget.style.borderColor=T.b}>
-        <input ref={inputRef} type="file" accept=".csv" style={{display:"none"}} onChange={e=>go(e.target.files[0])}/>
+        {/* accept="*/*" pour iOS — les fichiers Backstage sont souvent sans extension ou .txt */}
+        <input ref={inputRef} type="file" accept="*/*" style={{display:"none"}} onChange={e=>go(e.target.files[0])}/>
         <div style={{fontSize:30,marginBottom:10}}>📁</div>
         <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:4}}>Glissez l'export Backstage ici</div>
-        <div style={{fontSize:11.5,color:T.sec,marginBottom:14}}>CSV : tiktok_id, pseudo, diamonds, days_live, hours_live</div>
+        <div style={{fontSize:11.5,color:T.sec,marginBottom:6}}>CSV : tiktok_id, pseudo, diamonds, days_live, hours_live</div>
+        <div style={{fontSize:11,color:"#444",marginBottom:14}}>💡 Sur iPhone : appuyez sur le bouton ci-dessous → "Parcourir" → sélectionnez votre fichier</div>
         <button className="btn" style={{fontSize:12}} onClick={e=>{e.stopPropagation();inputRef.current?.click();}}>Choisir un fichier</button>
       </div>}
       {phase==="load"&&<div className="card" style={{padding:"36px 28px",textAlign:"center"}}>
@@ -1662,7 +1675,51 @@ function ImportView({profile,reload}){
 
 /* ─── SETTINGS ──────────────────────────── */
 function SettingsView({profile,reload}){
+  const role=profile?.role;
   const ag=profile?.agencies;
+
+  // ── Profil personnel (tous les rôles) ──
+  const [tiktokHandle,setTiktokHandle]=useState((profile?.tiktok_handle||"").replace(/^@/,""));
+  const [savingProfile,setSavingProfile]=useState(false);
+  const [savedProfile,setSavedProfile]=useState(false);
+  const saveProfile=async()=>{
+    if(!sb||!profile?.id) return;
+    setSavingProfile(true);
+    const handleVal=tiktokHandle.trim()?"@"+tiktokHandle.trim().replace(/^@/,""):"";
+    await sb.from("profiles").update({tiktok_handle:handleVal||null}).eq("id",profile.id);
+    setSavingProfile(false);setSavedProfile(true);setTimeout(()=>setSavedProfile(false),2500);reload?.();
+  };
+
+  // ── Changement email ──
+  const [newEmail,setNewEmail]=useState("");
+  const [savingEmail,setSavingEmail]=useState(false);
+  const [emailMsg,setEmailMsg]=useState("");
+  const changeEmail=async()=>{
+    if(!sb||!newEmail.trim()){setEmailMsg("❌ Email requis");return;}
+    setSavingEmail(true);setEmailMsg("");
+    const {error}=await sb.auth.updateUser({email:newEmail.trim()});
+    setSavingEmail(false);
+    if(error) setEmailMsg("❌ "+error.message);
+    else{setEmailMsg("✓ Email mis à jour");setNewEmail("");setTimeout(()=>setEmailMsg(""),3000);}
+  };
+
+  // ── Changement mot de passe ──
+  const [newPw,setNewPw]=useState("");
+  const [confirmPw,setConfirmPw]=useState("");
+  const [showPw,setShowPw]=useState(false);
+  const [savingPw,setSavingPw]=useState(false);
+  const [pwMsg,setPwMsg]=useState("");
+  const changePw=async()=>{
+    if(!newPw.trim()||newPw.length<6){setPwMsg("❌ Minimum 6 caractères");return;}
+    if(newPw!==confirmPw){setPwMsg("❌ Les mots de passe ne correspondent pas");return;}
+    setSavingPw(true);setPwMsg("");
+    const {error}=await sb.auth.updateUser({password:newPw});
+    setSavingPw(false);
+    if(error) setPwMsg("❌ "+error.message);
+    else{setPwMsg("✓ Mot de passe modifié");setNewPw("");setConfirmPw("");setTimeout(()=>setPwMsg(""),3000);}
+  };
+
+  // ── Paramètres agence (agency/admin seulement) ──
   const [agName,setAgName]=useState(ag?.name||"");
   const [pcts,setPcts]=useState({director:ag?.pct_director||3,manager:ag?.pct_manager||5,agent:ag?.pct_agent||10,creator:ag?.pct_creator||55});
   const [minD,setMinD]=useState(ag?.min_days||20);
@@ -1670,88 +1727,169 @@ function SettingsView({profile,reload}){
   const [perms,setPerms]=useState({dir:ag?.director_can_import||false,mgr:ag?.manager_can_import||false,inter:ag?.accept_inter_agency!==false,coachEnabled:ag?.coach_enabled!==false,agentDel:ag?.can_agent_delete_creator||false,mgrDel:ag?.can_manager_delete_agent||false,dirDel:ag?.can_director_delete_all!==false});
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
-  const [tiktokHandle,setTiktokHandle]=useState((profile?.tiktok_handle||"").replace(/^@/,""));
-  const [avatarPreview,setAvatarPreview]=useState(profile?.tiktok_avatar_url||null);
   const ROLES=[{k:"creator",l:"Part créateur",c:T.ok},{k:"agent",l:"Commission agent",c:T.cy},{k:"manager",l:"Commission manager",c:T.pu},{k:"director",l:"Commission directeur",c:T.acc}];
   const total=Object.values(pcts).reduce((s,v)=>s+v,0);
-  const save=async()=>{
+  const saveAgency=async()=>{
     if(!sb) return;setSaving(true);
-    // Save TikTok handle (tout le monde)
-    if(profile?.id&&tiktokHandle.trim()){
-      const handleVal="@"+tiktokHandle.trim().replace(/^@/,"");
-      await sb.from("profiles").update({tiktok_handle:handleVal}).eq("id",profile.id);
-    }
-    // Save agency settings - essaie direct d'abord (RLS off), sinon service key
     if(ag?.id){
       const payload={name:agName.trim()||ag.name,pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel};
       const {error:saveErr}=await sb.from("agencies").update(payload).eq("id",ag.id);
       if(saveErr){
-        // RLS bloque → service key
         try{ await executeAdminUpdate("agencies",ag.id,payload); }
         catch(e2){ console.error("Save agency failed:",saveErr.message,e2.message); }
       }
     }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
+
+  const isAgencyOrAdmin=role==="agency"||role==="admin";
+  const isStaff=["director","manager","agent"].includes(role);
+
   return(
     <div className="fup">
-      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Paramètres agence</h1>
-      {profile?.role==="agency"&&(
+      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>
+        {isAgencyOrAdmin?"Paramètres agence":isStaff?"Mon profil":"Mon profil"}
+      </h1>
+
+      {/* ── Profil personnel — visible par TOUS ── */}
+      <div className="card" style={{padding:18,marginBottom:12}}>
+        <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Mon compte</div>
+
+        {/* @ TikTok */}
+        <div style={{marginBottom:14}}>
+          <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".07em"}}>@ TikTok</label>
+          <div style={{position:"relative"}}>
+            <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:T.sec,fontSize:14,pointerEvents:"none"}}>@</span>
+            <input className="inp" value={tiktokHandle} onChange={e=>setTiktokHandle(e.target.value.replace(/^@/,""))} placeholder="tonpseudo" style={{paddingLeft:28}}/>
+          </div>
+          <p style={{fontSize:11,color:"#555",marginTop:4}}>Identique à ton @ TikTok exact · Apparaît sur les affiches de match</p>
+        </div>
+        <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10,marginBottom:4}}>
+          {savedProfile&&<span style={{fontSize:12,color:T.ok}}>✓ Enregistré</span>}
+          <button className="btn" style={{fontSize:13,padding:"9px 18px"}} onClick={saveProfile} disabled={savingProfile}>{savingProfile?<Spin/>:"✓"} Sauvegarder le @</button>
+        </div>
+      </div>
+
+      {/* ── Changer l'email ── */}
+      <div className="card" style={{padding:18,marginBottom:12}}>
+        <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:4}}>Modifier mon email</div>
+        <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Email actuel : <strong style={{color:T.tx}}>{profile?.email}</strong></div>
+        <div style={{marginBottom:10}}>
+          <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".07em"}}>Nouvel email</label>
+          <input className="inp" type="email" value={newEmail} onChange={e=>setNewEmail(e.target.value)} placeholder="nouvel@email.com"/>
+        </div>
+        {emailMsg&&<div style={{padding:"8px 10px",borderRadius:8,background:emailMsg.startsWith("✓")?"rgba(34,197,94,0.08)":"rgba(239,68,68,0.08)",border:`1px solid ${emailMsg.startsWith("✓")?"rgba(34,197,94,0.2)":"rgba(239,68,68,0.2)"}`,fontSize:12,color:emailMsg.startsWith("✓")?T.ok:T.ng,marginBottom:10}}>{emailMsg}</div>}
+        <div style={{display:"flex",justifyContent:"flex-end"}}>
+          <button className="btn" style={{fontSize:13,padding:"9px 18px"}} onClick={changeEmail} disabled={savingEmail||!newEmail.trim()}>{savingEmail?<Spin/>:"✓"} Mettre à jour l'email</button>
+        </div>
+      </div>
+
+      {/* ── Changer le mot de passe ── */}
+      <div className="card" style={{padding:18,marginBottom:12}}>
+        <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Modifier mon mot de passe</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:10}}>
+          <div>
+            <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".07em"}}>Nouveau mot de passe</label>
+            <div style={{position:"relative"}}>
+              <input className="inp" type={showPw?"text":"password"} value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="Min. 6 caractères" style={{paddingRight:42}}/>
+              <button onClick={()=>setShowPw(s=>!s)} type="button" style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#555",fontSize:15}}>
+                {showPw?"🙈":"👁"}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".07em"}}>Confirmer le mot de passe</label>
+            <input className="inp" type={showPw?"text":"password"} value={confirmPw} onChange={e=>setConfirmPw(e.target.value)} placeholder="Répète le mot de passe"/>
+          </div>
+        </div>
+        {pwMsg&&<div style={{padding:"8px 10px",borderRadius:8,background:pwMsg.startsWith("✓")?"rgba(34,197,94,0.08)":"rgba(239,68,68,0.08)",border:`1px solid ${pwMsg.startsWith("✓")?"rgba(34,197,94,0.2)":"rgba(239,68,68,0.2)"}`,fontSize:12,color:pwMsg.startsWith("✓")?T.ok:T.ng,marginBottom:10}}>{pwMsg}</div>}
+        <div style={{display:"flex",justifyContent:"flex-end"}}>
+          <button className="btn" style={{fontSize:13,padding:"9px 18px"}} onClick={changePw} disabled={savingPw||!newPw.trim()}>{savingPw?<Spin/>:"🔑"} Changer le mot de passe</button>
+        </div>
+      </div>
+
+      {/* ── Paramètres agence — réservés agency/admin ── */}
+      {isAgencyOrAdmin&&(<>
         <div className="card" style={{padding:18,marginBottom:12}}>
           <div style={{fontWeight:600,fontSize:13,color:T.tx,marginBottom:12}}>Informations de l'agence</div>
           <div>
             <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".07em"}}>Nom de l'agence</label>
             <input className="inp" value={agName} onChange={e=>setAgName(e.target.value)} placeholder="Nom de votre agence" style={{fontSize:14}}/>
-            <p style={{fontSize:11,color:"#555",marginTop:4}}>Ce nom sera visible par tout votre staff et vos créateurs</p>
+            <p style={{fontSize:11,color:"#555",marginTop:4}}>Visible par tout votre staff et vos créateurs</p>
           </div>
         </div>
-      )}
-      <div className="card" style={{padding:20,marginBottom:12}}>
-        <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Répartition des revenus</div>
-        <div style={{borderRadius:8,overflow:"hidden",height:28,display:"flex",marginBottom:12}}>
-          {ROLES.map(r=><div key={r.k} style={{width:`${pcts[r.k]}%`,background:r.c,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10.5,fontWeight:700,color:"white",overflow:"hidden",whiteSpace:"nowrap",transition:"width .25s"}}>{pcts[r.k]>5?`${pcts[r.k]}%`:""}</div>)}
-          <div style={{flex:1,background:"rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10.5,fontWeight:700,color:T.sec}}>Agence {100-total}%</div>
+        <div className="card" style={{padding:20,marginBottom:12}}>
+          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Répartition des revenus</div>
+          <div style={{borderRadius:8,overflow:"hidden",height:28,display:"flex",marginBottom:12}}>
+            {ROLES.map(r=><div key={r.k} style={{width:`${pcts[r.k]}%`,background:r.c,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10.5,fontWeight:700,color:"white",overflow:"hidden",whiteSpace:"nowrap",transition:"width .25s"}}>{pcts[r.k]>5?`${pcts[r.k]}%`:""}</div>)}
+            <div style={{flex:1,background:"rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10.5,fontWeight:700,color:T.sec}}>Agence {100-total}%</div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+            {ROLES.map(r=>(
+              <div key={r.k}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><label style={{fontSize:12,fontWeight:600,color:T.tx}}>{r.l}</label><span style={{fontSize:13,fontWeight:800,color:r.c}}>{pcts[r.k]}%</span></div>
+                <input type="range" min={0} max={100} step={1} value={pcts[r.k]} style={{accentColor:r.c}} onChange={e=>setPcts(p=>({...p,[r.k]:+e.target.value}))}/>
+              </div>
+            ))}
+          </div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-          {ROLES.map(r=>(
-            <div key={r.k}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><label style={{fontSize:12,fontWeight:600,color:T.tx}}>{r.l}</label><span style={{fontSize:13,fontWeight:800,color:r.c}}>{pcts[r.k]}%</span></div>
-              <input type="range" min={0} max={100} step={1} value={pcts[r.k]} style={{accentColor:r.c}} onChange={e=>setPcts(p=>({...p,[r.k]:+e.target.value}))}/>
+        <div className="card" style={{padding:18,marginBottom:12}}>
+          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Conditions minimales</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+            <div>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><label style={{fontSize:12,fontWeight:600,color:T.tx}}>Jours min.</label><span style={{fontSize:13,fontWeight:800,color:"#FF6D00"}}>{minD}j</span></div>
+              <input type="range" min={0} max={31} step={1} value={minD} style={{accentColor:"#FF6D00"}} onChange={e=>setMinD(+e.target.value)}/>
+            </div>
+            <div>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><label style={{fontSize:12,fontWeight:600,color:T.tx}}>Heures min.</label><span style={{fontSize:13,fontWeight:800,color:T.go}}>{minH}h</span></div>
+              <input type="range" min={0} max={100} step={1} value={minH} style={{accentColor:T.go}} onChange={e=>setMinH(+e.target.value)}/>
+            </div>
+          </div>
+        </div>
+        <div className="card" style={{padding:18,marginBottom:14}}>
+          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Permissions & Matchs</div>
+          {[{k:"dir",l:"Directeurs peuvent importer",c:T.acc},{k:"mgr",l:"Managers peuvent importer",c:T.pu},{k:"inter",l:"Matchs inter-agences acceptés",c:"#00C853"},{k:"coachEnabled",l:"Coach IA activé pour tout le monde",c:"#2563EB"},{k:"agentDel",l:"Agents peuvent supprimer des créateurs",c:"#FF9800"},{k:"mgrDel",l:"Managers peuvent supprimer agents & créateurs",c:T.pu},{k:"dirDel",l:"Directeurs peuvent tout supprimer",c:T.acc}].map(p=>(
+            <div key={p.k} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:9,background:perms[p.k]?`${p.c}08`:"rgba(255,255,255,.02)",border:`1px solid ${perms[p.k]?p.c+"25":T.b}`,marginBottom:7}}>
+              <div style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{p.l}</div>
+              <Tog on={perms[p.k]} onChange={v=>setPerms(t=>({...t,[p.k]:v}))} color={p.c}/>
             </div>
           ))}
         </div>
-      </div>
-      <div className="card" style={{padding:18,marginBottom:12}}>
-        <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Conditions minimales</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-          <div>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><label style={{fontSize:12,fontWeight:600,color:T.tx}}>Jours min.</label><span style={{fontSize:13,fontWeight:800,color:"#FF6D00"}}>{minD}j</span></div>
-            <input type="range" min={0} max={31} step={1} value={minD} style={{accentColor:"#FF6D00"}} onChange={e=>setMinD(+e.target.value)}/>
-          </div>
-          <div>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><label style={{fontSize:12,fontWeight:600,color:T.tx}}>Heures min.</label><span style={{fontSize:13,fontWeight:800,color:T.go}}>{minH}h</span></div>
-            <input type="range" min={0} max={100} step={1} value={minH} style={{accentColor:T.go}} onChange={e=>setMinH(+e.target.value)}/>
+        <div className="card" style={{padding:18,marginBottom:14}}>
+          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:4}}>Agences bloquées pour les matchs</div>
+          <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Ces agences ne pourront pas proposer de matchs à vos créateurs.</div>
+          <BlockedAgenciesPanel profile={profile}/>
+        </div>
+        <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10}}>
+          {saved&&<span style={{fontSize:12,color:T.ok}}>✓ Paramètres agence enregistrés</span>}
+          <button className="btn" onClick={saveAgency} disabled={saving}>{saving?<Spin/>:"✓"} Enregistrer paramètres agence</button>
+        </div>
+      </>)}
+
+      {/* ── Info lecture seule pour le staff ── */}
+      {isStaff&&ag&&(
+        <div className="card" style={{padding:18,marginBottom:12,marginTop:4}}>
+          <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Mon agence</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
+              <span style={{color:T.sec}}>Agence</span>
+              <span style={{color:T.tx,fontWeight:600}}>{ag.name}</span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
+              <span style={{color:T.sec}}>Mon rôle</span>
+              <span style={{color:T.acc,fontWeight:600}}>{roleLabelFr(role)}</span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
+              <span style={{color:T.sec}}>Part créateur</span>
+              <span style={{color:T.ok,fontWeight:600}}>{ag.pct_creator||55}%</span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
+              <span style={{color:T.sec}}>Objectif mensuel</span>
+              <span style={{color:T.tx,fontWeight:600}}>{ag.min_days||20}j · {ag.min_hours||40}h</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="card" style={{padding:18,marginBottom:14}}>
-        <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Permissions & Matchs</div>
-        {[{k:"dir",l:"Directeurs peuvent importer",c:T.acc},{k:"mgr",l:"Managers peuvent importer",c:T.pu},{k:"inter",l:"Matchs inter-agences acceptés",c:"#00C853"},{k:"coachEnabled",l:"Coach IA activé pour tout le monde",c:"#2563EB"},{k:"agentDel",l:"Agents peuvent supprimer des créateurs",c:"#FF9800"},{k:"mgrDel",l:"Managers peuvent supprimer agents & créateurs",c:T.pu},{k:"dirDel",l:"Directeurs peuvent tout supprimer",c:T.acc}].map(p=>(
-          <div key={p.k} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:9,background:perms[p.k]?`${p.c}08`:"rgba(255,255,255,.02)",border:`1px solid ${perms[p.k]?p.c+"25":T.b}`,marginBottom:7}}>
-            <div style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{p.l}</div>
-            <Tog on={perms[p.k]} onChange={v=>setPerms(t=>({...t,[p.k]:v}))} color={p.c}/>
-          </div>
-        ))}
-      </div>
-      <div className="card" style={{padding:18,marginBottom:14}}>
-        <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:4}}>Agences bloquées pour les matchs</div>
-        <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Ces agences ne pourront pas proposer de matchs à vos créateurs.</div>
-        <BlockedAgenciesPanel profile={profile}/>
-      </div>
-      <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10}}>
-        {saved&&<span style={{fontSize:12,color:T.ok}}>✓ Enregistré</span>}
-        <button className="btn" onClick={save} disabled={saving}>{saving?<Spin/>:"✓"} Enregistrer</button>
-      </div>
+      )}
     </div>
   );
 }
@@ -2558,6 +2696,30 @@ function CoachView({profile,creators,ag}){
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
   const endRef=useRef();
+
+  // ── Limite journalière ──────────────────────
+  // Admin/Agency : 100 messages/jour | Staff : 50/jour | Créateur : 20/jour
+  const DAILY_LIMITS={admin:100,agency:100,director:50,manager:50,agent:50,creator:20};
+  const dailyLimit=DAILY_LIMITS[role]||20;
+  const storageKey=`coach_usage_${profile?.id||"anon"}`;
+  const getTodayUsage=()=>{
+    try{
+      const raw=sessionStorage.getItem(storageKey);
+      if(!raw) return 0;
+      const {date,count}=JSON.parse(raw);
+      const today=new Date().toDateString();
+      return date===today?count:0;
+    }catch{return 0;}
+  };
+  const [usageCount,setUsageCount]=useState(getTodayUsage);
+  const incrementUsage=()=>{
+    const today=new Date().toDateString();
+    const newCount=usageCount+1;
+    try{sessionStorage.setItem(storageKey,JSON.stringify({date:today,count:newCount}));}catch{}
+    setUsageCount(newCount);
+  };
+  const limitReached=usageCount>=dailyLimit;
+  // ────────────────────────────────────────────
   
   // Find creator data for context
   const myCreator=creators?.[0];
@@ -2619,11 +2781,16 @@ Style : français dynamique, motivant, emojis, max 3 paragraphes, TOUJOURS un co
 
   const send=async()=>{
     if(!input.trim()||loading) return;
+    if(limitReached){
+      setMessages(m=>[...m,{role:"assistant",content:`⚠️ Tu as atteint ta limite de ${dailyLimit} messages aujourd'hui. Le compteur se remet à zéro demain. Merci de ta compréhension ! 🙏`}]);
+      setInput("");return;
+    }
     const userMsg={role:"user",content:input.trim()};
     const newMessages=[...messages,userMsg];
     setMessages(newMessages);
     setInput("");
     setLoading(true);
+    incrementUsage();
     if(!GROQ_KEY){
       setMessages(m=>[...m,{role:"assistant",content:"⚠️ Clé Groq manquante.\nVercel → Settings → Environment Variables → ajoute VITE_GROQ_KEY avec ta clé Groq (gsk_...) → Redeploy.\n\nGroq est 100% gratuit sur groq.com"}]);
       setLoading(false);return;
