@@ -1241,22 +1241,11 @@ function PlanningView({profile}){
 function MyLivesView({profile}){
   const [entries,setEntries]=useState([]);
   const [loading,setLoading]=useState(true);
-  const [showForm,setShowForm]=useState(false);
-  const [form,setForm]=useState({live_date:"",duration_minutes:60,viewers:0,diamonds:0,notes:""});
-  const [saving,setSaving]=useState(false);
-  const [err,setErr]=useState("");
+
+  // Seuls admin et agency peuvent ajouter des lives manuellement
+  const canAdd=["admin","agency"].includes(profile?.role);
 
   useEffect(()=>{if(profile?.id) fetchLiveEntries(profile.id).then(d=>{setEntries(d);setLoading(false);});},[profile?.id]);
-
-  const save=async()=>{
-    if(!form.live_date){setErr("Date obligatoire");return;}
-    setSaving(true);setErr("");
-    const res=await addLiveEntry({...form,creator_profile_id:profile.id,agency_id:profile.agency_id});
-    if(res.error){setErr(res.error);setSaving(false);return;}
-    const fresh=await fetchLiveEntries(profile.id);
-    setEntries(fresh);setForm({live_date:"",duration_minutes:60,viewers:0,diamonds:0,notes:""});
-    setShowForm(false);setSaving(false);
-  };
 
   const totalD=entries.reduce((s,e)=>s+(e.diamonds||0),0);
   const totalH=Math.round(entries.reduce((s,e)=>s+(e.duration_minutes||0),0)/60*10)/10;
@@ -1265,41 +1254,28 @@ function MyLivesView({profile}){
     <div className="fup">
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
         <div><h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Mes lives</h1>
-          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Saisis tes lives manuellement · Connexion TikTok directe bientôt</p></div>
-        <button className="btn" style={{fontSize:12}} onClick={()=>setShowForm(!showForm)}>+ Ajouter un live</button>
+          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Données importées via Backstage · Lecture seule</p></div>
       </div>
+      {/* Bannière info pour les créateurs */}
+      {!canAdd&&(
+        <div style={{padding:"12px 16px",borderRadius:10,background:"rgba(37,99,235,.08)",border:"1px solid rgba(37,99,235,.2)",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
+          <div style={{fontSize:18}}>ℹ️</div>
+          <div>
+            <div style={{fontSize:12.5,fontWeight:600,color:T.tx,marginBottom:2}}>Données officielles uniquement</div>
+            <div style={{fontSize:11.5,color:T.sec}}>Tes lives et diamants sont importés automatiquement depuis Backstage par ton agence. Tu ne peux pas modifier ces données.</div>
+          </div>
+        </div>
+      )}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
         <SC label="💎 Diamants" val={totalD.toLocaleString()} sub="Ce mois" accent={T.cy}/>
         <SC label="⏱ Heures" val={totalH+"h"} sub={entries.length+" lives"}/>
         <SC label="👁 Spectateurs" val={entries.reduce((s,e)=>s+(e.viewers||0),0).toLocaleString()} sub="Cumulés"/>
       </div>
-      {showForm&&(
-        <div className="glow" style={{padding:18,marginBottom:14}}>
-          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:14}}>Nouveau live</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:11,marginBottom:11}}>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Date *</label>
-              <input className="inp" type="date" value={form.live_date} onChange={e=>setForm(f=>({...f,live_date:e.target.value}))}/></div>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Durée (minutes)</label>
-              <input className="inp" type="number" value={form.duration_minutes} onChange={e=>setForm(f=>({...f,duration_minutes:+e.target.value}))} min={0}/></div>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>💎 Diamants reçus</label>
-              <input className="inp" type="number" value={form.diamonds} onChange={e=>setForm(f=>({...f,diamonds:+e.target.value}))} min={0}/></div>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>👁 Spectateurs max</label>
-              <input className="inp" type="number" value={form.viewers} onChange={e=>setForm(f=>({...f,viewers:+e.target.value}))} min={0}/></div>
-          </div>
-          <div style={{marginBottom:11}}><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Notes</label>
-            <input className="inp" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Ex: super live, beaucoup de cadeaux"/></div>
-          {err&&<div style={{padding:"7px 10px",borderRadius:8,background:"rgba(244,67,54,.1)",border:"1px solid rgba(244,67,54,.2)",fontSize:11.5,color:T.ng,marginBottom:10}}>{err}</div>}
-          <div style={{display:"flex",gap:8}}>
-            <button className="btn" style={{fontSize:12}} onClick={save} disabled={saving}>{saving?<Spin/>:"Enregistrer"}</button>
-            <button className="btng" onClick={()=>{setShowForm(false);setErr("");}}>Annuler</button>
-          </div>
-        </div>
-      )}
       {loading?<div style={{textAlign:"center",padding:20,color:T.sec}}>Chargement…</div>:
       entries.length===0?(
         <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
-          Aucun live enregistré · Ajoute ton premier live ci-dessus
-          <div style={{marginTop:10,fontSize:11,color:T.sec}}>Connexion TikTok directe bientôt ✨</div>
+          Aucun live importé pour le moment
+          <div style={{marginTop:10,fontSize:11,color:T.sec}}>Les lives apparaissent après import Backstage par ton agence ✨</div>
         </div>
       ):(
         <div className="card" style={{overflow:"hidden"}}>
