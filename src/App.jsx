@@ -1241,11 +1241,22 @@ function PlanningView({profile}){
 function MyLivesView({profile}){
   const [entries,setEntries]=useState([]);
   const [loading,setLoading]=useState(true);
-
-  // Seuls admin et agency peuvent ajouter des lives manuellement
-  const canAdd=["admin","agency"].includes(profile?.role);
+  const [showForm,setShowForm]=useState(false);
+  const [form,setForm]=useState({live_date:"",duration_minutes:60,viewers:0,diamonds:0,notes:""});
+  const [saving,setSaving]=useState(false);
+  const [err,setErr]=useState("");
 
   useEffect(()=>{if(profile?.id) fetchLiveEntries(profile.id).then(d=>{setEntries(d);setLoading(false);});},[profile?.id]);
+
+  const save=async()=>{
+    if(!form.live_date){setErr("Date obligatoire");return;}
+    setSaving(true);setErr("");
+    const res=await addLiveEntry({...form,creator_profile_id:profile.id,agency_id:profile.agency_id});
+    if(res.error){setErr(res.error);setSaving(false);return;}
+    const fresh=await fetchLiveEntries(profile.id);
+    setEntries(fresh);setForm({live_date:"",duration_minutes:60,viewers:0,diamonds:0,notes:""});
+    setShowForm(false);setSaving(false);
+  };
 
   const totalD=entries.reduce((s,e)=>s+(e.diamonds||0),0);
   const totalH=Math.round(entries.reduce((s,e)=>s+(e.duration_minutes||0),0)/60*10)/10;
@@ -1254,28 +1265,41 @@ function MyLivesView({profile}){
     <div className="fup">
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
         <div><h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Mes lives</h1>
-          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Données importées via Backstage · Lecture seule</p></div>
+          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Saisis tes lives manuellement · Connexion TikTok directe bientôt</p></div>
+        <button className="btn" style={{fontSize:12}} onClick={()=>setShowForm(!showForm)}>+ Ajouter un live</button>
       </div>
-      {/* Bannière info pour les créateurs */}
-      {!canAdd&&(
-        <div style={{padding:"12px 16px",borderRadius:10,background:"rgba(37,99,235,.08)",border:"1px solid rgba(37,99,235,.2)",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
-          <div style={{fontSize:18}}>ℹ️</div>
-          <div>
-            <div style={{fontSize:12.5,fontWeight:600,color:T.tx,marginBottom:2}}>Données officielles uniquement</div>
-            <div style={{fontSize:11.5,color:T.sec}}>Tes lives et diamants sont importés automatiquement depuis Backstage par ton agence. Tu ne peux pas modifier ces données.</div>
-          </div>
-        </div>
-      )}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
         <SC label="💎 Diamants" val={totalD.toLocaleString()} sub="Ce mois" accent={T.cy}/>
         <SC label="⏱ Heures" val={totalH+"h"} sub={entries.length+" lives"}/>
         <SC label="👁 Spectateurs" val={entries.reduce((s,e)=>s+(e.viewers||0),0).toLocaleString()} sub="Cumulés"/>
       </div>
+      {showForm&&(
+        <div className="glow" style={{padding:18,marginBottom:14}}>
+          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:14}}>Nouveau live</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:11,marginBottom:11}}>
+            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Date *</label>
+              <input className="inp" type="date" value={form.live_date} onChange={e=>setForm(f=>({...f,live_date:e.target.value}))}/></div>
+            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Durée (minutes)</label>
+              <input className="inp" type="number" value={form.duration_minutes} onChange={e=>setForm(f=>({...f,duration_minutes:+e.target.value}))} min={0}/></div>
+            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>💎 Diamants reçus</label>
+              <input className="inp" type="number" value={form.diamonds} onChange={e=>setForm(f=>({...f,diamonds:+e.target.value}))} min={0}/></div>
+            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>👁 Spectateurs max</label>
+              <input className="inp" type="number" value={form.viewers} onChange={e=>setForm(f=>({...f,viewers:+e.target.value}))} min={0}/></div>
+          </div>
+          <div style={{marginBottom:11}}><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Notes</label>
+            <input className="inp" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Ex: super live, beaucoup de cadeaux"/></div>
+          {err&&<div style={{padding:"7px 10px",borderRadius:8,background:"rgba(244,67,54,.1)",border:"1px solid rgba(244,67,54,.2)",fontSize:11.5,color:T.ng,marginBottom:10}}>{err}</div>}
+          <div style={{display:"flex",gap:8}}>
+            <button className="btn" style={{fontSize:12}} onClick={save} disabled={saving}>{saving?<Spin/>:"Enregistrer"}</button>
+            <button className="btng" onClick={()=>{setShowForm(false);setErr("");}}>Annuler</button>
+          </div>
+        </div>
+      )}
       {loading?<div style={{textAlign:"center",padding:20,color:T.sec}}>Chargement…</div>:
       entries.length===0?(
         <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
-          Aucun live importé pour le moment
-          <div style={{marginTop:10,fontSize:11,color:T.sec}}>Les lives apparaissent après import Backstage par ton agence ✨</div>
+          Aucun live enregistré · Ajoute ton premier live ci-dessus
+          <div style={{marginTop:10,fontSize:11,color:T.sec}}>Connexion TikTok directe bientôt ✨</div>
         </div>
       ):(
         <div className="card" style={{overflow:"hidden"}}>
@@ -1561,85 +1585,211 @@ function CreatorsView({profile,creators,agents,reload}){
 }
 
 /* ─── IMPORT BACKSTAGE ──────────────────── */
+// Lit le XLSX officiel TikTok Backstage (colonnes françaises) via SheetJS
+const parseBackstageXLSX = async (file) => {
+  const XLSX = await import("https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs");
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: "array" });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+  // Cherche la ligne d'en-tête (contient "Nom d'utilisateur")
+  let headerIdx = raw.findIndex(r => r.some(c => String(c).includes("Nom d'utilisateur")));
+  if (headerIdx < 0) headerIdx = 0; // fallback
+  const headers = raw[headerIdx].map(h => String(h).trim());
+  const col = (name) => headers.findIndex(h => h.includes(name));
+  const iId       = col("ID créateur");
+  const iPseudo   = col("Nom d'utilisateur");
+  const iGroup    = col("Groupe");
+  const iAgent    = col("Agent");
+  const iDiamonds = col("Diamants");
+  const iDays     = col("Jours de passage en LIVE");
+  const iHours    = col("Durée de LIVE");
+  const rows = [];
+  for (let i = headerIdx + 1; i < raw.length; i++) {
+    const r = raw[i];
+    const tiktok_id = String(r[iId] ?? "").trim();
+    const pseudo    = String(r[iPseudo] ?? "").trim();
+    if (!pseudo && !tiktok_id) continue;
+    const hoursRaw  = parseFloat(String(r[iHours] ?? "0").replace(",", ".")) || 0;
+    rows.push({
+      tiktok_id,
+      pseudo,
+      group_name:   String(r[iGroup]   ?? "").trim(),
+      agent_email:  String(r[iAgent]   ?? "").trim(),
+      diamonds:     Math.round(parseFloat(String(r[iDiamonds] ?? "0").replace(",", ".")) || 0),
+      days_live:    Math.round(parseFloat(String(r[iDays]     ?? "0").replace(",", ".")) || 0),
+      hours_live:   Math.round(hoursRaw * 10) / 10,
+    });
+  }
+  return rows;
+};
+
+// Normalise un handle TikTok pour la comparaison
+const normHandle = (h) => String(h || "").replace(/^@/, "").trim().toLowerCase();
+
 function ImportView({profile,reload}){
   const [phase,setPhase]=useState("idle");
   const [prog,setProg]=useState(0);
   const [result,setRes]=useState(null);
   const [err,setErr]=useState("");
+  const [preview,setPreview]=useState(null); // rows parsed before confirming
   const inputRef=useRef();
   const ag=profile?.agencies;
   const canImport=()=>{const r=profile?.role;if(r==="agency"||r==="admin") return true;if(r==="director"&&ag?.director_can_import) return true;if(r==="manager"&&ag?.manager_can_import) return true;return false;};
+
   const go=async(file)=>{
     if(!file) return;
+    setErr("");setPreview(null);
+    // Accepte XLSX ou CSV
+    const isXlsx = file.name.match(/\.xlsx?$/i) || file.type.includes("spreadsheet");
+    let rows=[];
+    if(isXlsx){
+      try{
+        setPhase("parsing");
+        rows = await parseBackstageXLSX(file);
+      }catch(e){
+        setErr("Erreur lecture XLSX : "+e.message);setPhase("idle");return;
+      }
+    } else {
+      // Fallback CSV legacy
+      const text = await file.text?.() ?? "";
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      const dataLines = lines.length>1&&isNaN(lines[0].split("\t")[0])?lines.slice(1):lines;
+      rows = dataLines.map(line=>{
+        const p = line.split("\t");
+        if(p.length<2) return null;
+        return {tiktok_id:p[0]?.trim(), pseudo:p[1]?.trim(), diamonds:+(p[19]||0), days_live:+(p[20]||0), hours_live:+(p[21]||0)};
+      }).filter(Boolean);
+    }
+    if(rows.length===0){setErr("Fichier vide ou format non reconnu. Utilise l'export XLSX officiel TikTok Backstage.");setPhase("idle");return;}
+    setPreview(rows);
+    setPhase("preview");
+  };
+
+  const doImport = async () => {
+    if(!preview||preview.length===0) return;
     setPhase("load");setProg(0);setErr("");
-    const text=await file.text?.()??"";;
-    const lines=text.split(/\r?\n/).filter(Boolean);
-    const dataLines=lines.length>1&&isNaN(lines[0].split(",")[0])?lines.slice(1):lines;
-    const rows=dataLines.filter(Boolean).map(line=>{
-      const [tiktok_id,pseudo,diamonds,days_live,hours_live]=line.split(",");
-      return {tiktok_id:tiktok_id?.trim(),pseudo:pseudo?.trim(),diamonds:+(diamonds||0),days_live:+(days_live||0),hours_live:+(hours_live||0)};
-    }).filter(r=>r.tiktok_id&&r.tiktok_id.trim());
-    if(rows.length===0){setErr("Fichier vide ou format non reconnu. Attendu : tiktok_id, pseudo, diamonds, days_live, hours_live");setPhase("idle");return;}
     let p=0;const iv=setInterval(()=>{p=Math.min(p+Math.random()*14+5,90);setProg(Math.round(p));},110);
-    const res=await importBackstage(ag?.id,profile?.id,rows);
-    clearInterval(iv);setProg(100);
-    setTimeout(async()=>{
-      if(res?.error){setErr(res.error);setPhase("idle");}
-      else{
-        // Link profiles by tiktok_handle to their creator record
-        if(sb&&ag?.id){
-          const {data:creatorsData}=await sb.from("creators").select("id,tiktok_id,pseudo").eq("agency_id",ag.id);
-          const {data:profilesData}=await sb.from("profiles").select("id,tiktok_handle").eq("agency_id",ag.id);
-          if(creatorsData&&profilesData){
-            for(const prof of profilesData){
-              if(!prof.tiktok_handle) continue;
-              const handle=prof.tiktok_handle.replace("@","").toLowerCase();
-              const match=creatorsData.find(c=>(c.pseudo||"").replace("@","").toLowerCase()===handle||(c.tiktok_id||"").toLowerCase()===handle);
-              if(match&&!match.profile_id){
-                await sb.from("creators").update({profile_id:prof.id}).eq("id",match.id);
-              }
+
+    // 1. Upsert dans la table creators (via RPC existant)
+    const rowsForRpc = preview.map(r=>({tiktok_id:r.tiktok_id,pseudo:r.pseudo,diamonds:r.diamonds,days_live:r.days_live,hours_live:r.hours_live}));
+    const res = await importBackstage(ag?.id, profile?.id, rowsForRpc);
+    clearInterval(iv);setProg(80);
+
+    if(res?.error){setErr(res.error);setPhase("idle");return;}
+
+    // 2. Linking : relier chaque @TikTok aux profils inscrits (créateurs ET staff)
+    if(sb && ag?.id){
+      const [{data:creatorsData},{data:profilesData}] = await Promise.all([
+        sb.from("creators").select("id,tiktok_id,pseudo,profile_id").eq("agency_id",ag.id),
+        sb.from("profiles").select("id,tiktok_handle,role").eq("agency_id",ag.id),
+      ]);
+      if(creatorsData && profilesData){
+        // Pour chaque profil inscrit (y compris staff), on cherche son creator record
+        for(const prof of profilesData){
+          if(!prof.tiktok_handle) continue;
+          const handle = normHandle(prof.tiktok_handle);
+          // Cherche dans la liste importée ET dans les creators existants
+          const creatorRow = creatorsData.find(c =>
+            normHandle(c.pseudo) === handle ||
+            normHandle(c.tiktok_id) === handle
+          );
+          if(creatorRow && creatorRow.profile_id !== prof.id){
+            await sb.from("creators").update({profile_id:prof.id}).eq("id",creatorRow.id);
+          }
+          // Si le staff est aussi créateur : met à jour ses stats depuis l'import
+          if(["director","manager","agent"].includes(prof.role)){
+            const importedRow = preview.find(r => normHandle(r.pseudo)===handle || normHandle(r.tiktok_id)===handle);
+            if(importedRow && creatorRow){
+              await sb.from("creators").update({
+                diamonds: importedRow.diamonds,
+                days_live: importedRow.days_live,
+                hours_live: importedRow.hours_live,
+                profile_id: prof.id,
+              }).eq("id",creatorRow.id);
             }
           }
         }
-        setRes(res);setPhase("done");reload?.();
       }
-    },300);
+    }
+    setProg(100);
+    setTimeout(()=>{setRes(res);setPhase("done");reload?.();},300);
   };
+
   const expiry=()=>{const d=new Date();d.setMonth(d.getMonth()+1);d.setDate(15);return d.toLocaleDateString("fr-FR");};
   if(!canImport()) return <div style={{padding:"20px 16px",borderRadius:13,background:"rgba(244,67,54,.08)",border:"1px solid rgba(244,67,54,.2)",fontSize:13.5,color:T.ng}}>⛔ Permission refusée.</div>;
+
   return(
     <div className="fup">
       <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:4}}>Import Backstage</h1>
-      <p style={{fontSize:12,color:T.sec,marginBottom:14}}>Données <strong style={{color:T.tx}}>remplacées</strong> à chaque import · Valides jusqu'au 15 du mois suivant</p>
+      <p style={{fontSize:12,color:T.sec,marginBottom:14}}>Export XLSX officiel TikTok · Données <strong style={{color:T.tx}}>remplacées</strong> à chaque import · Matching automatique des @</p>
       {ag?.last_import_date&&<div className="card" style={{padding:13,background:"rgba(0,200,83,.06)",border:"1px solid rgba(0,200,83,.2)",marginBottom:12}}>
         <div style={{fontWeight:700,fontSize:13,color:T.tx}}>Dernier import : {new Date(ag.last_import_date).toLocaleDateString("fr-FR")}</div>
         <div style={{fontSize:11.5,color:T.sec,marginTop:2}}>{ag.last_import_count} créateurs · Valide jusqu'au <strong style={{color:T.ok}}>{new Date(ag.last_import_expiry).toLocaleDateString("fr-FR")}</strong></div>
       </div>}
+
+      {/* Info box */}
+      <div style={{padding:"10px 14px",borderRadius:10,background:"rgba(37,99,235,.07)",border:"1px solid rgba(37,99,235,.18)",marginBottom:14,fontSize:12,color:"#93C5FD",lineHeight:1.6}}>
+        💡 <strong>Comment faire :</strong> Va sur TikTok Backstage → Gérer les créateurs → <em>Exporter</em> → télécharge le fichier <strong>.xlsx</strong> et dépose-le ici. Le système relie automatiquement chaque @ à ton staff et tes créateurs.
+      </div>
+
       {err&&<div style={{padding:"8px 11px",borderRadius:9,background:"rgba(244,67,54,.1)",border:"1px solid rgba(244,67,54,.2)",fontSize:12,color:T.ng,marginBottom:12}}>{err}</div>}
-      {phase==="idle"&&<div
+
+      {(phase==="idle"||phase==="parsing")&&<div
         onClick={()=>inputRef.current?.click()}
         onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)go(f);}}
         onDragOver={e=>e.preventDefault()}
-        style={{border:`2px dashed ${T.b}`,borderRadius:16,padding:"36px 28px",textAlign:"center",cursor:"pointer",transition:"border-color .2s"}}
-        onMouseEnter={e=>e.currentTarget.style.borderColor=T.acc} onMouseLeave={e=>e.currentTarget.style.borderColor=T.b}>
-        <input ref={inputRef} type="file" accept="" style={{display:"none"}} onChange={e=>go(e.target.files[0])}/>
-        <div style={{fontSize:30,marginBottom:10}}>📁</div>
-        <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:4}}>Glissez l'export Backstage ici</div>
-        <div style={{fontSize:11.5,color:T.sec,marginBottom:6}}>CSV : tiktok_id, pseudo, diamonds, days_live, hours_live</div>
-        <div style={{fontSize:11,color:"#444",marginBottom:14}}>💡 Sur iPhone : bouton ci-dessous → Parcourir → sélectionne ton fichier</div>
-        <button className="btn" style={{fontSize:12}} onClick={e=>{e.stopPropagation();inputRef.current?.click();}}>Choisir un fichier</button>
+        style={{border:`2px dashed ${T.b}`,borderRadius:16,padding:"36px 28px",textAlign:"center",cursor:phase==="parsing"?"default":"pointer",transition:"border-color .2s",opacity:phase==="parsing"?0.6:1}}
+        onMouseEnter={e=>{if(phase==="idle")e.currentTarget.style.borderColor=T.acc;}} onMouseLeave={e=>e.currentTarget.style.borderColor=T.b}>
+        <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>go(e.target.files[0])}/>
+        <div style={{fontSize:34,marginBottom:10}}>{phase==="parsing"?"⏳":"📊"}</div>
+        <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:4}}>{phase==="parsing"?"Lecture du fichier…":"Dépose l'export TikTok Backstage ici"}</div>
+        <div style={{fontSize:11.5,color:T.sec,marginBottom:12}}>Fichier <strong style={{color:T.tx}}>.xlsx</strong> officiel TikTok · Glisse ou clique pour choisir</div>
+        {phase==="idle"&&<button className="btn" style={{fontSize:12}} onClick={e=>{e.stopPropagation();inputRef.current?.click();}}>Choisir le fichier XLSX</button>}
       </div>}
+
+      {phase==="preview"&&preview&&(
+        <div>
+          <div className="card" style={{padding:16,marginBottom:14,background:"rgba(37,99,235,.06)",border:"1px solid rgba(37,99,235,.2)"}}>
+            <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:4}}>✅ {preview.length} créateurs détectés</div>
+            <div style={{fontSize:12,color:T.sec,marginBottom:14}}>Vérifie l'aperçu ci-dessous puis confirme l'import. Les données diamants, jours et heures seront mises à jour pour chaque @ trouvé dans ton agence.</div>
+            <div style={{display:"flex",gap:8}}>
+              <button className="btn" style={{fontSize:13}} onClick={doImport}>Confirmer l'import →</button>
+              <button className="btng" onClick={()=>{setPhase("idle");setPreview(null);}}>Annuler</button>
+            </div>
+          </div>
+          <div className="card" style={{overflow:"hidden"}}>
+            <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Aperçu (5 premiers)</div>
+            <div className="cr" style={{gridTemplateColumns:"140px 80px 50px 60px",background:"rgba(255,255,255,.02)",fontSize:10,fontWeight:600,color:T.sec,textTransform:"uppercase"}}>
+              <div>@ TikTok</div><div>💎 Diamants</div><div>Jours</div><div>Heures</div>
+            </div>
+            {preview.slice(0,5).map((r,i)=>(
+              <div key={i} className="cr" style={{gridTemplateColumns:"140px 80px 50px 60px"}}>
+                <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>@{r.pseudo}</div>
+                <div style={{fontWeight:700,color:T.cy,fontSize:12}}>💎 {(r.diamonds||0).toLocaleString()}</div>
+                <div style={{fontSize:12,color:T.sec}}>{r.days_live}j</div>
+                <div style={{fontSize:12,color:T.sec}}>{r.hours_live}h</div>
+              </div>
+            ))}
+            {preview.length>5&&<div style={{padding:"8px 14px",fontSize:11,color:T.sec}}>… et {preview.length-5} autres créateurs</div>}
+          </div>
+        </div>
+      )}
+
       {phase==="load"&&<div className="card" style={{padding:"36px 28px",textAlign:"center"}}>
-        <div style={{width:44,height:44,borderRadius:"50%",border:"3px solid rgba(127,0,255,.2)",borderTop:`3px solid ${T.acc}`,animation:"sp2 .8s linear infinite",margin:"0 auto 13px"}}/>
-        <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:13}}>Remplacement…</div>
+        <div style={{width:44,height:44,borderRadius:"50%",border:"3px solid rgba(37,99,235,.2)",borderTop:`3px solid ${T.acc}`,animation:"sp2 .8s linear infinite",margin:"0 auto 13px"}}/>
+        <div style={{fontSize:14,fontWeight:700,color:T.tx,marginBottom:4}}>Import en cours…</div>
+        <div style={{fontSize:11.5,color:T.sec,marginBottom:13}}>Mise à jour des stats + matching des @</div>
         <div style={{height:5,background:"rgba(255,255,255,.08)",borderRadius:20,overflow:"hidden"}}><div style={{height:"100%",borderRadius:20,width:`${prog}%`,background:`linear-gradient(90deg,${T.acc},${T.cy})`,transition:"width .1s"}}/></div>
         <div style={{marginTop:6,fontSize:11,color:T.sec}}>{prog}%</div>
       </div>}
+
       {phase==="done"&&<div className="card" style={{padding:24,textAlign:"center"}}>
-        <div style={{fontSize:24,marginBottom:10}}>✅</div>
+        <div style={{fontSize:28,marginBottom:10}}>✅</div>
         <div style={{fontSize:18,fontWeight:800,color:T.tx,marginBottom:4}}>Import réussi !</div>
-        <div style={{fontSize:12.5,color:T.sec,marginBottom:14}}><strong style={{color:T.tx}}>{result?.updated??"?"} créateurs</strong> mis à jour · Valide jusqu'au <strong style={{color:T.ok}}>{expiry()}</strong></div>
-        <button className="btng" onClick={()=>{setPhase("idle");setRes(null);}}>Importer un autre fichier</button>
+        <div style={{fontSize:12.5,color:T.sec,marginBottom:6}}><strong style={{color:T.tx}}>{result?.updated??(preview?.length??"?")} créateurs</strong> mis à jour</div>
+        <div style={{fontSize:12,color:T.sec,marginBottom:16}}>Valide jusqu'au <strong style={{color:T.ok}}>{expiry()}</strong> · @ reliés automatiquement à vos profils</div>
+        <button className="btng" onClick={()=>{setPhase("idle");setRes(null);setPreview(null);}}>Importer un autre fichier</button>
       </div>}
     </div>
   );
