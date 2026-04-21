@@ -1592,18 +1592,21 @@ const parseBackstageXLSX = async (file) => {
   const wb = XLSX.read(buf, { type: "array" });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-  // Cherche la ligne d'en-tête (contient "Nom d'utilisateur")
-  let headerIdx = raw.findIndex(r => r.some(c => String(c).includes("Nom d'utilisateur")));
-  if (headerIdx < 0) headerIdx = 0; // fallback
-  const headers = raw[headerIdx].map(h => String(h).trim());
-  const col = (name) => headers.findIndex(h => h.includes(name));
-  const iId       = col("ID créateur");
-  const iPseudo   = col("Nom d'utilisateur");
-  const iGroup    = col("Groupe");
-  const iAgent    = col("Agent");
-  const iDiamonds = col("Diamants");
-  const iDays     = col("Jours de passage en LIVE");
-  const iHours    = col("Durée de LIVE");
+  // Cherche la ligne d-en-tete (contient le mot utilisateur)
+  let headerIdx = raw.findIndex(r => r.some(c => {
+    const s = String(c).toLowerCase();
+    return s.includes("utilisateur") || s.includes("username");
+  }));
+  if (headerIdx < 0) headerIdx = 0;
+  const headers = raw[headerIdx].map(h => String(h).trim().toLowerCase());
+  const col = (fn) => headers.findIndex(fn);
+  const iId       = col(h => h.includes("id") && h.includes("cr"));
+  const iPseudo   = col(h => h.includes("utilisateur") || h.includes("username"));
+  const iGroup    = col(h => h.includes("groupe") || h.includes("group"));
+  const iAgent    = col(h => h === "agent" || h.startsWith("agent"));
+  const iDiamonds = col(h => h.includes("diamant") || h.includes("diamond"));
+  const iDays     = col(h => (h.includes("jours") || h.includes("days")) && h.includes("live"));
+  const iHours    = col(h => (h.includes("dur") && h.includes("live")) || h.includes("hours"));
   const rows = [];
   for (let i = headerIdx + 1; i < raw.length; i++) {
     const r = raw[i];
