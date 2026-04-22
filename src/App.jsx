@@ -440,9 +440,9 @@ const billingTag=(s,isOffered)=>{
 const NAVS={
   admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"invite_agencies",l:"Inviter agences"},{id:"members",l:"👥 Membres"},{id:"all_users",l:"Utilisateurs"},{id:"all_creators",l:"Créateurs"},{id:"all_staff",l:"Staff"},{id:"all_matches",l:"Matchs"},{id:"all_schedules",l:"Plannings"},{id:"all_lives",l:"Lives"},{id:"poster_templates",l:"Templates affiches"},{id:"coach",l:"Coach IA 🤖"}],
   agency:  [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Codes d'invitation"},{id:"matches",l:"Matchs"},{id:"settings",l:"Paramètres"},{id:"coach",l:"Coach IA 🤖"}],
-  director:[{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
-  manager: [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
-  agent:   [{id:"dash",l:"Dashboard"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mon code"},{id:"settings",l:"Paramètres"}],
+  director:[{id:"dash",l:"Mon pôle"},{id:"mon_equipe",l:"Mon équipe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
+  manager: [{id:"dash",l:"Mon groupe"},{id:"mon_equipe",l:"Mon équipe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
+  agent:   [{id:"dash",l:"Dashboard"},{id:"mon_equipe",l:"Mon équipe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mon code"},{id:"settings",l:"Paramètres"}],
   creator: [{id:"dash",l:"Mon espace"},{id:"planning",l:"Mon planning"},{id:"matches",l:"Mes matchs"},{id:"coach",l:"Coach IA 🤖"},{id:"settings",l:"Mon profil"}],
 };
 
@@ -2267,9 +2267,11 @@ function SettingsView({profile,reload}){
 function DashView({profile,creators,agents,managers,directors}){
   const ag=profile?.agencies;
   const role=profile?.role;
+  const rate=getDiamondValue(ag);
+
   if(role==="creator"){
     const c=creators[0];
-    if(!c) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucune donnée - Contactez votre agent.</div>;
+    if(!c) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucune donnée · Contactez votre agent.</div>;
     const p=calcPayout(ag,c);
     const dp=Math.min(100,Math.round((c.days_live||0)/(ag?.min_days||20)*100));
     const hp=Math.min(100,Math.round((c.hours_live||0)/(ag?.min_hours||40)*100));
@@ -2281,12 +2283,16 @@ function DashView({profile,creators,agents,managers,directors}){
         <div className="glow" style={{padding:24,textAlign:"center",marginBottom:12}}>
           <div style={{fontSize:11,fontWeight:600,color:T.sec,textTransform:"uppercase",letterSpacing:".08em",marginBottom:10}}>Tes diamants ce mois</div>
           <div style={{fontSize:52,fontWeight:900,color:T.cy,lineHeight:1,marginBottom:4}}>💎 {(c.diamonds||0).toLocaleString()}</div>
-          <div style={{fontSize:12,color:T.sec,marginBottom:16}}>diamants accumulés en live</div>
+          <div style={{fontSize:12,color:T.sec,marginBottom:4}}>≈ {((c.diamonds||0)*rate).toFixed(2)}€ brut TikTok</div>
+          {ag?.activer_regle_evolution&&(c.diamonds_mois_precedent||0)>0&&(
+            <div style={{fontSize:11,color:T.sec,marginBottom:12}}>Mois précédent : 💎 {(c.diamonds_mois_precedent||0).toLocaleString()}</div>
+          )}
           <div style={{display:"inline-flex",padding:"12px 24px",borderRadius:12,background:p.eligible?"rgba(37,99,235,.1)":"rgba(244,67,54,.08)",border:`1px solid ${p.eligible?"rgba(37,99,235,.25)":"rgba(244,67,54,.2)"}`}}>
             <div>
               <div style={{fontSize:11,color:T.sec,marginBottom:2}}>Ce que tu reçois</div>
-              <div style={{fontSize:26,fontWeight:900,color:p.eligible?T.acc:T.sec}}>{p.eligible?`${p.creator}€`:"0€"}</div>
-              {!p.eligible&&p.reason&&<div style={{fontSize:11,color:T.ng,marginTop:4}}>{p.reason}</div>}
+              <div style={{fontSize:26,fontWeight:900,color:p.eligible?T.acc:T.ng}}>{p.eligible?`${p.creator}€`:"0€"}</div>
+              {!p.eligible&&<div style={{fontSize:11,color:T.ng,marginTop:4}}>🚫 Non éligible au paiement</div>}
+              {!p.eligible&&p.reason&&<div style={{fontSize:10,color:"#888",marginTop:2}}>{p.reason}</div>}
             </div>
           </div>
         </div>
@@ -2302,18 +2308,147 @@ function DashView({profile,creators,agents,managers,directors}){
       </div>
     );
   }
-  if(!ag) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucune agence liée - Contactez l'administrateur.</div>;
+
+  if(role==="agent"){
+    if(!ag) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucune agence liée.</div>;
+    const eligible=creators.filter(c=>calcPayout(ag,c).eligible);
+    const horsEvol=ag?.activer_regle_evolution?creators.filter(c=>getEvolutionStatus(c,ag)==="HORS_EVOLUTION"):[];
+    const totalCommission=eligible.reduce((s,c)=>s+(calcPayout(ag,c).agent||0),0);
+    const totalDiamonds=creators.reduce((s,c)=>s+(c.diamonds||0),0);
+    return(
+      <div className="fup">
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,color:T.acc,textTransform:"uppercase",letterSpacing:".1em",marginBottom:3}}>Agent · {ag.name}</div>
+          <h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Mon dashboard</h1>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:12}}>
+          <div className="glow" style={{padding:18,textAlign:"center"}}>
+            <div style={{fontSize:11,color:T.sec,marginBottom:6,textTransform:"uppercase",letterSpacing:".07em"}}>Ma commission</div>
+            <div style={{fontSize:36,fontWeight:900,color:T.acc}}>{totalCommission}€</div>
+            <div style={{fontSize:11,color:T.sec,marginTop:4}}>sur {eligible.length}/{creators.length} éligibles</div>
+          </div>
+          <div className="card" style={{padding:18,textAlign:"center"}}>
+            <div style={{fontSize:11,color:T.sec,marginBottom:6,textTransform:"uppercase",letterSpacing:".07em"}}>💎 Total diamants</div>
+            <div style={{fontSize:28,fontWeight:900,color:T.cy}}>{totalDiamonds.toLocaleString()}</div>
+            <div style={{fontSize:11,color:T.sec,marginTop:4}}>≈ {(totalDiamonds*rate).toFixed(0)}€ brut</div>
+          </div>
+        </div>
+        {horsEvol.length>0&&(
+          <div style={{padding:"12px 14px",borderRadius:11,background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",marginBottom:12}}>
+            <div style={{fontWeight:700,fontSize:12.5,color:T.ng,marginBottom:8}}>⚠️ {horsEvol.length} créateur{horsEvol.length>1?"s":""} hors évolution · te pénalise{horsEvol.length>1?"nt":""}</div>
+            {horsEvol.map(c=>(
+              <div key={c.id} style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.tx,marginBottom:4}}>
+                <span>{c.pseudo}</span>
+                <span style={{color:T.ng,fontSize:11}}>💎 {(c.diamonds||0).toLocaleString()} vs {(c.diamonds_mois_precedent||0).toLocaleString()} M-1</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="card" style={{padding:14}}>
+          <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Mes créateurs ({creators.length})</div>
+          {creators.length===0?<div style={{fontSize:12,color:T.sec}}>Aucun créateur assigné</div>:creators.map(c=>{
+            const p=calcPayout(ag,c);
+            const evol=ag?.activer_regle_evolution?getEvolutionStatus(c,ag):null;
+            return(
+              <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:`1px solid ${T.b}`}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12.5,fontWeight:600,color:T.tx}}>{c.pseudo}</div>
+                  <div style={{fontSize:11,color:T.sec}}>💎 {(c.diamonds||0).toLocaleString()} · {c.days_live||0}j · {c.hours_live||0}h</div>
+                </div>
+                {evol&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:evol==="EN_EVOLUTION"?"rgba(34,197,94,0.12)":"rgba(239,68,68,0.12)",color:evol==="EN_EVOLUTION"?T.ok:T.ng}}>{evol==="EN_EVOLUTION"?"↑":"↓ HORS"}</span>}
+                <span style={{fontSize:12,fontWeight:700,color:p.eligible?T.acc:T.sec,minWidth:40,textAlign:"right"}}>{p.eligible?`${p.agent}€`:"0€"}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if(role==="manager"){
+    if(!ag) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucune agence liée.</div>;
+    const eligible=creators.filter(c=>calcPayout(ag,c).eligible);
+    const totalCommission=eligible.reduce((s,c)=>s+(calcPayout(ag,c).manager||0),0);
+    const horsEvol=ag?.activer_regle_evolution?creators.filter(c=>getEvolutionStatus(c,ag)==="HORS_EVOLUTION"):[];
+    return(
+      <div className="fup">
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,color:T.acc,textTransform:"uppercase",letterSpacing:".1em",marginBottom:3}}>Manager · {ag.name}</div>
+          <h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Mon dashboard</h1>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:12}}>
+          <SC label="Ma commission" val={totalCommission+"€"} accent={T.acc}/>
+          <SC label="Éligibles" val={`${eligible.length}/${creators.length}`} accent={eligible.length===creators.length?T.ok:T.go}/>
+          <SC label="Agents" val={agents.length} accent={T.cy}/>
+        </div>
+        {horsEvol.length>0&&(
+          <div style={{padding:"12px 14px",borderRadius:11,background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",marginBottom:12}}>
+            <div style={{fontWeight:700,fontSize:12.5,color:T.ng,marginBottom:6}}>⚠️ {horsEvol.length} créateur{horsEvol.length>1?"s":""} hors évolution</div>
+            {horsEvol.map(c=><div key={c.id} style={{fontSize:12,color:T.tx,marginBottom:3}}>{c.pseudo} · 💎 {(c.diamonds||0).toLocaleString()} vs {(c.diamonds_mois_precedent||0).toLocaleString()}</div>)}
+          </div>
+        )}
+        <div className="card" style={{padding:14}}>
+          <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Mes créateurs ({creators.length})</div>
+          {creators.map(c=>{
+            const p=calcPayout(ag,c);
+            const evol=ag?.activer_regle_evolution?getEvolutionStatus(c,ag):null;
+            return(
+              <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:`1px solid ${T.b}`}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12.5,fontWeight:600,color:T.tx}}>{c.pseudo}</div>
+                  <div style={{fontSize:11,color:T.sec}}>💎 {(c.diamonds||0).toLocaleString()} · {c.days_live||0}j · {c.hours_live||0}h</div>
+                </div>
+                {evol&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:evol==="EN_EVOLUTION"?"rgba(34,197,94,0.12)":"rgba(239,68,68,0.12)",color:evol==="EN_EVOLUTION"?T.ok:T.ng}}>{evol==="EN_EVOLUTION"?"↑":"↓"}</span>}
+                <span style={{fontSize:12,fontWeight:700,color:p.eligible?T.acc:T.sec,minWidth:40,textAlign:"right"}}>{p.eligible?`${p.creator}€`:"0€"}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if(role==="director"){
+    if(!ag) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucune agence liée.</div>;
+    const eligible=creators.filter(c=>calcPayout(ag,c).eligible);
+    const totalCommission=eligible.reduce((s,c)=>s+(calcPayout(ag,c).director||0),0);
+    const horsEvol=ag?.activer_regle_evolution?creators.filter(c=>getEvolutionStatus(c,ag)==="HORS_EVOLUTION"):[];
+    return(
+      <div className="fup">
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,color:T.acc,textTransform:"uppercase",letterSpacing:".1em",marginBottom:3}}>Directeur · {ag.name}</div>
+          <h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Mon dashboard</h1>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:12}}>
+          <SC label="Ma commission" val={totalCommission+"€"} accent={T.acc}/>
+          <SC label="Managers" val={managers.length}/>
+          <SC label="Agents" val={agents.length}/>
+          <SC label="Créateurs" val={`${eligible.length}/${creators.length}`} accent={eligible.length===creators.length&&creators.length>0?T.ok:T.go}/>
+        </div>
+        {horsEvol.length>0&&(
+          <div style={{padding:"12px 14px",borderRadius:11,background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",marginBottom:12}}>
+            <div style={{fontWeight:700,fontSize:12.5,color:T.ng,marginBottom:6}}>⚠️ {horsEvol.length} créateur{horsEvol.length>1?"s":""} hors évolution</div>
+            {horsEvol.slice(0,5).map(c=><div key={c.id} style={{fontSize:12,color:T.tx,marginBottom:3}}>{c.pseudo} · 💎 {(c.diamonds||0).toLocaleString()} vs {(c.diamonds_mois_precedent||0).toLocaleString()}</div>)}
+            {horsEvol.length>5&&<div style={{fontSize:11,color:T.sec}}>+{horsEvol.length-5} autres…</div>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if(!ag) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucune agence liée.</div>;
   const okBoth=creators.filter(c=>calcPayout(ag,c).eligible).length;
   const total=creators.length;
   const pct=total>0?Math.round(okBoth/total*100):0;
+  const horsEvolTotal=ag?.activer_regle_evolution?creators.filter(c=>getEvolutionStatus(c,ag)==="HORS_EVOLUTION").length:0;
   return(
     <div className="fup">
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:10,fontWeight:700,color:T.acc,textTransform:"uppercase",letterSpacing:".1em",marginBottom:3}}>{{agency:"Fondateur - Agence",director:"Directeur",manager:"Manager",agent:"Agent"}[role]}</div>
+        <div style={{fontSize:10,fontWeight:700,color:T.acc,textTransform:"uppercase",letterSpacing:".1em",marginBottom:3}}>{{agency:"Fondateur · Agence",director:"Directeur",manager:"Manager",agent:"Agent"}[role]}</div>
         <h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>{ag.name}</h1>
       </div>
       {ag.last_import_date&&<div style={{padding:"9px 12px",borderRadius:10,background:"rgba(0,200,83,.06)",border:"1px solid rgba(0,200,83,.2)",fontSize:12,color:T.tx,marginBottom:12}}>
-        💾 Import du <strong>{new Date(ag.last_import_date).toLocaleDateString("fr-FR")}</strong> - Valide jusqu'au <strong style={{color:T.ok}}>{new Date(ag.last_import_expiry).toLocaleDateString("fr-FR")}</strong>
+        💾 Import du <strong>{new Date(ag.last_import_date).toLocaleDateString("fr-FR")}</strong> · Valide jusqu'au <strong style={{color:T.ok}}>{new Date(ag.last_import_expiry).toLocaleDateString("fr-FR")}</strong>
       </div>}
       <div className="glow" style={{padding:18,marginBottom:12}}>
         <div style={{display:"flex",alignItems:"flex-end",gap:10,marginBottom:12}}>
@@ -2323,17 +2458,111 @@ function DashView({profile,creators,agents,managers,directors}){
         </div>
         {total>0&&<div style={{height:7,borderRadius:20,overflow:"hidden",display:"flex",gap:2,marginBottom:10}}><div style={{flex:okBoth,background:"linear-gradient(90deg,#00C853,#00E676)",borderRadius:20}}/><div style={{flex:total-okBoth,background:"rgba(244,67,54,.28)",borderRadius:20}}/></div>}
         <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-          {[{l:`Crea ${ag.pct_creator||55}%`,c:T.ok},{l:`Agt ${ag.pct_agent||10}%`,c:T.cy},{l:`Mgr ${ag.pct_manager||5}%`,c:T.pu},{l:`Dir ${ag.pct_director||3}%`,c:T.acc}].map((x,i)=>(
+          {[{l:`Crea ${ag.pct_creator||55}%`,c:T.ok},{l:`Agt ${ag.pct_agent||10}%`,c:T.cy},{l:`Mgr ${ag.pct_manager||5}%`,c:T.pu},{l:`Dir ${ag.pct_director||3}%`,c:T.acc},{l:`1💎=${getDiamondValue(ag)}€`,c:T.go}].map((x,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:7,height:7,borderRadius:2,background:x.c}}/><span style={{fontSize:11,color:T.sec}}>{x.l}</span></div>
           ))}
         </div>
       </div>
+      {horsEvolTotal>0&&ag?.activer_regle_evolution&&(
+        <div style={{padding:"10px 14px",borderRadius:11,background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",marginBottom:12,fontSize:12,color:T.ng,fontWeight:600}}>
+          ⚠️ {horsEvolTotal} créateur{horsEvolTotal>1?"s":""} hors évolution ce mois
+        </div>
+      )}
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
         <SC label="Directeurs" val={directors.length} accent={T.acc}/>
         <SC label="Managers" val={managers.length}/>
         <SC label="Agents" val={agents.length}/>
         <SC label="Créateurs" val={`${okBoth}/${total}`} sub={`${total-okBoth} bloqué`} accent={okBoth===total&&total>0?T.ok:"#FF6D00"}/>
       </div>
+    </div>
+  );
+}
+
+/* ─── STAFF TEAM VIEW ────────────────────── */
+function StaffTeamView({profile,creators,agents,managers,directors}){
+  const role=profile?.role;
+  const ag=profile?.agencies;
+  // Agent voit ses créateurs
+  // Manager voit ses agents + créateurs
+  // Director voit managers + agents + créateurs
+  const showCreators=["agent","manager","director"].includes(role);
+  const showAgents=["manager","director"].includes(role);
+  const showManagers=role==="director";
+  const [tab,setTab]=useState(showCreators?"creators":showAgents?"agents":"managers");
+  const tabs=[];
+  if(showCreators) tabs.push({id:"creators",l:`Créateurs (${creators.length})`});
+  if(showAgents) tabs.push({id:"agents",l:`Agents (${agents.length})`});
+  if(showManagers) tabs.push({id:"managers",l:`Managers (${managers.length})`});
+
+  return(
+    <div className="fup">
+      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:14}}>Mon équipe</h1>
+      {tabs.length>1&&(
+        <div style={{display:"flex",gap:5,background:"rgba(255,255,255,.04)",padding:4,borderRadius:10,width:"fit-content",marginBottom:14,border:`1px solid ${T.b}`}}>
+          {tabs.map(t=>(
+            <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"6px 14px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",border:"none",background:tab===t.id?T.acc:"transparent",color:tab===t.id?"white":T.sec,fontFamily:"Inter,sans-serif",transition:"all .18s"}}>
+              {t.l}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {tab==="creators"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {creators.length===0?<div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>Aucun créateur assigné</div>:
+          creators.map(c=>{
+            const p=calcPayout(ag,c);
+            const evol=ag?.activer_regle_evolution?getEvolutionStatus(c,ag):null;
+            return(
+              <div key={c.id} className="card" style={{padding:14,display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:40,height:40,borderRadius:10,background:`${T.ok}18`,border:`1px solid ${T.ok}30`,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:14,color:T.ok,flexShrink:0}}>
+                  {(c.pseudo||"?")[0].toUpperCase()}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:2}}>{c.pseudo}</div>
+                  <div style={{fontSize:11,color:T.sec}}>💎 {(c.diamonds||0).toLocaleString()} · {c.days_live||0}j · {c.hours_live||0}h</div>
+                </div>
+                {evol&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:evol==="EN_EVOLUTION"?"rgba(34,197,94,0.12)":"rgba(239,68,68,0.12)",color:evol==="EN_EVOLUTION"?T.ok:T.ng,flexShrink:0}}>{evol==="EN_EVOLUTION"?"↑ ÉVOL":"↓ HORS"}</span>}
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontWeight:700,fontSize:13,color:p.eligible?T.acc:T.sec}}>{p.eligible?`${p.creator}€`:"0€"}</div>
+                  <div style={{fontSize:10,color:T.sec}}>{p.eligible?"éligible":"bloqué"}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {tab==="agents"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {agents.length===0?<div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>Aucun agent</div>:
+          agents.map(a=>(
+            <div key={a.id} className="card" style={{padding:14,display:"flex",alignItems:"center",gap:12}}>
+              <AV name={(a.name||"?").split(" ").map(x=>x[0]).join("")} color={T.cy} size={38}/>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{a.name}</div>
+                <div style={{fontSize:11,color:T.sec}}>{a.email}</div>
+              </div>
+              {a.phone&&<div style={{fontSize:11,color:T.sec}}>{a.phone}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==="managers"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {managers.length===0?<div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>Aucun manager</div>:
+          managers.map(m=>(
+            <div key={m.id} className="card" style={{padding:14,display:"flex",alignItems:"center",gap:12}}>
+              <AV name={(m.name||"?").split(" ").map(x=>x[0]).join("")} color={T.pu} size={38}/>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700,fontSize:13,color:T.tx}}>{m.name}</div>
+                <div style={{fontSize:11,color:T.sec}}>{m.email}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -3572,6 +3801,7 @@ export default function App(){
     agencies:()=><AdminAgencies/>,
     billing: ()=><AdminBilling/>,
     team:    ()=><TeamView agents={team.agents} managers={team.managers} directors={team.directors}/>,
+    mon_equipe:()=><StaffTeamView profile={auth.profile} creators={team.creators} agents={team.agents} managers={team.managers} directors={team.directors}/>,
     creators:()=><CreatorsView profile={auth.profile} creators={team.creators} agents={team.agents} reload={reload}/>,
     import:  ()=><ImportView profile={auth.profile} reload={reload}/>,
     links:   ()=><CodesPanel profile={auth.profile}/>,
