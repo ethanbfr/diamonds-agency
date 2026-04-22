@@ -16,18 +16,10 @@ const executeAdminUpdate = async (table, id, updates) => {
   const body = { ...updates, updated_at: new Date().toISOString() };
   const response = await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': key,
-      'Authorization': `Bearer ${key}`,
-      'Prefer': 'return=minimal'
-    },
+    headers: { 'Content-Type': 'application/json', 'apikey': key, 'Authorization': `Bearer ${key}`, 'Prefer': 'return=minimal' },
     body: JSON.stringify(body)
   });
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
-  }
+  if (!response.ok) { const t = await response.text(); throw new Error(`HTTP ${response.status}: ${t}`); }
   return true;
 };
 
@@ -37,20 +29,117 @@ const executeAdminInsert = async (table, payload) => {
   const key = SB_SERVICE || SB_ANON;
   const response = await fetch(`${SB_URL}/rest/v1/${table}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': key,
-      'Authorization': `Bearer ${key}`,
-      'Prefer': 'return=minimal'
-    },
+    headers: { 'Content-Type': 'application/json', 'apikey': key, 'Authorization': `Bearer ${key}`, 'Prefer': 'return=minimal' },
     body: JSON.stringify(payload)
   });
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
-  }
+  if (!response.ok) { const t = await response.text(); throw new Error(`HTTP ${response.status}: ${t}`); }
   return true;
 };
+
+/* ─── DEBUG SYSTEM ──────────────────────────── */
+// Collecte toutes les erreurs Supabase pour les afficher
+const _dbgErrors = [];
+const pushDebug = (op, error, extra) => {
+  const entry = { time: new Date().toLocaleTimeString("fr-FR"), op, error: error?.message || String(error), extra };
+  _dbgErrors.unshift(entry);
+  if (_dbgErrors.length > 20) _dbgErrors.pop();
+  console.error("[DIAMONDS DEBUG]", op, error, extra);
+  window._diamondsDebug = _dbgErrors;
+};
+// Wrapper Supabase avec log d'erreurs automatique
+const sbSave = async (op, fn) => {
+  try {
+    const result = await fn();
+    if (result?.error) { pushDebug(op, result.error, result); return result; }
+    return result;
+  } catch(e) { pushDebug(op, e, null); throw e; }
+};
+
+// Panel debug flottant - appuyer sur Alt+D pour afficher
+let _showDebug = false;
+if (typeof window !== "undefined") {
+  window.addEventListener("keydown", (e) => {
+    if (e.altKey && e.key === "d") {
+      _showDebug = !_showDebug;
+      const el = document.getElementById("_diamonds_debug_panel");
+      if (el) el.style.display = _showDebug ? "block" : "none";
+    }
+  });
+}
+
+function DebugPanel() {
+  const [errors, setErrors] = useState([]);
+  const [vis, setVis] = useState(false);
+  const [testResult, setTestResult] = useState("");
+
+  useEffect(() => {
+    const iv = setInterval(() => setErrors([..._dbgErrors]), 1000);
+    return () => clearInterval(iv);
+  }, []);
+
+  const runTest = async () => {
+    setTestResult("Test en cours…");
+    if (!sb) { setTestResult("❌ Supabase non initialisé — vérifier VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY"); return; }
+    // Test 1: connexion
+    const { data: session } = await sb.auth.getSession();
+    if (!session?.session) { setTestResult("❌ Pas de session auth active"); return; }
+    const uid = session.session.user.id;
+    // Test 2: lire son profil
+    const { data: profile, error: pErr } = await sb.from("profiles").select("*").eq("id", uid).single();
+    if (pErr) { setTestResult(`❌ Lecture profil impossible: ${pErr.message} (code: ${pErr.code})`); return; }
+    // Test 3: écrire son profil
+    const { error: wErr } = await sb.from("profiles").update({ updated_at: new Date().toISOString() }).eq("id", uid);
+    if (wErr) { setTestResult(`❌ ÉCRITURE profil bloquée: ${wErr.message} (code: ${wErr.code}) → RLS bloque les updates sur profiles`); return; }
+    // Test 4: si agency
+    if (profile?.agency_id) {
+      const { error: agErr } = await sb.from("agencies").update({ updated_at: new Date().toISOString() }).eq("id", profile.agency_id);
+      if (agErr) { setTestResult(`⚠️ Profil OK mais agence bloquée: ${agErr.message} → RLS bloque UPDATE sur agencies`); return; }
+    }
+    // Test 5: schedules
+    if (profile?.id) {
+      const { error: scErr } = await sb.from("schedules").insert({ creator_profile_id: uid, agency_id: profile.agency_id, day_of_week: 0, start_time: "18:00", end_time: "21:00", accept_inter_agency: false, notes: "TEST - à supprimer", tranche_match: "any" });
+      if (scErr) { setTestResult(`⚠️ Profil+agence OK mais schedules bloqué: ${scErr.message} → RLS bloque INSERT sur schedules`); return; }
+      // Supprimer le test
+      await sb.from("schedules").delete().eq("notes", "TEST - à supprimer").eq("creator_profile_id", uid);
+    }
+    setTestResult("✅ Tout fonctionne — Supabase OK, RLS OK. Le problème est ailleurs.");
+  };
+
+  return (
+    <div style={{ position: "fixed", bottom: 16, right: 16, zIndex: 9999 }}>
+      <button onClick={() => setVis(v => !v)} style={{ background: vis ? "#EF4444" : "#2563EB", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "monospace" }}>
+        🔧 DEBUG {errors.length > 0 ? `(${errors.length} erreurs)` : ""}
+      </button>
+      {vis && (
+        <div style={{ position: "absolute", bottom: 44, right: 0, width: 480, maxHeight: 500, overflowY: "auto", background: "#0a0a0a", border: "1px solid #333", borderRadius: 12, padding: 16, fontFamily: "monospace", fontSize: 12 }}>
+          <div style={{ fontWeight: 700, color: "#fff", marginBottom: 10 }}>🔧 Diamonds Debug Panel</div>
+          <button onClick={runTest} style={{ background: "#2563EB", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", cursor: "pointer", fontSize: 12, marginBottom: 10, width: "100%" }}>
+            ▶ Tester la connexion Supabase
+          </button>
+          {testResult && (
+            <div style={{ padding: "8px 10px", borderRadius: 8, background: testResult.startsWith("✅") ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: testResult.startsWith("✅") ? "#22C55E" : testResult.startsWith("⚠️") ? "#F59E0B" : "#EF4444", marginBottom: 10, lineHeight: 1.5 }}>
+              {testResult}
+            </div>
+          )}
+          <div style={{ color: "#555", marginBottom: 6 }}>Erreurs récentes ({errors.length}) :</div>
+          {errors.length === 0 ? (
+            <div style={{ color: "#444" }}>Aucune erreur interceptée</div>
+          ) : errors.map((e, i) => (
+            <div key={i} style={{ padding: "6px 8px", borderRadius: 6, background: "#151515", marginBottom: 5, border: "1px solid #222" }}>
+              <div style={{ color: "#EF4444", fontWeight: 700 }}>[{e.time}] {e.op}</div>
+              <div style={{ color: "#FCA5A5", marginTop: 2 }}>{e.error}</div>
+            </div>
+          ))}
+          <div style={{ color: "#333", marginTop: 10, fontSize: 11 }}>
+            URL: {SB_URL ? "✓ " + SB_URL.slice(0, 30) + "…" : "❌ MANQUANT"}<br/>
+            Anon key: {SB_ANON ? "✓ " + SB_ANON.slice(0, 20) + "…" : "❌ MANQUANT"}<br/>
+            Service key: {SB_SERVICE ? "✓ " + SB_SERVICE.slice(0, 20) + "…" : "❌ MANQUANT (optionnel)"}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
@@ -289,27 +378,20 @@ const saveScheduleSlot=async(slot)=>{
   const payload={start_time:slot.start_time,end_time:slot.end_time,accept_inter_agency:slot.accept_inter_agency||false,notes:slot.notes||"",tranche_match:slot.tranche_match||"any"};
   if(slot.id){
     const {error}=await sb.from("schedules").update(payload).eq("id",slot.id);
-    if(error){
-      // Fallback: REST API direct
-      try{await executeAdminUpdate("schedules",slot.id,payload);}catch(e){console.error("saveScheduleSlot update error:",e);}
-    }
+    if(error){pushDebug("schedules.update",error);try{await executeAdminUpdate("schedules",slot.id,payload);}catch(e2){pushDebug("schedules.update.fallback",e2);}}
   } else {
-    const insertPayload={...payload,creator_profile_id:slot.creator_profile_id,agency_id:slot.agency_id,day_of_week:slot.day_of_week};
-    const {error}=await sb.from("schedules").insert(insertPayload);
-    if(error){
-      try{await executeAdminInsert("schedules",insertPayload);}catch(e2){console.error("saveScheduleSlot insert error:",e2);}
-    }
+    const ins={...payload,creator_profile_id:slot.creator_profile_id,agency_id:slot.agency_id,day_of_week:slot.day_of_week};
+    const {error}=await sb.from("schedules").insert(ins);
+    if(error){pushDebug("schedules.insert",error);try{await executeAdminInsert("schedules",ins);}catch(e2){pushDebug("schedules.insert.fallback",e2);}}
   }
 };
 const deleteScheduleSlot=async(id)=>{
   if(!sb) return;
   const {error}=await sb.from("schedules").delete().eq("id",id);
   if(error){
-    // Fallback REST delete
-    try{
-      const key=SB_SERVICE||SB_ANON;
-      await fetch(`${SB_URL}/rest/v1/schedules?id=eq.${id}`,{method:"DELETE",headers:{"apikey":key,"Authorization":`Bearer ${key}`}});
-    }catch(e){console.error("deleteScheduleSlot fallback error:",e);}
+    pushDebug("schedules.delete",error);
+    try{const key=SB_SERVICE||SB_ANON;await fetch(`${SB_URL}/rest/v1/schedules?id=eq.${id}`,{method:"DELETE",headers:{"apikey":key,"Authorization":`Bearer ${key}`}});}
+    catch(e){pushDebug("schedules.delete.fallback",e);}
   }
 };
 const fetchMatches=async(agId)=>{if(!sb) return [];const {data}=await sb.from("matches").select("*").or(`agency_a.eq.${agId},agency_b.eq.${agId}`).order("match_date",{ascending:true});return data||[];};
@@ -1286,12 +1368,9 @@ function PlanningView({profile}){
     await saveScheduleSlot({...form,day_of_week:adding,creator_profile_id:profile.id,agency_id:profile.agency_id});
     const fresh=await fetchSchedule(profile.id);
     setSlots(fresh);setAdding(null);setSaving(false);
-    setSaveMsg("✓ Créneau enregistré");setTimeout(()=>setSaveMsg(""),2500);
+    setSaveMsg("✓ Enregistré");setTimeout(()=>setSaveMsg(""),2500);
   };
-  const del=async(id)=>{
-    await deleteScheduleSlot(id);
-    setSlots(s=>s.filter(x=>x.id!==id));
-  };
+  const del=async(id)=>{await deleteScheduleSlot(id);setSlots(s=>s.filter(x=>x.id!==id));};
   const trancheLabel=(id)=>TRANCHES.find(t=>t.id===id)?.label||"Toutes tranches";
 
   return(
@@ -1521,28 +1600,16 @@ function MatchesView({profile,creators}){
     setSavingDispo(true);
     const payload={dispo_days:dispoDays,flexible_match:flexibleMode};
     const {error}=await sb.from("creators").update(payload).eq("id",creators[0].id);
-    if(error){
-      try{await executeAdminUpdate("creators",creators[0].id,payload);}catch(e){console.error("saveDispo fallback:",e);}
-    }
+    if(error){pushDebug("creators.update.dispo",error);try{await executeAdminUpdate("creators",creators[0].id,payload);}catch(e2){pushDebug("creators.update.dispo.fallback",e2);}}
     setSavingDispo(false);setDispoSaved(true);setTimeout(()=>setDispoSaved(false),2500);
   };
 
   const createMatch=async()=>{
     if(!form.creator_a||!form.match_date) return;
     setSaving(true);
-    const insertPayload={
-      creator_a:form.creator_a,creator_b:form.creator_b||null,
-      agency_a:ag?.id,agency_b:ag?.id,
-      is_inter_agency:form.is_inter_agency,
-      match_date:form.match_date,match_time:form.match_time,
-      tranche_diamants:form.flexible?"any":(form.tranche_diamants||"any"),
-      flexible:form.flexible||false,
-      status:"pending",created_by:profile?.id,
-    };
-    const {error}=await sb.from("matches").insert(insertPayload);
-    if(error){
-      try{await executeAdminInsert("matches",insertPayload);}catch(e){console.error("createMatch error:",e);}
-    }
+    const ins={creator_a:form.creator_a,creator_b:form.creator_b||null,agency_a:ag?.id,agency_b:ag?.id,is_inter_agency:form.is_inter_agency,match_date:form.match_date,match_time:form.match_time,tranche_diamants:form.flexible?"any":(form.tranche_diamants||"any"),flexible:form.flexible||false,status:"pending",created_by:profile?.id};
+    const {error}=await sb.from("matches").insert(ins);
+    if(error){pushDebug("matches.insert",error);try{await executeAdminInsert("matches",ins);}catch(e2){pushDebug("matches.insert.fallback",e2);}}
     const fresh=await fetchMatches(ag?.id);
     setMatches(fresh);setShowCreate(false);setSaving(false);
     setForm({creator_a:"",creator_b:"",match_date:"",match_time:"20:00",is_inter_agency:false,tranche_diamants:"any",flexible:false});
@@ -1557,7 +1624,7 @@ function MatchesView({profile,creators}){
       const cId=c.id||c.profile_id;
       const aId=crea.id||crea.profile_id;
       if(cId===aId) return false;
-      // En mode flexible : tout le monde est éligible (peu importe flexible_match)
+      // En mode flexible : tout le monde est éligible (peu importe les diamants)
       if(form.flexible) return true;
       const d=c.diamonds||0;
       if(form.tranche_diamants!=="any") return d>=tranche.min&&d<tranche.max;
@@ -1569,7 +1636,7 @@ function MatchesView({profile,creators}){
       setAutoResult(pick);
       setForm(f=>({...f,creator_b:pick.id||pick.profile_id}));
     } else {
-      setAutoResult({pseudo:form.flexible?"Aucun autre créateur disponible dans l'agence":"Aucun adversaire dans cette tranche — essaie le mode flexible !"});
+      setAutoResult({pseudo:form.flexible?"Aucun autre créateur dans l'agence":"Aucun adversaire dans cette tranche — essaie le mode flexible !"});
     }
   };
 
@@ -1814,11 +1881,9 @@ function QuetesView({profile,creators,reload}){
   const createQuete=async()=>{
     if(!form.titre||!form.cible||!ag?.id) return;
     setSaving(true);
-    const insertPayload={agency_id:ag.id,titre:form.titre.trim(),description:form.description.trim()||null,type:form.type,unite:form.unite,cible:parseInt(form.cible),recompense:form.recompense.trim()||null,deadline:form.deadline||null,active:true};
-    const {error}=await sb.from("quetes").insert(insertPayload);
-    if(error){
-      try{await executeAdminInsert("quetes",insertPayload);}catch(e){console.error("createQuete error:",e);}
-    }
+    const ins={agency_id:ag.id,titre:form.titre.trim(),description:form.description.trim()||null,type:form.type,unite:form.unite,cible:parseInt(form.cible),recompense:form.recompense.trim()||null,deadline:form.deadline||null,active:true};
+    const {error}=await sb.from("quetes").insert(ins);
+    if(error){pushDebug("quetes.insert",error);try{await executeAdminInsert("quetes",ins);}catch(e2){pushDebug("quetes.insert.fallback",e2);}}
     await load();
     setShowForm(false);setSaving(false);setSaved(true);
     setTimeout(()=>setSaved(false),2500);
@@ -1827,10 +1892,7 @@ function QuetesView({profile,creators,reload}){
 
   const deleteQuete=async(id)=>{
     if(!sb||!confirm("Supprimer cet objectif ?")) return;
-    const {error}=await sb.from("quetes").update({active:false}).eq("id",id);
-    if(error){
-      try{await executeAdminUpdate("quetes",id,{active:false});}catch(e){console.error("deleteQuete fallback:",e);}
-    }
+    await sb.from("quetes").update({active:false}).eq("id",id);
     setQuetes(q=>q.filter(x=>x.id!==id));
   };
 
@@ -2495,10 +2557,7 @@ function SettingsView({profile,reload}){
     const handleVal=tiktokHandle.trim()?"@"+tiktokHandle.trim().replace(/^@/,""):"";
     const payload={tiktok_handle:handleVal||null};
     const {error}=await sb.from("profiles").update(payload).eq("id",profile.id);
-    if(error){
-      // Fallback with service key
-      try{await executeAdminUpdate("profiles",profile.id,payload);}catch(e){console.error("saveHandle fallback error:",e);}
-    }
+    if(error){pushDebug("profiles.update.handle",error);try{await executeAdminUpdate("profiles",profile.id,payload);}catch(e2){pushDebug("profiles.update.handle.fallback",e2);}}
     setSavingHandle(false);setSavedHandle(true);setTimeout(()=>setSavedHandle(false),2500);reload?.();
   };
 
@@ -2511,14 +2570,13 @@ function SettingsView({profile,reload}){
     if(!file) return;
     if(file.size>5*1024*1024){setAvatarMsg("❌ Image trop lourde (max 5 Mo)");return;}
     setSavingAvatar(true);setAvatarMsg("");
-    // Stocker en base64 dans le profil directement
     const reader=new FileReader();
     reader.onload=async(e)=>{
       const b64=e.target.result;
       setAvatarPreview(b64);
       const payload={tiktok_avatar_url:b64};
       const {error}=await sb.from("profiles").update(payload).eq("id",profile.id);
-      if(error){try{await executeAdminUpdate("profiles",profile.id,payload);}catch(e2){console.error("onAvatarFile fallback:",e2);}}
+      if(error){pushDebug("profiles.update.avatar_file",error);try{await executeAdminUpdate("profiles",profile.id,payload);}catch(e2){pushDebug("profiles.update.avatar_file.fallback",e2);}}
       setSavingAvatar(false);setAvatarMsg("✓ Photo enregistrée");setTimeout(()=>setAvatarMsg(""),3000);reload?.();
     };
     reader.readAsDataURL(file);
@@ -2529,7 +2587,7 @@ function SettingsView({profile,reload}){
     setAvatarPreview(avatarUrl.trim());
     const payload={tiktok_avatar_url:avatarUrl.trim()};
     const {error}=await sb.from("profiles").update(payload).eq("id",profile.id);
-    if(error){try{await executeAdminUpdate("profiles",profile.id,payload);}catch(e){console.error("saveAvatarUrl fallback:",e);}}
+    if(error){pushDebug("profiles.update.avatar_url",error);try{await executeAdminUpdate("profiles",profile.id,payload);}catch(e2){pushDebug("profiles.update.avatar_url.fallback",e2);}}
     setSavingAvatar(false);setAvatarMsg("✓ Photo enregistrée");setTimeout(()=>setAvatarMsg(""),3000);reload?.();
   };
 
@@ -2577,14 +2635,9 @@ function SettingsView({profile,reload}){
     if(!sb) return;setSaving(true);
     if(ag?.id){
       const payload={name:agName.trim()||ag.name,valeur_diamant_pivot:diamondValue,pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel,activer_regle_evolution:perms.evolution};
-      // Try service key first (bypasses RLS), then fallback to anon client
-      let success=false;
-      try{await executeAdminUpdate("agencies",ag.id,payload);success=true;}catch(e){console.warn("executeAdminUpdate failed, trying anon:",e);}
-      if(!success){
-        const {error:saveErr}=await sb.from("agencies").update(payload).eq("id",ag.id);
-        if(saveErr) console.error("saveAgency anon error:",saveErr);
-        else success=true;
-      }
+      let ok=false;
+      try{await executeAdminUpdate("agencies",ag.id,payload);ok=true;}catch(e){pushDebug("agencies.update.service",e);}
+      if(!ok){const {error}=await sb.from("agencies").update(payload).eq("id",ag.id);if(error)pushDebug("agencies.update.anon",error);}
     }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
@@ -4371,6 +4424,7 @@ export default function App(){
   return(
     <>
       <style>{css}</style>
+      <DebugPanel/>
       {isBlocked&&<BlockedScreen agencyName={ag?.name}/>}
       <div style={{minHeight:"100vh",background:"#0F0F0F",display:"flex",flexDirection:"column",fontFamily:"Inter,sans-serif"}}>
         {isNarrow&&(
