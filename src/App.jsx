@@ -438,12 +438,12 @@ const billingTag=(s,isOffered)=>{
 
 /* ─── NAV ───────────────────────────────── */
 const NAVS={
-  admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"invite_agencies",l:"Inviter agences"},{id:"members",l:"👥 Membres"},{id:"all_users",l:"Utilisateurs"},{id:"all_creators",l:"Créateurs"},{id:"all_staff",l:"Staff"},{id:"all_matches",l:"Matchs"},{id:"all_schedules",l:"Plannings"},{id:"all_lives",l:"Lives"},{id:"poster_templates",l:"Templates affiches"},{id:"coach",l:"Coach IA 🤖"}],
-  agency:  [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Codes d'invitation"},{id:"matches",l:"Matchs"},{id:"settings",l:"Paramètres"},{id:"coach",l:"Coach IA 🤖"}],
-  director:[{id:"dash",l:"Mon pôle"},{id:"mon_equipe",l:"Mon équipe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
-  manager: [{id:"dash",l:"Mon groupe"},{id:"mon_equipe",l:"Mon équipe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
-  agent:   [{id:"dash",l:"Dashboard"},{id:"mon_equipe",l:"Mon équipe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mon code"},{id:"settings",l:"Paramètres"}],
-  creator: [{id:"dash",l:"Mon espace"},{id:"planning",l:"Mon planning"},{id:"matches",l:"Mes matchs"},{id:"coach",l:"Coach IA 🤖"},{id:"settings",l:"Mon profil"}],
+  admin:   [{id:"dash",l:"Vue globale"},{id:"agencies",l:"Agences"},{id:"billing",l:"Facturation"},{id:"invite_agencies",l:"Inviter agences"},{id:"members",l:"👥 Membres"},{id:"all_users",l:"Utilisateurs"},{id:"all_creators",l:"Créateurs"},{id:"all_staff",l:"Staff"},{id:"all_matches",l:"Matchs"},{id:"all_schedules",l:"Plannings"},{id:"all_lives",l:"Lives"},{id:"poster_templates",l:"Templates affiches"},{id:"quetes",l:"Quêtes & Paliers 🏆"},{id:"coach",l:"Coach IA 🤖"}],
+  agency:  [{id:"dash",l:"Dashboard"},{id:"team",l:"Mon équipe"},{id:"creators",l:"Créateurs"},{id:"import",l:"Import Backstage"},{id:"links",l:"Codes d'invitation"},{id:"matches",l:"Matchs"},{id:"quetes",l:"Quêtes & Paliers 🏆"},{id:"settings",l:"Paramètres"},{id:"coach",l:"Coach IA 🤖"}],
+  director:[{id:"dash",l:"Mon pôle"},{id:"mon_equipe",l:"Mon équipe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"quetes",l:"Quêtes & Paliers 🏆"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
+  manager: [{id:"dash",l:"Mon groupe"},{id:"mon_equipe",l:"Mon équipe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"quetes",l:"Quêtes & Paliers 🏆"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
+  agent:   [{id:"dash",l:"Dashboard"},{id:"mon_equipe",l:"Mon équipe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"quetes",l:"Quêtes & Paliers 🏆"},{id:"links",l:"Mon code"},{id:"settings",l:"Paramètres"}],
+  creator: [{id:"dash",l:"Mon espace"},{id:"planning",l:"Mon planning"},{id:"matches",l:"Mes matchs"},{id:"quetes",l:"Mes quêtes 🏆"},{id:"coach",l:"Coach IA 🤖"},{id:"settings",l:"Mon profil"}],
 };
 
 /* ─── AUTH ──────────────────────────────── */
@@ -1389,21 +1389,88 @@ function MyLivesView({profile}){
 }
 
 /* ─── MATCHES ───────────────────────────── */
+/* ─── HELPERS QUETES ──────────────────── */
+const fetchQuetes=async(agencyId)=>{
+  if(!sb||!agencyId) return [];
+  const {data}=await sb.from("quetes").select("*").eq("agency_id",agencyId).eq("active",true).order("created_at",{ascending:false});
+  return data||[];
+};
+const getActuelForQuete=(q,creator)=>{
+  if(!creator) return 0;
+  if(q.unite==="diamonds") return creator.diamonds||0;
+  if(q.unite==="jours") return creator.days_live||0;
+  if(q.unite==="heures") return creator.hours_live||0;
+  if(q.unite==="lives") return creator.days_live||0;
+  return 0;
+};
+const getActuelCollectif=(q,creators)=>{
+  if(!creators?.length) return 0;
+  if(q.unite==="diamonds") return creators.reduce((s,c)=>s+(c.diamonds||0),0);
+  if(q.unite==="jours") return creators.reduce((s,c)=>s+(c.days_live||0),0);
+  if(q.unite==="heures") return creators.reduce((s,c)=>s+(c.hours_live||0),0);
+  if(q.unite==="lives") return creators.reduce((s,c)=>s+(c.days_live||0),0);
+  return 0;
+};
+const uniteLabel=(u)=>({diamonds:"💎",jours:"jours",heures:"h",lives:"lives"}[u]||u);
+const palierColor=(titre)=>{
+  const t=(titre||"").toLowerCase();
+  if(t.includes("or")||t.includes("gold")) return {bg:"rgba(218,165,32,0.15)",border:"rgba(218,165,32,0.35)",color:"#DAA520",icon:"🥇"};
+  if(t.includes("argent")||t.includes("silver")) return {bg:"rgba(180,180,200,0.12)",border:"rgba(180,180,200,0.3)",color:"#C0C0D0",icon:"🥈"};
+  if(t.includes("bronze")) return {bg:"rgba(180,100,20,0.15)",border:"rgba(180,100,20,0.35)",color:"#CD7C2F",icon:"🥉"};
+  if(t.includes("platine")||t.includes("diamant")) return {bg:"rgba(37,99,235,0.1)",border:"rgba(37,99,235,0.3)",color:"#60A5FA",icon:"💎"};
+  return null;
+};
+const barProgressColor=(pct)=>pct>=100?T.ok:pct>=60?T.acc:pct>=30?T.go:T.ng;
+
+/* ─── MATCHES ───────────────────────────── */
 function MatchesView({profile,creators}){
   const [matches,setMatches]=useState([]);
   const [loading,setLoading]=useState(true);
   const [showCreate,setShowCreate]=useState(false);
-  const [form,setForm]=useState({creator_a:"",creator_b:"",match_date:"",match_time:"20:00",is_inter_agency:false,tranche_diamants:"any"});
+  const [form,setForm]=useState({creator_a:"",creator_b:"",match_date:"",match_time:"20:00",is_inter_agency:false,tranche_diamants:"any",flexible:false});
   const [saving,setSaving]=useState(false);
   const [autoResult,setAutoResult]=useState(null);
   const [poster,setPoster]=useState(null);
+  const [filterStatus,setFilterStatus]=useState("tous");
+
+  // Calendrier dispos créateur
+  const [dispoDays,setDispoDays]=useState([]);
+  const [flexibleMode,setFlexibleMode]=useState(false);
+  const [savingDispo,setSavingDispo]=useState(false);
+  const [dispoSaved,setDispoSaved]=useState(false);
+
   const ag=profile?.agencies;
   const role=profile?.role;
+  const isCreator=role==="creator";
+  const canCreate=["agency","director","manager","agent","admin"].includes(role);
+
+  const now=new Date();
+  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const monthLabel=now.toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+  const firstDayOffset=(new Date(now.getFullYear(),now.getMonth(),1).getDay()+6)%7;
 
   useEffect(()=>{
     if(ag?.id) fetchMatches(ag.id).then(d=>{setMatches(d);setLoading(false);});
     else setLoading(false);
   },[ag?.id]);
+
+  useEffect(()=>{
+    if(!isCreator||!creators?.[0]) return;
+    setDispoDays(creators[0].dispo_days||[]);
+    setFlexibleMode(creators[0].flexible_match||false);
+  },[isCreator,creators]);
+
+  const toggleDispoDay=(day)=>{
+    setDispoDays(prev=>prev.includes(day)?prev.filter(d=>d!==day):[...prev,day]);
+    setDispoSaved(false);
+  };
+
+  const saveDispo=async()=>{
+    if(!sb||!creators?.[0]?.id) return;
+    setSavingDispo(true);
+    await sb.from("creators").update({dispo_days:dispoDays,flexible_match:flexibleMode}).eq("id",creators[0].id);
+    setSavingDispo(false);setDispoSaved(true);setTimeout(()=>setDispoSaved(false),2500);
+  };
 
   const createMatch=async()=>{
     if(!form.creator_a||!form.match_date) return;
@@ -1413,11 +1480,13 @@ function MatchesView({profile,creators}){
       agency_a:ag?.id,agency_b:ag?.id,
       is_inter_agency:form.is_inter_agency,
       match_date:form.match_date,match_time:form.match_time,
-      tranche_diamants:form.tranche_diamants||"any",
+      tranche_diamants:form.flexible?"any":(form.tranche_diamants||"any"),
+      flexible:form.flexible||false,
       status:"pending",created_by:profile?.id,
     });
     const fresh=await fetchMatches(ag?.id);
     setMatches(fresh);setShowCreate(false);setSaving(false);
+    setForm({creator_a:"",creator_b:"",match_date:"",match_time:"20:00",is_inter_agency:false,tranche_diamants:"any",flexible:false});
   };
 
   const autoMatch=()=>{
@@ -1429,6 +1498,7 @@ function MatchesView({profile,creators}){
       const cId=c.id||c.profile_id;
       const aId=crea.id||crea.profile_id;
       if(cId===aId) return false;
+      if(form.flexible) return c.flexible_match===true;
       const d=c.diamonds||0;
       if(form.tranche_diamants!=="any") return d>=tranche.min&&d<tranche.max;
       const diff=Math.abs(d-(crea.diamonds||0));
@@ -1439,64 +1509,152 @@ function MatchesView({profile,creators}){
       setAutoResult(pick);
       setForm(f=>({...f,creator_b:pick.id||pick.profile_id}));
     } else {
-      setAutoResult({pseudo:"Aucun adversaire trouvé dans cette tranche"});
+      setAutoResult({pseudo:form.flexible?"Aucun créateur flexible trouvé":"Aucun adversaire dans cette tranche — essaie le mode flexible !"});
     }
+  };
+
+  const creatorName=(id)=>{
+    if(!id) return "???";
+    const c=creators.find(c=>c.id===id||c.profile_id===id);
+    return c?.pseudo||"???";
   };
 
   const statusColor={pending:T.go,confirmed:T.ok,done:T.cy,cancelled:T.ng};
   const statusLabel={pending:"En attente",confirmed:"Confirmé",done:"Terminé",cancelled:"Annulé"};
-  const canCreate=["agency","director","manager","agent","admin"].includes(role);
+  const filteredMatches=filterStatus==="tous"?matches:matches.filter(m=>m.status===filterStatus);
 
   return(
     <div className="fup">
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
-        <div><h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Matchs TikTok Live</h1>
-          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Matchs intra et inter-agences - Matchmaking automatique par niveau de diamants</p></div>
+      {/* Entête */}
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14}}>
+        <div>
+          <h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Matchs TikTok Live</h1>
+          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Matchs intra et inter-agences — Matchmaking automatique par niveau de diamants</p>
+        </div>
         {canCreate&&<button className="btn" style={{fontSize:12}} onClick={()=>setShowCreate(!showCreate)}>+ Créer un match</button>}
       </div>
 
-      {/* Matchmaking auto */}
-      <div className="card" style={{padding:16,marginBottom:14,background:"rgba(0,229,255,.04)",border:"1px solid rgba(0,229,255,.2)"}}>
-        <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:4}}>🎯 Matchmaking automatique</div>
-        <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Diamond's trouve un adversaire selon la tranche de diamants choisie et les disponibilités du créateur.</div>
-        <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",marginBottom:10}}>
-          <select className="inp" style={{flex:1,minWidth:200}} value={form.creator_a} onChange={e=>setForm(f=>({...f,creator_a:e.target.value}))}>
-            <option value="">Sélectionner un créateur…</option>
-            {creators.map(c=><option key={c.id||c.profile_id} value={c.id||c.profile_id}>{c.pseudo} — 💎 {(c.diamonds||0).toLocaleString()}</option>)}
-          </select>
-          <button className="btn" style={{fontSize:12,padding:"8px 14px"}} onClick={autoMatch} disabled={!form.creator_a}>🔍 Trouver un adversaire</button>
-        </div>
-        <div style={{marginBottom:10}}>
-          <div style={{fontSize:11,fontWeight:600,color:T.sec,marginBottom:6,textTransform:"uppercase",letterSpacing:".07em"}}>Tranche de diamants souhaitée</div>
-          <TranchePicker value={form.tranche_diamants} onChange={v=>setForm(f=>({...f,tranche_diamants:v}))}/>
-        </div>
-        {autoResult&&(
-          <div style={{marginTop:10,padding:"10px 13px",borderRadius:9,background:"rgba(37,99,235,.08)",border:"1px solid rgba(37,99,235,.2)",fontSize:12.5,color:T.tx}}>
-            {autoResult.diamonds?`✅ Adversaire trouvé : ${autoResult.pseudo} — 💎 ${(autoResult.diamonds||0).toLocaleString()}`:`⚠ ${autoResult.pseudo}`}
+      {/* ── CRÉATEUR : Calendrier dispos + flexible ── */}
+      {isCreator&&creators?.[0]&&(
+        <div className="glow" style={{padding:18,marginBottom:14}}>
+          <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:4}}>📅 Mes dispos pour matcher — {monthLabel}</div>
+          <p style={{fontSize:11.5,color:T.sec,marginBottom:12}}>Coche les jours où tu es dispo. Ton staff te proposera des matchs sur ces créneaux.</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,36px)",gap:4,marginBottom:6}}>
+            {["L","M","M","J","V","S","D"].map((j,i)=>(
+              <div key={i} style={{textAlign:"center",fontSize:9,color:"#444",fontWeight:600,paddingBottom:2}}>{j}</div>
+            ))}
+            {Array.from({length:firstDayOffset}).map((_,i)=><div key={"e"+i}/>)}
+            {Array.from({length:daysInMonth},(_,i)=>i+1).map(day=>{
+              const isOn=dispoDays.includes(day);
+              const isToday=day===now.getDate();
+              return(
+                <button key={day} onClick={()=>toggleDispoDay(day)} style={{width:36,height:36,borderRadius:8,fontSize:12,cursor:"pointer",border:isOn?"1.5px solid rgba(34,197,94,0.5)":isToday?"1.5px solid #333":"1.5px solid transparent",background:isOn?"rgba(34,197,94,0.12)":"transparent",color:isOn?"#22C55E":isToday?"#fff":"#555",fontFamily:"Inter,sans-serif",transition:"all .15s"}}>
+                  {day}
+                </button>
+              );
+            })}
           </div>
-        )}
-        <div style={{marginTop:10,fontSize:11,color:T.sec}}>✨ Le créateur définit ses dispos dans "Mon planning" — les matchs sont proposés selon ses créneaux</div>
-      </div>
+          <div style={{fontSize:11,color:T.sec,marginBottom:12,display:"flex",gap:12,flexWrap:"wrap"}}>
+            <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:10,height:10,borderRadius:2,background:"rgba(34,197,94,0.15)",border:"1px solid rgba(34,197,94,0.4)",display:"inline-block"}}/> Dispo pour matcher</span>
+            <span style={{color:"#444"}}>Clique pour activer/désactiver</span>
+          </div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",background:"#1a1a1a",borderRadius:8,marginBottom:12,border:"1px solid #222"}}>
+            <div>
+              <div style={{fontSize:12,fontWeight:600,color:T.tx}}>Mode flexible 🤝</div>
+              <div style={{fontSize:11,color:T.sec}}>Accepter n'importe quel adversaire, peu importe ses diamants</div>
+            </div>
+            <Tog on={flexibleMode} onChange={v=>{setFlexibleMode(v);setDispoSaved(false);}} color={T.ok}/>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <button className="btn" style={{fontSize:12,padding:"8px 16px"}} onClick={saveDispo} disabled={savingDispo}>
+              {savingDispo?<Spin/>:"Enregistrer mes dispos"}
+            </button>
+            {dispoSaved&&<span style={{fontSize:12,color:T.ok}}>✓ Sauvegardé</span>}
+          </div>
+        </div>
+      )}
 
+      {/* ── MATCHMAKING AUTO (staff/agence) ── */}
+      {canCreate&&(
+        <div className="card" style={{padding:16,marginBottom:14,background:"rgba(0,229,255,.04)",border:"1px solid rgba(0,229,255,.2)"}}>
+          <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:4}}>🎯 Matchmaking automatique</div>
+          <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Diamond's trouve un adversaire selon la tranche de diamants choisie et les disponibilités du créateur. 📅 = a des dispos · 🤝 = mode flexible</div>
+          <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",marginBottom:10}}>
+            <select className="inp" style={{flex:1,minWidth:200}} value={form.creator_a} onChange={e=>setForm(f=>({...f,creator_a:e.target.value}))}>
+              <option value="">Sélectionner un créateur…</option>
+              {creators.map(c=>(
+                <option key={c.id||c.profile_id} value={c.id||c.profile_id}>
+                  {c.pseudo} — 💎 {(c.diamonds||0).toLocaleString()}{(c.dispo_days||[]).length>0?" 📅":""}{c.flexible_match?" 🤝":""}
+                </option>
+              ))}
+            </select>
+            <button className="btn" style={{fontSize:12,padding:"8px 14px"}} onClick={autoMatch} disabled={!form.creator_a}>🔍 Trouver un adversaire</button>
+          </div>
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:600,color:T.sec,marginBottom:6,textTransform:"uppercase",letterSpacing:".07em"}}>Tranche de diamants souhaitée</div>
+            {form.flexible
+              ?<div style={{fontSize:12,color:T.ok,padding:"6px 10px",background:"rgba(34,197,94,0.08)",borderRadius:7,border:"1px solid rgba(34,197,94,0.2)"}}>🤝 Mode flexible activé — toutes tranches acceptées des deux côtés</div>
+              :<TranchePicker value={form.tranche_diamants} onChange={v=>setForm(f=>({...f,tranche_diamants:v}))}/>
+            }
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+            <Tog on={form.flexible} onChange={v=>setForm(f=>({...f,flexible:v}))} color={T.ok}/>
+            <div>
+              <span style={{fontSize:12,fontWeight:600,color:T.tx}}>Mode flexible</span>
+              <span style={{fontSize:11,color:T.sec,marginLeft:6}}>— peu importe les diamants (les deux doivent accepter)</span>
+            </div>
+          </div>
+          {autoResult&&(
+            <div style={{marginTop:10,padding:"10px 13px",borderRadius:9,background:autoResult.diamonds?"rgba(37,99,235,.08)":"rgba(245,158,11,.08)",border:`1px solid ${autoResult.diamonds?"rgba(37,99,235,.2)":"rgba(245,158,11,.2)"}`,fontSize:12.5,color:T.tx}}>
+              {autoResult.diamonds
+                ?<>✅ Adversaire trouvé : <strong>{autoResult.pseudo}</strong> — 💎 {(autoResult.diamonds||0).toLocaleString()}{autoResult.flexible_match?" 🤝":""}{(autoResult.dispo_days||[]).length>0?` · ${autoResult.dispo_days.length} dispos`:""}</>
+                :`⚠ ${autoResult.pseudo}`
+              }
+            </div>
+          )}
+          <div style={{marginTop:10,fontSize:11,color:T.sec}}>✨ Le créateur définit ses dispos dans "Mes matchs" · les matchs sont proposés selon ses créneaux</div>
+        </div>
+      )}
+
+      {/* ── CRÉER UN MATCH ── */}
       {showCreate&&canCreate&&(
         <div className="glow" style={{padding:18,marginBottom:14}}>
           <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:14}}>Nouveau match</div>
           <div style={{display:"flex",flexDirection:"column",gap:11}}>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Créateur A *</label>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Créateur A *</label>
               <select className="inp" value={form.creator_a} onChange={e=>setForm(f=>({...f,creator_a:e.target.value}))}>
                 <option value="">Choisir…</option>
-                {creators.map(c=><option key={c.id} value={c.id}>{c.pseudo} — 💎 {(c.diamonds||0).toLocaleString()}</option>)}
-              </select></div>
-            <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Créateur B (optionnel si matchmaking auto)</label>
+                {creators.map(c=><option key={c.id} value={c.id}>{c.pseudo} — 💎 {(c.diamonds||0).toLocaleString()}{(c.dispo_days||[]).length>0?" 📅":""}{c.flexible_match?" 🤝":""}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Créateur B (optionnel si matchmaking auto)</label>
               <select className="inp" value={form.creator_b} onChange={e=>setForm(f=>({...f,creator_b:e.target.value}))}>
                 <option value="">À définir…</option>
                 {creators.filter(c=>(c.id||c.profile_id)!==form.creator_a).map(c=><option key={c.id} value={c.id}>{c.pseudo} — 💎 {(c.diamonds||0).toLocaleString()}</option>)}
-              </select></div>
+              </select>
+            </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Date *</label>
-                <input className="inp" type="date" value={form.match_date} onChange={e=>setForm(f=>({...f,match_date:e.target.value}))}/></div>
-              <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Heure</label>
-                <input className="inp" type="time" value={form.match_time} onChange={e=>setForm(f=>({...f,match_time:e.target.value}))}/></div>
+              <div>
+                <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Date *</label>
+                <input className="inp" type="date" value={form.match_date} onChange={e=>setForm(f=>({...f,match_date:e.target.value}))}/>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Heure</label>
+                <input className="inp" type="time" value={form.match_time} onChange={e=>setForm(f=>({...f,match_time:e.target.value}))}/>
+              </div>
+            </div>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".07em"}}>💎 Tranche de diamants</label>
+              {form.flexible
+                ?<div style={{fontSize:12,color:T.ok}}>🤝 Mode flexible — toutes tranches acceptées</div>
+                :<TranchePicker value={form.tranche_diamants} onChange={v=>setForm(f=>({...f,tranche_diamants:v}))}/>
+              }
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <Tog on={form.flexible} onChange={v=>setForm(f=>({...f,flexible:v}))} color={T.ok}/>
+              <label style={{fontSize:12,color:T.tx}}>Match flexible (peu importe les diamants)</label>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <Tog on={form.is_inter_agency} onChange={v=>setForm(f=>({...f,is_inter_agency:v}))} color={T.cy}/>
@@ -1510,34 +1668,53 @@ function MatchesView({profile,creators}){
         </div>
       )}
 
-      {loading?<div style={{textAlign:"center",padding:20,color:T.sec}}>Chargement…</div>:
-      matches.filter(m=>m.status==="pending"&&!m.creator_b).length>0&&(
+      {/* ── Matchs ouverts ── */}
+      {!loading&&matches.filter(m=>m.status==="pending"&&!m.creator_b).length>0&&(
         <div className="card" style={{padding:16,marginBottom:14,background:"rgba(0,200,83,.04)",border:"1px solid rgba(0,200,83,.2)"}}>
           <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>🔓 Matchs ouverts — postuler</div>
           {matches.filter(m=>m.status==="pending"&&!m.creator_b).map(m=>(
             <div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,background:"rgba(255,255,255,.03)",marginBottom:7,border:`1px solid ${T.b}`}}>
               <div style={{flex:1}}>
-                <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>Match ouvert - {m.match_date?new Date(m.match_date).toLocaleDateString("fr-FR"):"Date libre"}</div>
-                <div style={{fontSize:11,color:T.sec}}>{m.match_time||"Heure libre"} - {m.is_inter_agency?"Inter-agences":"Intra-agence"}</div>
+                <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>
+                  Match ouvert — {m.match_date?new Date(m.match_date).toLocaleDateString("fr-FR"):"Date libre"}
+                  {m.flexible&&<span className="tag" style={{background:"rgba(34,197,94,0.12)",color:T.ok,marginLeft:8}}>🤝 Flexible</span>}
+                </div>
+                <div style={{fontSize:11,color:T.sec}}>{m.match_time||"Heure libre"} — {m.is_inter_agency?"Inter-agences":"Intra-agence"} — Tranche : {m.tranche_diamants==="any"?"Toutes":m.tranche_diamants} 💎</div>
               </div>
               <button className="btn" style={{fontSize:11.5,padding:"5px 12px",background:`linear-gradient(135deg,${T.ok},#00E676)`}}>Postuler</button>
             </div>
           ))}
         </div>
       )}
-      {matches.length===0?(
+
+      {/* ── Liste matchs ── */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+        <div style={{fontWeight:700,fontSize:13,color:T.tx}}>Matchs programmés</div>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {["tous","pending","confirmed","done"].map(s=>(
+            <button key={s} onClick={()=>setFilterStatus(s)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,cursor:"pointer",border:"1px solid",fontFamily:"Inter,sans-serif",background:filterStatus===s?"rgba(37,99,235,0.15)":"transparent",borderColor:filterStatus===s?"#2563EB":"#2a2a2a",color:filterStatus===s?"#60A5FA":"#555",transition:"all .15s"}}>
+              {s==="tous"?"Tous":{pending:"En attente",confirmed:"Confirmés",done:"Terminés"}[s]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading?<div style={{textAlign:"center",padding:20,color:T.sec}}>Chargement…</div>:
+      filteredMatches.length===0?(
         <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
           Aucun match programmé
         </div>
       ):(
         <div className="card" style={{overflow:"hidden"}}>
-          <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.b}`,fontWeight:700,fontSize:13,color:T.tx}}>Matchs programmés</div>
-          {matches.map(m=>(
-            <div key={m.id} className="cr" style={{gridTemplateColumns:"100px 1fr 80px 90px 80px"}}>
+          {filteredMatches.map(m=>(
+            <div key={m.id} className="cr" style={{gridTemplateColumns:"100px 1fr 80px 100px 80px"}}>
               <div style={{fontWeight:700,fontSize:12,color:T.tx}}>{m.match_date?new Date(m.match_date).toLocaleDateString("fr-FR"):"---"}</div>
               <div>
-                <div style={{fontWeight:600,fontSize:12.5,color:T.tx}}>Match {m.is_inter_agency?"inter":"intra"}-agence</div>
-                <div style={{fontSize:10.5,color:T.sec}}>{m.match_time||"?"}</div>
+                <div style={{fontWeight:600,fontSize:12.5,color:T.tx,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                  {creatorName(m.creator_a)} <span style={{color:"#444",fontSize:11}}>vs</span> {m.creator_b?creatorName(m.creator_b):<span style={{color:T.sec}}>???</span>}
+                  {m.flexible&&<span style={{fontSize:10,padding:"2px 7px",borderRadius:20,background:"rgba(34,197,94,0.12)",color:T.ok,border:"1px solid rgba(34,197,94,0.25)"}}>🤝 FLEX</span>}
+                </div>
+                <div style={{fontSize:10.5,color:T.sec}}>{m.match_time||"?"} — {m.is_inter_agency?"Inter":"Intra"} — {m.tranche_diamants==="any"?"Toutes tranches":m.tranche_diamants} 💎</div>
               </div>
               <span className="tag" style={{background:m.is_inter_agency?`${T.cy}18`:`${T.pu}18`,color:m.is_inter_agency?T.cy:T.pu}}>
                 {m.is_inter_agency?"Inter":"Intra"}
@@ -1551,6 +1728,231 @@ function MatchesView({profile,creators}){
         </div>
       )}
     {poster&&<MatchPoster matchData={poster} creators={creators} onClose={()=>setPoster(null)}/>}
+    </div>
+  );
+}
+
+/* ─── QUETES & PALIERS ──────────────────── */
+function QuetesView({profile,creators,reload}){
+  const ag=profile?.agencies;
+  const role=profile?.role;
+  const isAgency=role==="agency"||role==="admin";
+  const isCreator=role==="creator";
+  const isStaff=["director","manager","agent"].includes(role);
+
+  const [quetes,setQuetes]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [activeTab,setActiveTab]=useState("collective");
+  const [showForm,setShowForm]=useState(false);
+  const [form,setForm]=useState({titre:"",description:"",type:"collective",unite:"diamonds",cible:"",recompense:"",deadline:""});
+  const [saving,setSaving]=useState(false);
+  const [saved,setSaved]=useState(false);
+
+  const load=()=>{if(ag?.id) fetchQuetes(ag.id).then(d=>{setQuetes(d);setLoading(false);});else setLoading(false);};
+  useEffect(()=>{load();},[ag?.id]);
+
+  const createQuete=async()=>{
+    if(!form.titre||!form.cible||!ag?.id) return;
+    setSaving(true);
+    await sb.from("quetes").insert({
+      agency_id:ag.id,titre:form.titre.trim(),description:form.description.trim()||null,
+      type:form.type,unite:form.unite,cible:parseInt(form.cible),
+      recompense:form.recompense.trim()||null,deadline:form.deadline||null,active:true,
+    });
+    await load();
+    setShowForm(false);setSaving(false);setSaved(true);
+    setTimeout(()=>setSaved(false),2500);
+    setForm({titre:"",description:"",type:"collective",unite:"diamonds",cible:"",recompense:"",deadline:""});
+  };
+
+  const deleteQuete=async(id)=>{
+    if(!sb||!confirm("Supprimer cet objectif ?")) return;
+    await sb.from("quetes").update({active:false}).eq("id",id);
+    setQuetes(q=>q.filter(x=>x.id!==id));
+  };
+
+  const quetesFiltrees=quetes.filter(q=>q.type===activeTab);
+  const myCreator=creators?.[0];
+  const totalCollective=quetes.filter(q=>q.type==="collective").length;
+  const totalIndividuelle=quetes.filter(q=>q.type==="individuelle").length;
+
+  const getProgressPct=(q)=>{
+    const actuel=q.type==="collective"?getActuelCollectif(q,creators):getActuelForQuete(q,myCreator);
+    return Math.min(100,Math.round((actuel/q.cible)*100));
+  };
+  const getActuelDisplay=(q)=>q.type==="collective"?getActuelCollectif(q,creators):getActuelForQuete(q,myCreator);
+
+  return(
+    <div className="fup">
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:18}}>
+        <div>
+          <h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Quêtes & Paliers 🏆</h1>
+          <p style={{fontSize:12,color:T.sec,marginTop:3}}>Objectifs fixés par l'agence — collectifs et individuels</p>
+        </div>
+        {isAgency&&(
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            {saved&&<span style={{fontSize:12,color:T.ok}}>✓ Objectif créé</span>}
+            <button className="btn" style={{fontSize:12}} onClick={()=>setShowForm(!showForm)}>
+              {showForm?"Annuler":"+ Créer un objectif"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
+        <div className="card" style={{padding:"14px 16px",textAlign:"center"}}>
+          <div style={{fontSize:10,color:T.sec,textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Objectifs collectifs</div>
+          <div style={{fontSize:28,fontWeight:900,color:T.tx}}>{totalCollective}</div>
+        </div>
+        <div className="card" style={{padding:"14px 16px",textAlign:"center"}}>
+          <div style={{fontSize:10,color:T.sec,textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Paliers individuels</div>
+          <div style={{fontSize:28,fontWeight:900,color:T.tx}}>{totalIndividuelle}</div>
+        </div>
+        <div className="glow" style={{padding:"14px 16px",textAlign:"center"}}>
+          <div style={{fontSize:10,color:T.sec,textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>
+            {isCreator?"Mon avancement":"Actifs total"}
+          </div>
+          <div style={{fontSize:28,fontWeight:900,color:T.acc}}>
+            {isCreator?`${quetes.filter(q=>getProgressPct(q)>=100).length}/${quetes.length} ✅`:quetes.length}
+          </div>
+        </div>
+      </div>
+
+      {/* Formulaire création */}
+      {showForm&&isAgency&&(
+        <div className="glow" style={{padding:18,marginBottom:16}}>
+          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:14}}>Nouvel objectif</div>
+          <div style={{display:"flex",flexDirection:"column",gap:11}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <div>
+                <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Type *</label>
+                <select className="inp" value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}>
+                  <option value="collective">Collectif (toute l'agence)</option>
+                  <option value="individuelle">Individuel (par créateur)</option>
+                </select>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Unité *</label>
+                <select className="inp" value={form.unite} onChange={e=>setForm(f=>({...f,unite:e.target.value}))}>
+                  <option value="diamonds">💎 Diamants</option>
+                  <option value="jours">📅 Jours de live</option>
+                  <option value="heures">⏱ Heures de live</option>
+                  <option value="lives">🎬 Nombre de lives</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Titre *</label>
+              <input className="inp" value={form.titre} onChange={e=>setForm(f=>({...f,titre:e.target.value}))} placeholder="Ex: Palier Or — 100 000 diamants"/>
+            </div>
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Description (optionnel)</label>
+              <input className="inp" value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="Détails de l'objectif"/>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+              <div>
+                <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Cible *</label>
+                <input className="inp" type="number" value={form.cible} onChange={e=>setForm(f=>({...f,cible:e.target.value}))} placeholder="100000"/>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Récompense</label>
+                <input className="inp" value={form.recompense} onChange={e=>setForm(f=>({...f,recompense:e.target.value}))} placeholder="Ex: +5% reversement"/>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Deadline</label>
+                <input className="inp" type="date" value={form.deadline} onChange={e=>setForm(f=>({...f,deadline:e.target.value}))}/>
+              </div>
+            </div>
+            <button className="btn" style={{fontSize:12,alignSelf:"flex-start"}} onClick={createQuete} disabled={saving||!form.titre||!form.cible}>
+              {saving?<Spin/>:"Créer l'objectif"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Onglets */}
+      <div style={{display:"flex",gap:2,background:"rgba(255,255,255,.04)",padding:4,borderRadius:10,width:"fit-content",marginBottom:16,border:`1px solid ${T.b}`}}>
+        {[{id:"collective",label:`Objectifs collectifs (${totalCollective})`},{id:"individuelle",label:`Paliers individuels (${totalIndividuelle})`}].map(t=>(
+          <button key={t.id} onClick={()=>setActiveTab(t.id)} style={{padding:"6px 14px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",border:"none",background:activeTab===t.id?T.acc:"transparent",color:activeTab===t.id?"white":T.sec,fontFamily:"Inter,sans-serif",transition:"all .18s"}}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Liste quêtes */}
+      {loading?<div style={{textAlign:"center",padding:30,color:T.sec}}>Chargement…</div>:
+      quetesFiltrees.length===0?(
+        <div style={{textAlign:"center",padding:"40px 20px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:14}}>
+          {isAgency?"Aucun objectif créé — crée le premier ci-dessus !":"Aucun objectif pour le moment"}
+        </div>
+      ):(
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {quetesFiltrees.map(q=>{
+            const pct=getProgressPct(q);
+            const actuel=getActuelDisplay(q);
+            const isComplete=pct>=100;
+            const palier=palierColor(q.titre);
+            const bc=barProgressColor(pct);
+            return(
+              <div key={q.id} className="card" style={{padding:16,borderColor:isComplete?"rgba(34,197,94,0.3)":palier?palier.border:undefined,background:isComplete?"rgba(34,197,94,0.03)":undefined}}>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:12}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{width:38,height:38,borderRadius:10,flexShrink:0,background:isComplete?"rgba(34,197,94,0.12)":palier?palier.bg:"rgba(37,99,235,0.08)",border:`1px solid ${isComplete?"rgba(34,197,94,0.3)":palier?palier.border:"rgba(37,99,235,0.2)"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>
+                      {isComplete?"✅":palier?palier.icon:q.unite==="diamonds"?"💎":q.unite==="jours"?"📅":q.unite==="heures"?"⏱":"🎬"}
+                    </div>
+                    <div>
+                      <div style={{fontSize:13.5,fontWeight:700,color:palier&&!isComplete?palier.color:T.tx,marginBottom:2}}>{q.titre}</div>
+                      {q.description&&<div style={{fontSize:11,color:T.sec}}>{q.description}</div>}
+                      <div style={{fontSize:10,color:T.sec,marginTop:2}}>
+                        {q.type==="collective"?"🌐 Collectif — toute l'agence":"👤 Individuel — par créateur"}
+                        {q.deadline&&<span> · Deadline : {new Date(q.deadline).toLocaleDateString("fr-FR")}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
+                    <span style={{padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,letterSpacing:".04em",background:isComplete?"rgba(34,197,94,0.12)":"rgba(37,99,235,0.12)",color:isComplete?T.ok:T.acc,border:`1px solid ${isComplete?"rgba(34,197,94,0.25)":"rgba(37,99,235,0.25)"}`}}>
+                      {isComplete?"COMPLÉTÉ ✓":"EN COURS"}
+                    </span>
+                    {isAgency&&<button className="btng" style={{fontSize:9.5,color:T.ng,borderColor:`${T.ng}30`,padding:"2px 8px"}} onClick={()=>deleteQuete(q.id)}>✕ Suppr.</button>}
+                  </div>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                  <span style={{fontSize:11,color:T.sec}}>{actuel.toLocaleString()} / {q.cible.toLocaleString()} {uniteLabel(q.unite)}</span>
+                  <span style={{fontSize:11,fontWeight:700,color:bc}}>{pct}%</span>
+                </div>
+                <div style={{height:6,borderRadius:20,background:"rgba(255,255,255,.06)",overflow:"hidden",marginBottom:q.recompense||((isAgency||isStaff)&&q.type==="individuelle")?10:0}}>
+                  <div style={{height:"100%",borderRadius:20,width:`${pct}%`,background:bc,transition:"width .4s ease"}}/>
+                </div>
+                {q.recompense&&(
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginTop:q.recompense?6:0}}>
+                    <span style={{fontSize:10,color:T.sec}}>Récompense :</span>
+                    <span style={{fontSize:11.5,fontWeight:700,color:T.go}}>🎁 {q.recompense}</span>
+                  </div>
+                )}
+                {/* Top créateurs pour paliers individuels (staff/agence) */}
+                {(isAgency||isStaff)&&q.type==="individuelle"&&creators.length>0&&(
+                  <div style={{marginTop:12,paddingTop:10,borderTop:`1px solid ${T.b}`}}>
+                    <div style={{fontSize:11,fontWeight:600,color:T.sec,marginBottom:8}}>Top créateurs sur cet objectif</div>
+                    {[...creators].map(c=>({c,val:getActuelForQuete(q,c),pct:Math.min(100,Math.round((getActuelForQuete(q,c)/q.cible)*100))}))
+                      .sort((a,b)=>b.val-a.val).slice(0,5).map(({c,val,pct:p},idx)=>(
+                        <div key={c.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                          <span style={{fontSize:11,color:T.sec,width:18,textAlign:"center"}}>{idx===0?"🥇":idx===1?"🥈":idx===2?"🥉":`${idx+1}.`}</span>
+                          <span style={{fontSize:12,color:T.tx,flex:1}}>{c.pseudo}</span>
+                          <div style={{width:80,height:4,borderRadius:20,background:"rgba(255,255,255,.06)",overflow:"hidden"}}>
+                            <div style={{height:"100%",width:`${p}%`,background:barProgressColor(p),borderRadius:20}}/>
+                          </div>
+                          <span style={{fontSize:11,color:T.sec,minWidth:50,textAlign:"right"}}>{val.toLocaleString()}</span>
+                        </div>
+                      ))
+                    }
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -3807,6 +4209,7 @@ export default function App(){
     links:   ()=><CodesPanel profile={auth.profile}/>,
     settings:()=><SettingsView profile={auth.profile} reload={reload}/>,
     matches: ()=><MatchesView profile={auth.profile} creators={team.creators} agents={team.agents}/>,
+    quetes:  ()=><QuetesView profile={auth.profile} creators={team.creators} reload={reload}/>,
     planning:()=><PlanningView profile={auth.profile}/>,
     my_lives:()=><MyLivesView profile={auth.profile}/>,
     coach:   ()=><CoachView profile={auth.profile} creators={team.creators} ag={auth.profile?.agencies}/>,
