@@ -105,12 +105,72 @@ select.inp option{background:#111;color:#fff}
 
 
 /* ─── UTILS ─────────────────────────────── */
+// Tranches de diamants pour les matchs
+const TRANCHES=[
+  {id:"any",label:"Toutes tranches",min:0,max:Infinity},
+  {id:"0-10k",label:"0 – 10 000 💎",min:0,max:10000},
+  {id:"10k-30k",label:"10 000 – 30 000 💎",min:10000,max:30000},
+  {id:"30k-100k",label:"30 000 – 100 000 💎",min:30000,max:100000},
+  {id:"100k-300k",label:"100 000 – 300 000 💎",min:100000,max:300000},
+  {id:"300k-1M",label:"300 000 – 1 000 000 💎",min:300000,max:1000000},
+  {id:"1M+",label:"1 000 000+ 💎",min:1000000,max:Infinity},
+];
+const getTranche=(diamonds)=>TRANCHES.find(t=>t.id!=="any"&&diamonds>=t.min&&diamonds<t.max)?.id||"any";
+
+// Valeur diamant dynamique
+const getDiamondValue=(ag)=>ag?.valeur_diamant_pivot??0.017;
+const diamondsToEurosDyn=(diamonds,ag)=>((diamonds||0)*getDiamondValue(ag)).toFixed(2);
+
+// Statut évolution
+const getEvolutionStatus=(creator,ag)=>{
+  if(creator?.force_payment) return "FORCE";
+  if(!ag?.activer_regle_evolution) return "EN_EVOLUTION";
+  const prev=creator?.diamonds_mois_precedent??0;
+  if(prev===0) return "EN_EVOLUTION";
+  return (creator?.diamonds||0)>=prev?"EN_EVOLUTION":"HORS_EVOLUTION";
+};
+const isEligibleEvolution=(creator,ag)=>getEvolutionStatus(creator,ag)!=="HORS_EVOLUTION";
+
+// Pastille évolution
+const EvolutionBadge=({creator,ag})=>{
+  const status=getEvolutionStatus(creator,ag);
+  if(status==="EN_EVOLUTION"||status==="FORCE") return(
+    <span style={{display:"inline-flex",alignItems:"center",gap:5,padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700,background:"rgba(34,197,94,0.12)",color:"#22C55E",border:"1px solid rgba(34,197,94,0.25)"}}>
+      <span style={{width:6,height:6,borderRadius:"50%",background:"#22C55E",display:"inline-block"}}/>{status==="FORCE"?"✓ FORCE PAYMENT":"EN ÉVOLUTION"}
+    </span>
+  );
+  const manquants=(creator?.diamonds_mois_precedent??0)-(creator?.diamonds||0);
+  return(
+    <span style={{display:"inline-flex",alignItems:"center",gap:5,padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700,background:"rgba(239,68,68,0.12)",color:"#EF4444",border:"1px solid rgba(239,68,68,0.25)"}}>
+      <span style={{width:6,height:6,borderRadius:"50%",background:"#EF4444",display:"inline-block"}}/>HORS ÉVOLUTION — {manquants.toLocaleString()} 💎 manquants
+    </span>
+  );
+};
+
+// Sélecteur de tranche
+const TranchePicker=({value,onChange})=>(
+  <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+    {TRANCHES.map(t=>(
+      <button key={t.id} type="button" onClick={()=>onChange(t.id)} style={{padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:600,cursor:"pointer",border:"1px solid",background:value===t.id?"rgba(37,99,235,0.15)":"transparent",borderColor:value===t.id?"#2563EB":"#2a2a2a",color:value===t.id?"#60A5FA":"#555",fontFamily:"inherit",transition:"all .15s"}}>
+        {t.label}
+      </button>
+    ))}
+  </div>
+);
+
 const calcPayout=(ag,c)=>{
-  if(c&&c.disable_creator_payout) return {eligible:false,creator:0,agent:0,manager:0,director:0};
+  const zero={eligible:false,creator:0,agent:0,manager:0,director:0,reason:""};
+  if(!c) return zero;
+  if(c.disable_creator_payout) return {...zero,reason:"Paiement désactivé"};
   const ok=(c.days_live||0)>=(ag?.min_days||20)&&(c.hours_live||0)>=(ag?.min_hours||40);
-  if(!ok) return {eligible:false,creator:0,agent:0,manager:0,director:0};
-  const b=(c.diamonds||0)*0.017;
-  return {eligible:true,creator:Math.round(b*(ag?.pct_creator||55)/100),agent:Math.round(b*(ag?.pct_agent||10)/100),manager:Math.round(b*(ag?.pct_manager||5)/100),director:Math.round(b*(ag?.pct_director||3)/100)};
+  if(!ok) return {...zero,reason:"Objectif jours/heures non atteint"};
+  if(!isEligibleEvolution(c,ag)){
+    const manquants=(c.diamonds_mois_precedent??0)-(c.diamonds||0);
+    return {...zero,reason:`Hors évolution — ${manquants.toLocaleString()} 💎 manquants`};
+  }
+  const rate=getDiamondValue(ag);
+  const b=(c.diamonds||0)*rate;
+  return {eligible:true,reason:"",creator:Math.round(b*(ag?.pct_creator||55)/100),agent:Math.round(b*(ag?.pct_agent||10)/100),manager:Math.round(b*(ag?.pct_manager||5)/100),director:Math.round(b*(ag?.pct_director||3)/100)};
 };
 const billingOk=(ag)=>!ag||ag.is_offered||ag.billing_status==="actif";
 
@@ -1172,7 +1232,7 @@ function PlanningView({profile}){
   const [slots,setSlots]=useState([]);
   const [loading,setLoading]=useState(true);
   const [adding,setAdding]=useState(null);
-  const [form,setForm]=useState({start_time:"18:00",end_time:"21:00",accept_inter_agency:false,notes:""});
+  const [form,setForm]=useState({start_time:"18:00",end_time:"21:00",accept_inter_agency:false,notes:"",tranche_match:"any"});
   const [saving,setSaving]=useState(false);
 
   useEffect(()=>{if(profile?.id) fetchSchedule(profile.id).then(d=>{setSlots(d);setLoading(false);});},[profile?.id]);
@@ -1184,11 +1244,12 @@ function PlanningView({profile}){
     setSlots(fresh);setAdding(null);setSaving(false);
   };
   const del=async(id)=>{await deleteScheduleSlot(id);setSlots(s=>s.filter(x=>x.id!==id));};
+  const trancheLabel=(id)=>TRANCHES.find(t=>t.id===id)?.label||"Toutes tranches";
 
   return(
     <div className="fup">
       <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:4}}>Mon planning live</h1>
-      <p style={{fontSize:12,color:T.sec,marginBottom:14}}>Indique tes dispo - Ton staff peut voir ce planning pour organiser tes matchs - Tu peux modifier à tout moment</p>
+      <p style={{fontSize:12,color:T.sec,marginBottom:14}}>Indique tes dispos · Ton staff organise tes matchs selon tes créneaux · Précise ta tranche de diamants souhaitée pour les matchs</p>
       {loading?<div style={{textAlign:"center",padding:20,color:T.sec}}>Chargement…</div>:(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {DAYS.map((day,i)=>{
@@ -1202,17 +1263,20 @@ function PlanningView({profile}){
                   </button>
                 </div>
                 {daySlots.map(slot=>(
-                  <div key={slot.id} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",borderRadius:8,background:"rgba(127,0,255,.06)",marginBottom:5,border:"1px solid rgba(127,0,255,.15)"}}>
-                    <div style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{slot.start_time?.slice(0,5)} → {slot.end_time?.slice(0,5)}</div>
+                  <div key={slot.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:8,background:"rgba(37,99,235,.06)",marginBottom:5,border:"1px solid rgba(37,99,235,.15)",flexWrap:"wrap"}}>
+                    <div style={{fontWeight:600,fontSize:12.5,color:T.tx,flexShrink:0}}>{slot.start_time?.slice(0,5)} → {slot.end_time?.slice(0,5)}</div>
                     <span className="tag" style={{background:slot.accept_inter_agency?`${T.cy}18`:"rgba(255,255,255,.06)",color:slot.accept_inter_agency?T.cy:T.sec}}>
                       {slot.accept_inter_agency?"Inter-agence":"Intra seulement"}
                     </span>
+                    <span className="tag" style={{background:"rgba(37,99,235,.12)",color:"#60A5FA"}}>
+                      {trancheLabel(slot.tranche_match||"any")}
+                    </span>
                     {slot.notes&&<span style={{fontSize:11,color:T.sec,maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.notes}</span>}
-                    <button className="btng" style={{fontSize:10.5,color:T.ng,borderColor:T.ng+"30",padding:"2px 8px"}} onClick={()=>del(slot.id)}>✕</button>
+                    <button className="btng" style={{fontSize:10.5,color:T.ng,borderColor:T.ng+"30",padding:"2px 8px",marginLeft:"auto"}} onClick={()=>del(slot.id)}>✕</button>
                   </div>
                 ))}
                 {adding===i&&(
-                  <div style={{padding:12,borderRadius:10,background:"rgba(127,0,255,.06)",border:"1px solid rgba(127,0,255,.2)",marginTop:daySlots.length>0?10:0}}>
+                  <div style={{padding:12,borderRadius:10,background:"rgba(37,99,235,.06)",border:"1px solid rgba(37,99,235,.2)",marginTop:daySlots.length>0?10:0}}>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
                       <div><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Début</label>
                         <input className="inp" type="time" value={form.start_time} onChange={e=>setForm(f=>({...f,start_time:e.target.value}))}/></div>
@@ -1222,6 +1286,10 @@ function PlanningView({profile}){
                     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
                       <Tog on={form.accept_inter_agency} onChange={v=>setForm(f=>({...f,accept_inter_agency:v}))} color={T.cy}/>
                       <label style={{fontSize:12,color:T.tx}}>Accepter les matchs inter-agences</label>
+                    </div>
+                    <div style={{marginBottom:10}}>
+                      <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".07em"}}>💎 Tranche de diamants pour les matchs</label>
+                      <TranchePicker value={form.tranche_match} onChange={v=>setForm(f=>({...f,tranche_match:v}))}/>
                     </div>
                     <div style={{marginBottom:10}}><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Note (optionnel)</label>
                       <input className="inp" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Ex: dispo sauf urgence"/></div>
@@ -1324,7 +1392,7 @@ function MatchesView({profile,creators}){
   const [matches,setMatches]=useState([]);
   const [loading,setLoading]=useState(true);
   const [showCreate,setShowCreate]=useState(false);
-  const [form,setForm]=useState({creator_a:"",creator_b:"",match_date:"",match_time:"20:00",is_inter_agency:false});
+  const [form,setForm]=useState({creator_a:"",creator_b:"",match_date:"",match_time:"20:00",is_inter_agency:false,tranche_diamants:"any"});
   const [saving,setSaving]=useState(false);
   const [autoResult,setAutoResult]=useState(null);
   const [poster,setPoster]=useState(null);
@@ -1344,6 +1412,7 @@ function MatchesView({profile,creators}){
       agency_a:ag?.id,agency_b:ag?.id,
       is_inter_agency:form.is_inter_agency,
       match_date:form.match_date,match_time:form.match_time,
+      tranche_diamants:form.tranche_diamants||"any",
       status:"pending",created_by:profile?.id,
     });
     const fresh=await fetchMatches(ag?.id);
@@ -1351,14 +1420,17 @@ function MatchesView({profile,creators}){
   };
 
   const autoMatch=()=>{
-    if(!form.creator_a){return;}
+    if(!form.creator_a) return;
     const crea=creators.find(c=>c.id===form.creator_a||c.profile_id===form.creator_a);
     if(!crea) return;
+    const tranche=TRANCHES.find(t=>t.id===form.tranche_diamants)||TRANCHES[0];
     const similar=creators.filter(c=>{
       const cId=c.id||c.profile_id;
       const aId=crea.id||crea.profile_id;
       if(cId===aId) return false;
-      const diff=Math.abs((c.diamonds||0)-(crea.diamonds||0));
+      const d=c.diamonds||0;
+      if(form.tranche_diamants!=="any") return d>=tranche.min&&d<tranche.max;
+      const diff=Math.abs(d-(crea.diamonds||0));
       return diff<=(crea.diamonds||1)*0.3;
     });
     if(similar.length>0){
@@ -1366,7 +1438,7 @@ function MatchesView({profile,creators}){
       setAutoResult(pick);
       setForm(f=>({...f,creator_b:pick.id||pick.profile_id}));
     } else {
-      setAutoResult({pseudo:"Aucun adversaire trouvé dans ta tranche"});
+      setAutoResult({pseudo:"Aucun adversaire trouvé dans cette tranche"});
     }
   };
 
@@ -1385,20 +1457,24 @@ function MatchesView({profile,creators}){
       {/* Matchmaking auto */}
       <div className="card" style={{padding:16,marginBottom:14,background:"rgba(0,229,255,.04)",border:"1px solid rgba(0,229,255,.2)"}}>
         <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:4}}>🎯 Matchmaking automatique</div>
-        <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Diamond's trouve un adversaire de <strong style={{color:T.tx}}>même niveau</strong> (±30% de diamants) selon les disponibilités.</div>
-        <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+        <div style={{fontSize:12,color:T.sec,marginBottom:12}}>Diamond's trouve un adversaire selon la tranche de diamants choisie et les disponibilités du créateur.</div>
+        <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",marginBottom:10}}>
           <select className="inp" style={{flex:1,minWidth:200}} value={form.creator_a} onChange={e=>setForm(f=>({...f,creator_a:e.target.value}))}>
             <option value="">Sélectionner un créateur…</option>
             {creators.map(c=><option key={c.id||c.profile_id} value={c.id||c.profile_id}>{c.pseudo} — 💎 {(c.diamonds||0).toLocaleString()}</option>)}
           </select>
           <button className="btn" style={{fontSize:12,padding:"8px 14px"}} onClick={autoMatch} disabled={!form.creator_a}>🔍 Trouver un adversaire</button>
         </div>
+        <div style={{marginBottom:10}}>
+          <div style={{fontSize:11,fontWeight:600,color:T.sec,marginBottom:6,textTransform:"uppercase",letterSpacing:".07em"}}>Tranche de diamants souhaitée</div>
+          <TranchePicker value={form.tranche_diamants} onChange={v=>setForm(f=>({...f,tranche_diamants:v}))}/>
+        </div>
         {autoResult&&(
-          <div style={{marginTop:10,padding:"10px 13px",borderRadius:9,background:"rgba(127,0,255,.08)",border:"1px solid rgba(127,0,255,.2)",fontSize:12.5,color:T.tx}}>
+          <div style={{marginTop:10,padding:"10px 13px",borderRadius:9,background:"rgba(37,99,235,.08)",border:"1px solid rgba(37,99,235,.2)",fontSize:12.5,color:T.tx}}>
             {autoResult.diamonds?`✅ Adversaire trouvé : ${autoResult.pseudo} — 💎 ${(autoResult.diamonds||0).toLocaleString()}`:`⚠ ${autoResult.pseudo}`}
           </div>
         )}
-        <div style={{marginTop:10,fontSize:11,color:T.sec}}>✨ Génère automatiquement une affiche de match avec @TikTok, date et heure</div>
+        <div style={{marginTop:10,fontSize:11,color:T.sec}}>✨ Le créateur définit ses dispos dans "Mon planning" — les matchs sont proposés selon ses créneaux</div>
       </div>
 
       {showCreate&&canCreate&&(
@@ -1543,6 +1619,8 @@ function CreatorsView({profile,creators,agents,reload}){
                         {myAgent?.name||"Sans agent"}
                         {c.staff_as_creator&&<span className="tag" style={{background:`${T.pu}18`,color:T.pu,fontSize:8,padding:"1px 4px"}}>Staff+Créa</span>}
                         {c.disable_creator_payout&&<span className="tag" style={{background:`${T.ng}18`,color:T.ng,fontSize:8,padding:"1px 4px"}}>Rev. OFF</span>}
+                        {c.force_payment&&<span className="tag" style={{background:"rgba(37,99,235,0.18)",color:"#60A5FA",fontSize:8,padding:"1px 4px"}}>FORCE</span>}
+                        {ag?.activer_regle_evolution&&<span className="tag" style={{fontSize:8,padding:"1px 4px",background:getEvolutionStatus(c,ag)==="EN_EVOLUTION"?"rgba(34,197,94,0.12)":"rgba(239,68,68,0.12)",color:getEvolutionStatus(c,ag)==="EN_EVOLUTION"?T.ok:T.ng}}>{getEvolutionStatus(c,ag)==="EN_EVOLUTION"?"↑ ÉVOL":"↓ HORS"}</span>}
                       </div>
                     </div>
                     {canName&&<div style={{fontSize:12,fontWeight:600,color:T.tx}}>{c.first_name} {c.last_name}</div>}
@@ -1559,6 +1637,9 @@ function CreatorsView({profile,creators,agents,reload}){
                           {c.disable_creator_payout?"Rev ✓":"Rev ✕"}
                         </button>}
                         {canTogglePayout&&<button className="btng" style={{fontSize:9.5,padding:"2px 6px",color:"#2563EB",borderColor:"rgba(37,99,235,0.3)"}} onClick={()=>setTargetCreator(c)} title="Objectifs personnalisés">🎯</button>}
+                        {canTogglePayout&&ag?.activer_regle_evolution&&<button className="btng" style={{fontSize:9.5,padding:"2px 6px",color:c.force_payment?"#F59E0B":"#555",borderColor:c.force_payment?"rgba(245,158,11,0.4)":"rgba(255,255,255,0.1)"}} onClick={async()=>{await sb.from("creators").update({force_payment:!c.force_payment}).eq("id",c.id);reload?.();}} title="Force Payment — outrepasser règle évolution">
+                          {c.force_payment?"⚡ FORCE":"⚡"}
+                        </button>}
                       </div>
                     )}
                   </div>
@@ -2008,10 +2089,11 @@ function SettingsView({profile,reload}){
 
   // Paramètres agence
   const [agName,setAgName]=useState(ag?.name||"");
+  const [diamondValue,setDiamondValue]=useState(ag?.valeur_diamant_pivot??0.017);
   const [pcts,setPcts]=useState({director:ag?.pct_director||3,manager:ag?.pct_manager||5,agent:ag?.pct_agent||10,creator:ag?.pct_creator||55});
   const [minD,setMinD]=useState(ag?.min_days||20);
   const [minH,setMinH]=useState(ag?.min_hours||40);
-  const [perms,setPerms]=useState({dir:ag?.director_can_import||false,mgr:ag?.manager_can_import||false,inter:ag?.accept_inter_agency!==false,coachEnabled:ag?.coach_enabled!==false,agentDel:ag?.can_agent_delete_creator||false,mgrDel:ag?.can_manager_delete_agent||false,dirDel:ag?.can_director_delete_all!==false});
+  const [perms,setPerms]=useState({dir:ag?.director_can_import||false,mgr:ag?.manager_can_import||false,inter:ag?.accept_inter_agency!==false,coachEnabled:ag?.coach_enabled!==false,agentDel:ag?.can_agent_delete_creator||false,mgrDel:ag?.can_manager_delete_agent||false,dirDel:ag?.can_director_delete_all!==false,evolution:ag?.activer_regle_evolution||false});
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
   const ROLES=[{k:"creator",l:"Part créateur",c:T.ok},{k:"agent",l:"Commission agent",c:T.cy},{k:"manager",l:"Commission manager",c:T.pu},{k:"director",l:"Commission directeur",c:T.acc}];
@@ -2019,7 +2101,7 @@ function SettingsView({profile,reload}){
   const saveAgency=async()=>{
     if(!sb) return;setSaving(true);
     if(ag?.id){
-      const payload={name:agName.trim()||ag.name,pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel};
+      const payload={name:agName.trim()||ag.name,valeur_diamant_pivot:diamondValue,pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel,activer_regle_evolution:perms.evolution};
       const {error:saveErr}=await sb.from("agencies").update(payload).eq("id",ag.id);
       if(saveErr){try{await executeAdminUpdate("agencies",ag.id,payload);}catch(e2){console.error(e2);}}
     }
@@ -2148,9 +2230,18 @@ function SettingsView({profile,reload}){
             </div>
           </div>
         </div>
+        <div className="card" style={{padding:18,marginBottom:12}}>
+          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:8}}>💎 Valeur du diamant</div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+            <input className="inp" type="number" step="0.001" min="0.001" max="1" value={diamondValue} onChange={e=>setDiamondValue(+e.target.value)} style={{width:110}}/>
+            <span style={{fontSize:13,color:T.sec}}>€ / diamant</span>
+            <span style={{fontSize:11,color:"#444"}}>· Défaut TikTok : 0.017€</span>
+          </div>
+          <p style={{fontSize:11,color:"#555"}}>Tous les calculs de revenus se mettent à jour automatiquement sur tout le site</p>
+        </div>
         <div className="card" style={{padding:18,marginBottom:14}}>
           <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Permissions & Matchs</div>
-          {[{k:"dir",l:"Directeurs peuvent importer",c:T.acc},{k:"mgr",l:"Managers peuvent importer",c:T.pu},{k:"inter",l:"Matchs inter-agences acceptés",c:"#00C853"},{k:"coachEnabled",l:"Coach IA activé pour tout le monde",c:"#2563EB"},{k:"agentDel",l:"Agents peuvent supprimer des créateurs",c:"#FF9800"},{k:"mgrDel",l:"Managers peuvent supprimer agents & créateurs",c:T.pu},{k:"dirDel",l:"Directeurs peuvent tout supprimer",c:T.acc}].map(p=>(
+          {[{k:"dir",l:"Directeurs peuvent importer",c:T.acc},{k:"mgr",l:"Managers peuvent importer",c:T.pu},{k:"inter",l:"Matchs inter-agences acceptés",c:"#00C853"},{k:"coachEnabled",l:"Coach IA activé pour tout le monde",c:"#2563EB"},{k:"evolution",l:"Règle d'évolution activée (mois M vs M-1)",c:"#F59E0B"},{k:"agentDel",l:"Agents peuvent supprimer des créateurs",c:"#FF9800"},{k:"mgrDel",l:"Managers peuvent supprimer agents & créateurs",c:T.pu},{k:"dirDel",l:"Directeurs peuvent tout supprimer",c:T.acc}].map(p=>(
             <div key={p.k} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:9,background:perms[p.k]?`${p.c}08`:"rgba(255,255,255,.02)",border:`1px solid ${perms[p.k]?p.c+"25":T.b}`,marginBottom:7}}>
               <div style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{p.l}</div>
               <Tog on={perms[p.k]} onChange={v=>setPerms(t=>({...t,[p.k]:v}))} color={p.c}/>
@@ -2184,13 +2275,18 @@ function DashView({profile,creators,agents,managers,directors}){
     return(
       <div className="fup">
         <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:10}}>Bonjour, {c.pseudo} 👋</h1>
+        <div style={{marginBottom:12}}><EvolutionBadge creator={c} ag={ag}/></div>
         <RemindersPanel matches={[]} schedules={[]}/>
         <div className="glow" style={{padding:24,textAlign:"center",marginBottom:12}}>
           <div style={{fontSize:11,fontWeight:600,color:T.sec,textTransform:"uppercase",letterSpacing:".08em",marginBottom:10}}>Tes diamants ce mois</div>
           <div style={{fontSize:52,fontWeight:900,color:T.cy,lineHeight:1,marginBottom:4}}>💎 {(c.diamonds||0).toLocaleString()}</div>
           <div style={{fontSize:12,color:T.sec,marginBottom:16}}>diamants accumulés en live</div>
-          <div style={{display:"inline-flex",padding:"12px 24px",borderRadius:12,background:p.eligible?"rgba(127,0,255,.1)":"rgba(244,67,54,.08)",border:`1px solid ${p.eligible?"rgba(127,0,255,.25)":"rgba(244,67,54,.2)"}`}}>
-            <div><div style={{fontSize:11,color:T.sec,marginBottom:2}}>Ce que tu reçois</div><div style={{fontSize:26,fontWeight:900,color:p.eligible?T.acc:T.sec}}>{p.eligible?`${p.creator}€`:"0€"}</div></div>
+          <div style={{display:"inline-flex",padding:"12px 24px",borderRadius:12,background:p.eligible?"rgba(37,99,235,.1)":"rgba(244,67,54,.08)",border:`1px solid ${p.eligible?"rgba(37,99,235,.25)":"rgba(244,67,54,.2)"}`}}>
+            <div>
+              <div style={{fontSize:11,color:T.sec,marginBottom:2}}>Ce que tu reçois</div>
+              <div style={{fontSize:26,fontWeight:900,color:p.eligible?T.acc:T.sec}}>{p.eligible?`${p.creator}€`:"0€"}</div>
+              {!p.eligible&&p.reason&&<div style={{fontSize:11,color:T.ng,marginTop:4}}>{p.reason}</div>}
+            </div>
           </div>
         </div>
         <div className="card" style={{padding:18}}>
@@ -2957,12 +3053,7 @@ function AdminPosterTemplatesView(){
 
 /* ─── COACH IA ──────────────────────────── */
 const GROQ_KEY = import.meta.env.VITE_GROQ_KEY||"";
-const TIKTOK_RATE = 0.017; // ~0.017€ par diamant (taux TikTok officiel)
-
-function diamondsToEuros(diamonds) {
-  // TikTok paie ~0.017€ par diamant au créateur (net, après commission TikTok ~50%)
-  return (diamonds * TIKTOK_RATE).toFixed(2);
-}
+function diamondsToEuros(diamonds,ag){return diamondsToEurosDyn(diamonds,ag);}
 
 function CoachView({profile,creators,ag}){
   const role=profile?.role;
@@ -3015,7 +3106,7 @@ Tu as accès aux dernières informations TikTok Live 2026 et tu te mets à jour 
 • Rester 100% sur l'univers TikTok Live
 
 ━━━ STATS DU CRÉATEUR ━━━
-Jours live : ${days}/${minDays} - Heures : ${hours}h/${minHours}h - Diamants : ${diamonds.toLocaleString()} 💎 ≈ ${diamondsToEuros(diamonds)}€
+Jours live : ${days}/${minDays} - Heures : ${hours}h/${minHours}h - Diamants : ${diamonds.toLocaleString()} 💎 ≈ ${diamondsToEuros(diamonds,ag)}€
 ${days<minDays?"⚠️ "+(minDays-days)+" jours manquants pour l'objectif":"✅ Objectif jours atteint"}
 ${hours<minHours?"⚠️ "+(minHours-hours)+"h manquantes pour l'objectif":"✅ Objectif heures atteint"}
 
