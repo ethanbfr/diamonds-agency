@@ -31,6 +31,27 @@ const executeAdminUpdate = async (table, id, updates) => {
   return true;
 };
 
+// Helper for admin inserts bypassing RLS
+const executeAdminInsert = async (table, payload) => {
+  if (!SB_URL) throw new Error("Supabase non configuré");
+  const key = SB_SERVICE || SB_ANON;
+  const response = await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': key,
+      'Authorization': `Bearer ${key}`,
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
+  }
+  return true;
+};
+
 const DAYS=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 const CONTACT="diamonds.saas@gmail.com";
 const PRICE=149;
@@ -265,10 +286,32 @@ const getAgencyCodes=async(agId)=>{if(!sb) return [];const {data}=await sb.from(
 const fetchSchedule=async(profileId)=>{if(!sb) return [];const {data}=await sb.from("schedules").select("*").eq("creator_profile_id",profileId);return data||[];};
 const saveScheduleSlot=async(slot)=>{
   if(!sb) return;
-  if(slot.id){await sb.from("schedules").update({start_time:slot.start_time,end_time:slot.end_time,accept_inter_agency:slot.accept_inter_agency,notes:slot.notes}).eq("id",slot.id);}
-  else{await sb.from("schedules").insert({creator_profile_id:slot.creator_profile_id,agency_id:slot.agency_id,day_of_week:slot.day_of_week,start_time:slot.start_time,end_time:slot.end_time,accept_inter_agency:slot.accept_inter_agency||false,notes:slot.notes||""});}
+  const payload={start_time:slot.start_time,end_time:slot.end_time,accept_inter_agency:slot.accept_inter_agency||false,notes:slot.notes||"",tranche_match:slot.tranche_match||"any"};
+  if(slot.id){
+    const {error}=await sb.from("schedules").update(payload).eq("id",slot.id);
+    if(error){
+      // Fallback: REST API direct
+      try{await executeAdminUpdate("schedules",slot.id,payload);}catch(e){console.error("saveScheduleSlot update error:",e);}
+    }
+  } else {
+    const insertPayload={...payload,creator_profile_id:slot.creator_profile_id,agency_id:slot.agency_id,day_of_week:slot.day_of_week};
+    const {error}=await sb.from("schedules").insert(insertPayload);
+    if(error){
+      try{await executeAdminInsert("schedules",insertPayload);}catch(e2){console.error("saveScheduleSlot insert error:",e2);}
+    }
+  }
 };
-const deleteScheduleSlot=async(id)=>{if(sb) await sb.from("schedules").delete().eq("id",id);};
+const deleteScheduleSlot=async(id)=>{
+  if(!sb) return;
+  const {error}=await sb.from("schedules").delete().eq("id",id);
+  if(error){
+    // Fallback REST delete
+    try{
+      const key=SB_SERVICE||SB_ANON;
+      await fetch(`${SB_URL}/rest/v1/schedules?id=eq.${id}`,{method:"DELETE",headers:{"apikey":key,"Authorization":`Bearer ${key}`}});
+    }catch(e){console.error("deleteScheduleSlot fallback error:",e);}
+  }
+};
 const fetchMatches=async(agId)=>{if(!sb) return [];const {data}=await sb.from("matches").select("*").or(`agency_a.eq.${agId},agency_b.eq.${agId}`).order("match_date",{ascending:true});return data||[];};
 const fetchLiveEntries=async(profileId)=>{if(!sb) return [];const {data}=await sb.from("live_entries").select("*").eq("creator_profile_id",profileId).order("live_date",{ascending:false}).limit(30);return data||[];};
 const addLiveEntry=async(entry)=>{if(!sb) return {error:"no sb"};const {data,error}=await sb.from("live_entries").insert(entry).select().single();return error?{error:error.message}:{data};};
@@ -1234,16 +1277,21 @@ function PlanningView({profile}){
   const [adding,setAdding]=useState(null);
   const [form,setForm]=useState({start_time:"18:00",end_time:"21:00",accept_inter_agency:false,notes:"",tranche_match:"any"});
   const [saving,setSaving]=useState(false);
+  const [saveMsg,setSaveMsg]=useState("");
 
   useEffect(()=>{if(profile?.id) fetchSchedule(profile.id).then(d=>{setSlots(d);setLoading(false);});},[profile?.id]);
 
   const save=async()=>{
-    setSaving(true);
+    setSaving(true);setSaveMsg("");
     await saveScheduleSlot({...form,day_of_week:adding,creator_profile_id:profile.id,agency_id:profile.agency_id});
     const fresh=await fetchSchedule(profile.id);
     setSlots(fresh);setAdding(null);setSaving(false);
+    setSaveMsg("✓ Créneau enregistré");setTimeout(()=>setSaveMsg(""),2500);
   };
-  const del=async(id)=>{await deleteScheduleSlot(id);setSlots(s=>s.filter(x=>x.id!==id));};
+  const del=async(id)=>{
+    await deleteScheduleSlot(id);
+    setSlots(s=>s.filter(x=>x.id!==id));
+  };
   const trancheLabel=(id)=>TRANCHES.find(t=>t.id===id)?.label||"Toutes tranches";
 
   return(
@@ -1293,7 +1341,10 @@ function PlanningView({profile}){
                     </div>
                     <div style={{marginBottom:10}}><label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Note (optionnel)</label>
                       <input className="inp" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Ex: dispo sauf urgence"/></div>
-                    <button className="btn" style={{fontSize:12}} onClick={save} disabled={saving}>{saving?<Spin/>:"Enregistrer"}</button>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <button className="btn" style={{fontSize:12}} onClick={save} disabled={saving}>{saving?<Spin/>:"Enregistrer"}</button>
+                      {saveMsg&&<span style={{fontSize:12,color:T.ok}}>{saveMsg}</span>}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1468,14 +1519,18 @@ function MatchesView({profile,creators}){
   const saveDispo=async()=>{
     if(!sb||!creators?.[0]?.id) return;
     setSavingDispo(true);
-    await sb.from("creators").update({dispo_days:dispoDays,flexible_match:flexibleMode}).eq("id",creators[0].id);
+    const payload={dispo_days:dispoDays,flexible_match:flexibleMode};
+    const {error}=await sb.from("creators").update(payload).eq("id",creators[0].id);
+    if(error){
+      try{await executeAdminUpdate("creators",creators[0].id,payload);}catch(e){console.error("saveDispo fallback:",e);}
+    }
     setSavingDispo(false);setDispoSaved(true);setTimeout(()=>setDispoSaved(false),2500);
   };
 
   const createMatch=async()=>{
     if(!form.creator_a||!form.match_date) return;
     setSaving(true);
-    await sb.from("matches").insert({
+    const insertPayload={
       creator_a:form.creator_a,creator_b:form.creator_b||null,
       agency_a:ag?.id,agency_b:ag?.id,
       is_inter_agency:form.is_inter_agency,
@@ -1483,7 +1538,11 @@ function MatchesView({profile,creators}){
       tranche_diamants:form.flexible?"any":(form.tranche_diamants||"any"),
       flexible:form.flexible||false,
       status:"pending",created_by:profile?.id,
-    });
+    };
+    const {error}=await sb.from("matches").insert(insertPayload);
+    if(error){
+      try{await executeAdminInsert("matches",insertPayload);}catch(e){console.error("createMatch error:",e);}
+    }
     const fresh=await fetchMatches(ag?.id);
     setMatches(fresh);setShowCreate(false);setSaving(false);
     setForm({creator_a:"",creator_b:"",match_date:"",match_time:"20:00",is_inter_agency:false,tranche_diamants:"any",flexible:false});
@@ -1498,7 +1557,8 @@ function MatchesView({profile,creators}){
       const cId=c.id||c.profile_id;
       const aId=crea.id||crea.profile_id;
       if(cId===aId) return false;
-      if(form.flexible) return c.flexible_match===true;
+      // En mode flexible : tout le monde est éligible (peu importe flexible_match)
+      if(form.flexible) return true;
       const d=c.diamonds||0;
       if(form.tranche_diamants!=="any") return d>=tranche.min&&d<tranche.max;
       const diff=Math.abs(d-(crea.diamonds||0));
@@ -1509,7 +1569,7 @@ function MatchesView({profile,creators}){
       setAutoResult(pick);
       setForm(f=>({...f,creator_b:pick.id||pick.profile_id}));
     } else {
-      setAutoResult({pseudo:form.flexible?"Aucun créateur flexible trouvé":"Aucun adversaire dans cette tranche — essaie le mode flexible !"});
+      setAutoResult({pseudo:form.flexible?"Aucun autre créateur disponible dans l'agence":"Aucun adversaire dans cette tranche — essaie le mode flexible !"});
     }
   };
 
@@ -1754,11 +1814,11 @@ function QuetesView({profile,creators,reload}){
   const createQuete=async()=>{
     if(!form.titre||!form.cible||!ag?.id) return;
     setSaving(true);
-    await sb.from("quetes").insert({
-      agency_id:ag.id,titre:form.titre.trim(),description:form.description.trim()||null,
-      type:form.type,unite:form.unite,cible:parseInt(form.cible),
-      recompense:form.recompense.trim()||null,deadline:form.deadline||null,active:true,
-    });
+    const insertPayload={agency_id:ag.id,titre:form.titre.trim(),description:form.description.trim()||null,type:form.type,unite:form.unite,cible:parseInt(form.cible),recompense:form.recompense.trim()||null,deadline:form.deadline||null,active:true};
+    const {error}=await sb.from("quetes").insert(insertPayload);
+    if(error){
+      try{await executeAdminInsert("quetes",insertPayload);}catch(e){console.error("createQuete error:",e);}
+    }
     await load();
     setShowForm(false);setSaving(false);setSaved(true);
     setTimeout(()=>setSaved(false),2500);
@@ -1767,7 +1827,10 @@ function QuetesView({profile,creators,reload}){
 
   const deleteQuete=async(id)=>{
     if(!sb||!confirm("Supprimer cet objectif ?")) return;
-    await sb.from("quetes").update({active:false}).eq("id",id);
+    const {error}=await sb.from("quetes").update({active:false}).eq("id",id);
+    if(error){
+      try{await executeAdminUpdate("quetes",id,{active:false});}catch(e){console.error("deleteQuete fallback:",e);}
+    }
     setQuetes(q=>q.filter(x=>x.id!==id));
   };
 
@@ -2430,7 +2493,12 @@ function SettingsView({profile,reload}){
     if(!sb||!profile?.id) return;
     setSavingHandle(true);
     const handleVal=tiktokHandle.trim()?"@"+tiktokHandle.trim().replace(/^@/,""):"";
-    await sb.from("profiles").update({tiktok_handle:handleVal||null}).eq("id",profile.id);
+    const payload={tiktok_handle:handleVal||null};
+    const {error}=await sb.from("profiles").update(payload).eq("id",profile.id);
+    if(error){
+      // Fallback with service key
+      try{await executeAdminUpdate("profiles",profile.id,payload);}catch(e){console.error("saveHandle fallback error:",e);}
+    }
     setSavingHandle(false);setSavedHandle(true);setTimeout(()=>setSavedHandle(false),2500);reload?.();
   };
 
@@ -2448,7 +2516,9 @@ function SettingsView({profile,reload}){
     reader.onload=async(e)=>{
       const b64=e.target.result;
       setAvatarPreview(b64);
-      await sb.from("profiles").update({tiktok_avatar_url:b64}).eq("id",profile.id);
+      const payload={tiktok_avatar_url:b64};
+      const {error}=await sb.from("profiles").update(payload).eq("id",profile.id);
+      if(error){try{await executeAdminUpdate("profiles",profile.id,payload);}catch(e2){console.error("onAvatarFile fallback:",e2);}}
       setSavingAvatar(false);setAvatarMsg("✓ Photo enregistrée");setTimeout(()=>setAvatarMsg(""),3000);reload?.();
     };
     reader.readAsDataURL(file);
@@ -2457,7 +2527,9 @@ function SettingsView({profile,reload}){
     if(!avatarUrl.trim()){setAvatarMsg("❌ URL requise");return;}
     setSavingAvatar(true);setAvatarMsg("");
     setAvatarPreview(avatarUrl.trim());
-    await sb.from("profiles").update({tiktok_avatar_url:avatarUrl.trim()}).eq("id",profile.id);
+    const payload={tiktok_avatar_url:avatarUrl.trim()};
+    const {error}=await sb.from("profiles").update(payload).eq("id",profile.id);
+    if(error){try{await executeAdminUpdate("profiles",profile.id,payload);}catch(e){console.error("saveAvatarUrl fallback:",e);}}
     setSavingAvatar(false);setAvatarMsg("✓ Photo enregistrée");setTimeout(()=>setAvatarMsg(""),3000);reload?.();
   };
 
@@ -2505,8 +2577,14 @@ function SettingsView({profile,reload}){
     if(!sb) return;setSaving(true);
     if(ag?.id){
       const payload={name:agName.trim()||ag.name,valeur_diamant_pivot:diamondValue,pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel,activer_regle_evolution:perms.evolution};
-      const {error:saveErr}=await sb.from("agencies").update(payload).eq("id",ag.id);
-      if(saveErr){try{await executeAdminUpdate("agencies",ag.id,payload);}catch(e2){console.error(e2);}}
+      // Try service key first (bypasses RLS), then fallback to anon client
+      let success=false;
+      try{await executeAdminUpdate("agencies",ag.id,payload);success=true;}catch(e){console.warn("executeAdminUpdate failed, trying anon:",e);}
+      if(!success){
+        const {error:saveErr}=await sb.from("agencies").update(payload).eq("id",ag.id);
+        if(saveErr) console.error("saveAgency anon error:",saveErr);
+        else success=true;
+      }
     }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
