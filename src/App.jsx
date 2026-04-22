@@ -443,7 +443,7 @@ const NAVS={
   director:[{id:"dash",l:"Mon pôle"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
   manager: [{id:"dash",l:"Mon groupe"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mes liens"},{id:"settings",l:"Paramètres"}],
   agent:   [{id:"dash",l:"Dashboard"},{id:"creators",l:"Mes créateurs"},{id:"matches",l:"Matchs"},{id:"links",l:"Mon code"},{id:"settings",l:"Paramètres"}],
-  creator: [{id:"dash",l:"Mon espace"},{id:"planning",l:"Mon planning"},{id:"my_lives",l:"Mes lives"},{id:"matches",l:"Mes matchs"},{id:"coach",l:"Coach IA 🤖"},{id:"settings",l:"Mon profil"}],
+  creator: [{id:"dash",l:"Mon espace"},{id:"planning",l:"Mon planning"},{id:"matches",l:"Mes matchs"},{id:"coach",l:"Coach IA 🤖"},{id:"settings",l:"Mon profil"}],
 };
 
 /* ─── AUTH ──────────────────────────────── */
@@ -1313,6 +1313,7 @@ function MyLivesView({profile}){
   const [form,setForm]=useState({live_date:"",duration_minutes:60,viewers:0,diamonds:0,notes:""});
   const [saving,setSaving]=useState(false);
   const [err,setErr]=useState("");
+  const canAdd=["agency","admin"].includes(profile?.role);
 
   useEffect(()=>{if(profile?.id) fetchLiveEntries(profile.id).then(d=>{setEntries(d);setLoading(false);});},[profile?.id]);
 
@@ -1333,15 +1334,15 @@ function MyLivesView({profile}){
     <div className="fup">
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
         <div><h1 style={{fontSize:20,fontWeight:800,color:T.tx}}>Mes lives</h1>
-          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Saisis tes lives manuellement - Connexion TikTok directe bientôt</p></div>
-        <button className="btn" style={{fontSize:12}} onClick={()=>setShowForm(!showForm)}>+ Ajouter un live</button>
+          <p style={{fontSize:12,color:T.sec,marginTop:2}}>Données importées par l'agence via Backstage · Mise à jour mensuelle</p></div>
+        {canAdd&&<button className="btn" style={{fontSize:12}} onClick={()=>setShowForm(!showForm)}>+ Ajouter un live</button>}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
         <SC label="💎 Diamants" val={totalD.toLocaleString()} sub="Ce mois" accent={T.cy}/>
         <SC label="⏱ Heures" val={totalH+"h"} sub={entries.length+" lives"}/>
         <SC label="👁 Spectateurs" val={entries.reduce((s,e)=>s+(e.viewers||0),0).toLocaleString()} sub="Cumulés"/>
       </div>
-      {showForm&&(
+      {showForm&&canAdd&&(
         <div className="glow" style={{padding:18,marginBottom:14}}>
           <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:14}}>Nouveau live</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:11,marginBottom:11}}>
