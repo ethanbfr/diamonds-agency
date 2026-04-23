@@ -1853,10 +1853,15 @@ function QuetesView({profile,creators,reload}){
   };
 
   const myCreator=creators?.[0];
-  // Créateur : voit uniquement ses quêtes (collectives + individuelle sans cible ou ciblée pour lui)
+  // Créateur : voit ses quêtes collectives + individuelle ciblée pour lui (par creator.id OU profile_id)
   const quetesVisibles=isCreator?quetes.filter(q=>{
     if(q.type==="collective") return true;
-    if(q.type==="individuelle"&&(!q.creator_id||q.creator_id===myCreator?.id)) return true;
+    if(q.type==="individuelle"){
+      if(!q.creator_id) return true; // sans cible = pour tous
+      if(q.creator_id===myCreator?.id) return true;
+      if(q.creator_id===profile?.id) return true; // match par profile_id aussi
+      return false;
+    }
     return false;
   }):quetes;
   const quetesFiltrees=quetesVisibles.filter(q=>q.type===activeTab);
@@ -2627,11 +2632,21 @@ function SettingsView({profile,reload}){
       can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,
       can_director_delete_all:perms.dirDel,activer_regle_evolution:perms.evolution,
     };
-    try{
-      await executeAdminUpdate("agencies",ag.id,payload);
-    }catch(e){
-      const {error}=await sb.from("agencies").update(payload).eq("id",ag.id);
-      if(error) console.error("saveAgency error:",error.message);
+    // Essai 1 : client Supabase direct (marche si RLS autorise le owner)
+    const {error:e1}=await sb.from("agencies").update(payload).eq("id",ag.id);
+    if(e1){
+      // Essai 2 : REST avec clé service si dispo
+      try{
+        await executeAdminUpdate("agencies",ag.id,payload);
+      }catch(e2){
+        // Essai 3 : RPC set_agency_settings si existe
+        try{
+          await sb.rpc("set_agency_settings",{p_agency_id:ag.id,...payload});
+        }catch(e3){
+          console.error("saveAgency tous les essais ont échoué:",e1.message);
+          // On recharge quand même pour afficher l'état réel
+        }
+      }
     }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
