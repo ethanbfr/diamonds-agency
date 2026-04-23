@@ -1228,35 +1228,55 @@ function CodesPanel({profile}){
   if(!targets.length) return <div style={{textAlign:"center",padding:40,color:T.sec}}>Aucun lien disponible pour votre rôle.</div>;
   return(
     <div className="fup">
-      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:6}}>Codes d'invitation</h1>
-      <p style={{fontSize:12,color:T.sec,marginBottom:14}}>Chaque code est <strong style={{color:T.tx}}>unique et personnel</strong> — deux agents n'ont jamais le même code.</p>
-      <div className="card" style={{padding:14,marginBottom:14}}>
-        <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:10}}>Générer un nouveau code</div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          {targets.map(r=>(
-            <button key={r} className="btn" style={{fontSize:11.5,padding:"6px 12px",background:`linear-gradient(135deg,${COLORS[r]},${COLORS[r]}BB)`}} onClick={()=>doGen(r)} disabled={gen===r}>
-              {gen===r?<Spin/>:"+"} Inviter un {r}
-            </button>
-          ))}
-        </div>
+      <h1 style={{fontSize:20,fontWeight:800,color:T.tx,marginBottom:4}}>🎟️ Codes d'invitation</h1>
+      <p style={{fontSize:12,color:T.sec,marginBottom:16}}>Génère un code · Partage-le · Il s'auto-supprime après utilisation</p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:16}}>
+        {targets.map(r=>{
+          const ICONS={director:"👑",manager:"🎯",agent:"🤝",creator:"⭐"};
+          const isGen=gen===r;
+          return(
+          <button key={r} onClick={()=>doGen(r)} disabled={isGen} style={{
+            background:`linear-gradient(135deg,${COLORS[r]}22,${COLORS[r]}08)`,
+            border:`1.5px solid ${COLORS[r]}40`,borderRadius:14,padding:"14px 10px",
+            cursor:isGen?"wait":"pointer",display:"flex",flexDirection:"column",
+            alignItems:"center",gap:6,transition:"all .2s",outline:"none",
+            boxShadow:isGen?"none":`0 0 0 0 ${COLORS[r]}`
+          }}>
+            <span style={{fontSize:26}}>{isGen?"⏳":ICONS[r]}</span>
+            <span style={{fontSize:12,fontWeight:700,color:COLORS[r],textTransform:"uppercase",letterSpacing:".08em"}}>{r}</span>
+            <span style={{fontSize:10,color:T.sec}}>+ Générer</span>
+          </button>);
+        })}
       </div>
       {loading?<div style={{textAlign:"center",padding:20,color:T.sec}}>Chargement…</div>:
       codes.length===0?<div style={{textAlign:"center",padding:"24px",color:T.sec,border:`2px dashed ${T.b}`,borderRadius:12}}>Aucun code actif - Génère un code ci-dessus</div>:(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {codes.map(code=>(
-            <div key={code.id} className="card" style={{padding:14,border:`1px solid ${COLORS[code.target_role]||T.acc}25`}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                <span className="tag" style={{background:`${COLORS[code.target_role]||T.acc}18`,color:COLORS[code.target_role]||T.acc}}>{code.target_role}</span>
-                <div style={{fontSize:10.5,color:T.sec,flex:1}}>Expire le {new Date(code.expires_at).toLocaleDateString("fr-FR")}</div>
-                <button className="btng" style={{padding:"3px 8px",fontSize:10.5,color:T.ng,borderColor:`${T.ng}30`}} onClick={async()=>{await sb?.from("invite_codes").delete().eq("id",code.id);const fresh=await getMyCodes(profile.id);setCodes(fresh);}}>✕ Supprimer</button>
+            <div key={code.id} style={{borderRadius:16,overflow:"hidden",border:`1.5px solid ${COLORS[code.target_role]||T.acc}35`,background:"rgba(255,255,255,.02)"}}>
+              {/* Bande colorée haut */}
+              <div style={{background:`linear-gradient(90deg,${COLORS[code.target_role]||T.acc},${COLORS[code.target_role]||T.acc}80)`,padding:"8px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <span style={{fontSize:11,fontWeight:800,color:"white",textTransform:"uppercase",letterSpacing:".1em"}}>
+                  {({director:"👑 Directeur",manager:"🎯 Manager",agent:"🤝 Agent",creator:"⭐ Créateur"})[code.target_role]||code.target_role}
+                </span>
+                <span style={{fontSize:10,color:"rgba(255,255,255,.7)"}}>⏱ {new Date(code.expires_at).toLocaleDateString("fr-FR")}</span>
               </div>
-              <div style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,.04)",borderRadius:8,padding:"10px 14px",border:`1px solid ${COLORS[code.target_role]||T.acc}30`}}>
-                <code style={{flex:1,fontSize:16,fontWeight:900,fontFamily:"monospace",letterSpacing:".12em",color:COLORS[code.target_role]||T.acc}}>{code.code}</code>
-                <button className="btng" style={{padding:"5px 12px",fontSize:11,borderColor:`${COLORS[code.target_role]||T.acc}40`,color:COLORS[code.target_role]||T.acc}} onClick={()=>cp(code.code)}>
-                  {copied===code.code?"✓ Copié !":"Copier"}
-                </button>
+              {/* Corps ticket */}
+              <div style={{padding:"14px 14px 10px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                  <code style={{flex:1,fontSize:18,fontWeight:900,fontFamily:"monospace",letterSpacing:".15em",color:COLORS[code.target_role]||T.acc,textShadow:`0 0 20px ${COLORS[code.target_role]||T.acc}60`}}>{code.code}</code>
+                  <button onClick={()=>cp(code.code)} style={{background:copied===code.code?`${T.ok}20`:`${COLORS[code.target_role]||T.acc}15`,border:`1px solid ${copied===code.code?T.ok:COLORS[code.target_role]||T.acc}40`,borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:700,color:copied===code.code?T.ok:COLORS[code.target_role]||T.acc,cursor:"pointer",transition:"all .2s",outline:"none"}}>
+                    {copied===code.code?"✓ Copié !":"📋 Copier"}
+                  </button>
+                </div>
+                <div style={{borderTop:`1px dashed rgba(255,255,255,.08)`,paddingTop:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:10.5,color:T.sec}}>🔒 Usage unique · auto-supprimé à l'utilisation</span>
+                  <button onClick={async()=>{
+                    const key=SB_SERVICE||SB_ANON;
+                    await fetch(`${SB_URL}/rest/v1/invite_codes?id=eq.${code.id}`,{method:"DELETE",headers:{"apikey":key,"Authorization":`Bearer ${key}`}});
+                    const fresh=await getMyCodes(profile.id);setCodes(fresh);
+                  }} style={{background:"transparent",border:"none",color:T.ng,fontSize:11,cursor:"pointer",padding:"2px 6px",opacity:.7,outline:"none"}}>✕</button>
+                </div>
               </div>
-              <div style={{fontSize:11,color:T.sec,marginTop:8,textAlign:"center"}}>⚠️ Partage uniquement le code — le lien ne fonctionne pas</div>
             </div>
           ))}
         </div>
@@ -2594,7 +2614,7 @@ function SettingsView({profile,reload}){
   const ROLES=[{k:"creator",l:"Part créateur",c:T.ok},{k:"agent",l:"Commission agent",c:T.cy},{k:"manager",l:"Commission manager",c:T.pu},{k:"director",l:"Commission directeur",c:T.acc}];
   const total=Object.values(pcts).reduce((s,v)=>s+v,0);
   const saveAgency=async()=>{
-    if(!sb||!ag?.id) return;
+    if(!ag?.id) return;
     setSaving(true);
     const payload={
       name:agName.trim()||ag.name,
@@ -2607,8 +2627,12 @@ function SettingsView({profile,reload}){
       can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,
       can_director_delete_all:perms.dirDel,activer_regle_evolution:perms.evolution,
     };
-    const {error}=await sb.from("agencies").update(payload).eq("id",ag.id);
-    if(error) console.error("saveAgency error:",error.message,error.details);
+    try{
+      await executeAdminUpdate("agencies",ag.id,payload);
+    }catch(e){
+      const {error}=await sb.from("agencies").update(payload).eq("id",ag.id);
+      if(error) console.error("saveAgency error:",error.message);
+    }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
 
@@ -3425,7 +3449,10 @@ function AdminInviteAgencies(){
     setGenerating(false);
   };
   const cp=(c)=>{navigator.clipboard.writeText(c);setCopied(c);setTimeout(()=>setCopied(null),2000);};
-  const del=async(id)=>{if(!sb||!confirm("Supprimer ce code ?")) return;await sb.from("invite_codes").delete().eq("id",id);loadCodes();};
+  const del=async(id)=>{if(!confirm("Supprimer ce code ?")) return;
+    const key=SB_SERVICE||SB_ANON;
+    await fetch(`${SB_URL}/rest/v1/invite_codes?id=eq.${id}`,{method:"DELETE",headers:{"apikey":key,"Authorization":`Bearer ${key}`}});
+    loadCodes();};
 
   return(
     <div className="fup">
