@@ -1271,8 +1271,13 @@ function CodesPanel({profile}){
                 <div style={{borderTop:`1px dashed rgba(255,255,255,.08)`,paddingTop:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <span style={{fontSize:10.5,color:T.sec}}>🔒 Usage unique · auto-supprimé à l'utilisation</span>
                   <button onClick={async()=>{
-                    const key=SB_SERVICE||SB_ANON;
-                    await fetch(`${SB_URL}/rest/v1/invite_codes?id=eq.${code.id}`,{method:"DELETE",headers:{"apikey":key,"Authorization":`Bearer ${key}`}});
+                    // Essai 1 : client Supabase direct
+                    const {error:e1}=await sb.from("invite_codes").delete().eq("id",code.id);
+                    if(e1){
+                      // Essai 2 : REST fallback
+                      const key=SB_SERVICE||SB_ANON;
+                      await fetch(`${SB_URL}/rest/v1/invite_codes?id=eq.${code.id}`,{method:"DELETE",headers:{"apikey":key,"Authorization":`Bearer ${key}`}});
+                    }
                     const fresh=await getMyCodes(profile.id);setCodes(fresh);
                   }} style={{background:"transparent",border:"none",color:T.ng,fontSize:11,cursor:"pointer",padding:"2px 6px",opacity:.7,outline:"none"}}>✕</button>
                 </div>
@@ -1455,8 +1460,17 @@ function MyLivesView({profile}){
 /* ─── HELPERS QUETES ──────────────────── */
 const fetchQuetes=async(agencyId)=>{
   if(!sb||!agencyId) return [];
-  const {data}=await sb.from("quetes").select("*").eq("agency_id",agencyId).eq("active",true).order("created_at",{ascending:false});
-  return data||[];
+  const {data,error}=await sb.from("quetes").select("*").eq("agency_id",agencyId).eq("active",true).order("created_at",{ascending:false});
+  if(!error) return data||[];
+  // Fallback REST si RLS bloque
+  try{
+    const key=SB_SERVICE||SB_ANON;
+    const res=await fetch(`${SB_URL}/rest/v1/quetes?agency_id=eq.${agencyId}&active=eq.true&order=created_at.desc`,{
+      headers:{"apikey":key,"Authorization":`Bearer ${key}`}
+    });
+    if(res.ok) return await res.json();
+  }catch(e){console.error("fetchQuetes fallback:",e);}
+  return [];
 };
 const getActuelForQuete=(q,creator)=>{
   if(!creator) return 0;
@@ -1532,8 +1546,17 @@ function MatchesView({profile,creators}){
     if(!sb||!creators?.[0]?.id) return;
     setSavingDispo(true);
     const payload={dispo_days:dispoDays,flexible_match:flexibleMode};
-    const {error}=await sb.from("creators").update(payload).eq("id",creators[0].id);
-    if(error) console.error("saveDispo error:",error.message,error.details);
+    const {error:e1}=await sb.from("creators").update(payload).eq("id",creators[0].id);
+    if(e1){
+      try{
+        const key=SB_SERVICE||SB_ANON;
+        await fetch(`${SB_URL}/rest/v1/creators?id=eq.${creators[0].id}`,{
+          method:"PATCH",
+          headers:{"Content-Type":"application/json","apikey":key,"Authorization":`Bearer ${key}`,"Prefer":"return=minimal"},
+          body:JSON.stringify(payload)
+        });
+      }catch(e2){console.error("saveDispo fallback:",e2);}
+    }
     setSavingDispo(false);setDispoSaved(true);setTimeout(()=>setDispoSaved(false),2500);
   };
 
@@ -1553,11 +1576,35 @@ function MatchesView({profile,creators}){
       status:"pending",
       created_by:profile?.id,
     };
-    const {error}=await sb.from("matches").insert(ins);
-    if(error) console.error("createMatch error:",error.message,error.details);
+    // Essai 1 : client direct
+    const {data:newMatch,error:e1}=await sb.from("matches").insert(ins).select().single();
+    if(e1){
+      // Essai 2 : REST fallback
+      try{
+        const key=SB_SERVICE||SB_ANON;
+        const res=await fetch(`${SB_URL}/rest/v1/matches`,{
+          method:"POST",
+          headers:{"Content-Type":"application/json","apikey":key,"Authorization":`Bearer ${key}`,"Prefer":"return=representation"},
+          body:JSON.stringify(ins)
+        });
+        const created=await res.json();
+        if(res.ok&&created?.[0]){
+          const fresh=await fetchMatches(ag?.id);
+          setMatches(fresh);setShowCreate(false);setSaving(false);
+          setForm({creator_a:"",creator_b:"",match_date:"",match_time:"20:00",is_inter_agency:false,tranche_diamants:"any",flexible:false});
+          // Ouvrir l'affiche automatiquement
+          setPoster(created[0]);
+          return;
+        }
+      }catch(e2){console.error("createMatch fallback:",e2);}
+      alert("Erreur création match. Vérifie la RLS Supabase (table matches).");
+      setSaving(false);return;
+    }
     const fresh=await fetchMatches(ag?.id);
     setMatches(fresh);setShowCreate(false);setSaving(false);
     setForm({creator_a:"",creator_b:"",match_date:"",match_time:"20:00",is_inter_agency:false,tranche_diamants:"any",flexible:false});
+    // Ouvrir l'affiche automatiquement après création
+    if(newMatch) setPoster(newMatch);
   };
 
   const autoMatch=()=>{
@@ -1853,13 +1900,13 @@ function QuetesView({profile,creators,reload}){
   };
 
   const myCreator=creators?.[0];
-  // Créateur : voit ses quêtes collectives + individuelle ciblée pour lui (par creator.id OU profile_id)
+  // Créateur : voit collectives + individuelles ciblées pour lui (par creator.id OU profile_id)
+  const myIds=new Set([myCreator?.id,profile?.id].filter(Boolean));
   const quetesVisibles=isCreator?quetes.filter(q=>{
     if(q.type==="collective") return true;
     if(q.type==="individuelle"){
       if(!q.creator_id) return true; // sans cible = pour tous
-      if(q.creator_id===myCreator?.id) return true;
-      if(q.creator_id===profile?.id) return true; // match par profile_id aussi
+      if(myIds.has(q.creator_id)) return true;
       return false;
     }
     return false;
@@ -2632,21 +2679,22 @@ function SettingsView({profile,reload}){
       can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,
       can_director_delete_all:perms.dirDel,activer_regle_evolution:perms.evolution,
     };
-    // Essai 1 : client Supabase direct (marche si RLS autorise le owner)
+    // Essai 1 : client Supabase direct
     const {error:e1}=await sb.from("agencies").update(payload).eq("id",ag.id);
     if(e1){
-      // Essai 2 : REST avec clé service si dispo
+      // Essai 2 : REST fallback
       try{
-        await executeAdminUpdate("agencies",ag.id,payload);
-      }catch(e2){
-        // Essai 3 : RPC set_agency_settings si existe
-        try{
-          await sb.rpc("set_agency_settings",{p_agency_id:ag.id,...payload});
-        }catch(e3){
-          console.error("saveAgency tous les essais ont échoué:",e1.message);
-          // On recharge quand même pour afficher l'état réel
+        const key=SB_SERVICE||SB_ANON;
+        const res=await fetch(`${SB_URL}/rest/v1/agencies?id=eq.${ag.id}`,{
+          method:"PATCH",
+          headers:{"Content-Type":"application/json","apikey":key,"Authorization":`Bearer ${key}`,"Prefer":"return=minimal"},
+          body:JSON.stringify({...payload,updated_at:new Date().toISOString()})
+        });
+        if(!res.ok){
+          alert("Impossible d'enregistrer les paramètres.\n\nSolution : Dans Supabase → SQL Editor, exécute le fichier fix_rls.sql (policy agency_owner_can_update).");
+          setSaving(false);return;
         }
-      }
+      }catch(e2){console.error("saveAgency fallback:",e2);}
     }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
