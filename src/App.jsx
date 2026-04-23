@@ -1513,16 +1513,28 @@ function MatchesView({profile,creators}){
     setSavingDispo(true);
     const payload={dispo_days:dispoDays,flexible_match:flexibleMode};
     const {error}=await sb.from("creators").update(payload).eq("id",creators[0].id);
-    if(error) try{await executeAdminUpdate("creators",creators[0].id,payload);}catch(e){console.error("saveDispo fallback:",e);}
+    if(error) console.error("saveDispo error:",error.message,error.details);
     setSavingDispo(false);setDispoSaved(true);setTimeout(()=>setDispoSaved(false),2500);
   };
 
   const createMatch=async()=>{
-    if(!form.creator_a||!form.match_date) return;
+    if(!form.creator_a||!form.match_date||!sb) return;
     setSaving(true);
-    const ins={creator_a:form.creator_a,creator_b:form.creator_b||null,agency_a:ag?.id,agency_b:ag?.id,is_inter_agency:form.is_inter_agency,match_date:form.match_date,match_time:form.match_time,tranche_diamants:form.flexible?"any":(form.tranche_diamants||"any"),flexible:form.flexible||false,status:"pending",created_by:profile?.id};
+    const ins={
+      creator_a:form.creator_a,
+      creator_b:form.creator_b||null,
+      agency_a:ag?.id,
+      agency_b:ag?.id,
+      is_inter_agency:form.is_inter_agency,
+      match_date:form.match_date,
+      match_time:form.match_time,
+      tranche_diamants:form.flexible?"any":(form.tranche_diamants||"any"),
+      flexible:form.flexible||false,
+      status:"pending",
+      created_by:profile?.id,
+    };
     const {error}=await sb.from("matches").insert(ins);
-    if(error) try{await executeAdminInsert("matches",ins);}catch(e){console.error("createMatch fallback:",e);}
+    if(error) console.error("createMatch error:",error.message,error.details);
     const fresh=await fetchMatches(ag?.id);
     setMatches(fresh);setShowCreate(false);setSaving(false);
     setForm({creator_a:"",creator_b:"",match_date:"",match_time:"20:00",is_inter_agency:false,tranche_diamants:"any",flexible:false});
@@ -1783,7 +1795,7 @@ function QuetesView({profile,creators,reload}){
   const [loading,setLoading]=useState(true);
   const [activeTab,setActiveTab]=useState("collective");
   const [showForm,setShowForm]=useState(false);
-  const [form,setForm]=useState({titre:"",description:"",type:"collective",unite:"diamonds",cible:"",recompense:"",deadline:""});
+  const [form,setForm]=useState({titre:"",description:"",type:"collective",unite:"diamonds",cible:"",recompense:"",deadline:"",creator_id:""});
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
 
@@ -1791,33 +1803,56 @@ function QuetesView({profile,creators,reload}){
   useEffect(()=>{load();},[ag?.id]);
 
   const createQuete=async()=>{
-    if(!form.titre||!form.cible||!ag?.id) return;
+    if(!form.titre||!form.cible||!ag?.id||!sb) return;
     setSaving(true);
-    const ins={agency_id:ag.id,titre:form.titre.trim(),description:form.description.trim()||null,type:form.type,unite:form.unite,cible:parseInt(form.cible),recompense:form.recompense.trim()||null,deadline:form.deadline||null,active:true};
+    const ins={
+      agency_id:ag.id,
+      titre:form.titre.trim(),
+      description:form.description.trim()||null,
+      type:form.type,
+      unite:form.unite,
+      cible:parseInt(form.cible),
+      recompense:form.recompense.trim()||null,
+      deadline:form.deadline||null,
+      active:true,
+      creator_id:(form.type==="individuelle"&&form.creator_id)?form.creator_id:null,
+    };
     const {error}=await sb.from("quetes").insert(ins);
-    if(error) try{await executeAdminInsert("quetes",ins);}catch(e){console.error("createQuete fallback:",e);}
+    if(error) console.error("createQuete error:",error.message,error.details);
     await load();
     setShowForm(false);setSaving(false);setSaved(true);
     setTimeout(()=>setSaved(false),2500);
-    setForm({titre:"",description:"",type:"collective",unite:"diamonds",cible:"",recompense:"",deadline:""});
+    setForm({titre:"",description:"",type:"collective",unite:"diamonds",cible:"",recompense:"",deadline:"",creator_id:""});
   };
 
   const deleteQuete=async(id)=>{
     if(!sb||!confirm("Supprimer cet objectif ?")) return;
-    await sb.from("quetes").update({active:false}).eq("id",id);
-    setQuetes(q=>q.filter(x=>x.id!==id));
+    const {error}=await sb.from("quetes").update({active:false}).eq("id",id);
+    if(error) console.error("deleteQuete:", error.message);
+    else setQuetes(q=>q.filter(x=>x.id!==id));
   };
 
-  const quetesFiltrees=quetes.filter(q=>q.type===activeTab);
   const myCreator=creators?.[0];
-  const totalCollective=quetes.filter(q=>q.type==="collective").length;
-  const totalIndividuelle=quetes.filter(q=>q.type==="individuelle").length;
+  // Créateur : voit uniquement ses quêtes (collectives + individuelle sans cible ou ciblée pour lui)
+  const quetesVisibles=isCreator?quetes.filter(q=>{
+    if(q.type==="collective") return true;
+    if(q.type==="individuelle"&&(!q.creator_id||q.creator_id===myCreator?.id)) return true;
+    return false;
+  }):quetes;
+  const quetesFiltrees=quetesVisibles.filter(q=>q.type===activeTab);
+  const totalCollective=quetesVisibles.filter(q=>q.type==="collective").length;
+  const totalIndividuelle=quetesVisibles.filter(q=>q.type==="individuelle").length;
 
+  const getCreatorForQuete=(q)=>{
+    if(q.creator_id) return creators.find(c=>c.id===q.creator_id)||myCreator;
+    return myCreator;
+  };
   const getProgressPct=(q)=>{
-    const actuel=q.type==="collective"?getActuelCollectif(q,creators):getActuelForQuete(q,myCreator);
+    if(!q.cible||q.cible===0) return 0;
+    const actuel=q.type==="collective"?getActuelCollectif(q,creators):getActuelForQuete(q,getCreatorForQuete(q));
     return Math.min(100,Math.round((actuel/q.cible)*100));
   };
-  const getActuelDisplay=(q)=>q.type==="collective"?getActuelCollectif(q,creators):getActuelForQuete(q,myCreator);
+  const getActuelDisplay=(q)=>q.type==="collective"?getActuelCollectif(q,creators):getActuelForQuete(q,getCreatorForQuete(q));
 
   return(
     <div className="fup">
@@ -1864,7 +1899,7 @@ function QuetesView({profile,creators,reload}){
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div>
                 <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Type *</label>
-                <select className="inp" value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}>
+                <select className="inp" value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value,creator_id:""}))}>
                   <option value="collective">Collectif (toute l'agence)</option>
                   <option value="individuelle">Individuel (par créateur)</option>
                 </select>
@@ -1883,6 +1918,17 @@ function QuetesView({profile,creators,reload}){
               <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Titre *</label>
               <input className="inp" value={form.titre} onChange={e=>setForm(f=>({...f,titre:e.target.value}))} placeholder="Ex: Palier Or — 100 000 diamants"/>
             </div>
+            {form.type==="individuelle"&&(
+              <div>
+                <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>
+                  Créateur ciblé <span style={{color:"#555",fontWeight:400}}>(vide = tous)</span>
+                </label>
+                <select className="inp" value={form.creator_id} onChange={e=>setForm(f=>({...f,creator_id:e.target.value}))}>
+                  <option value="">Tous les créateurs</option>
+                  {creators.map(c=><option key={c.id} value={c.id}>{c.pseudo} — 💎 {(c.diamonds||0).toLocaleString()}</option>)}
+                </select>
+              </div>
+            )}
             <div>
               <label style={{fontSize:11,fontWeight:600,color:T.sec,display:"block",marginBottom:3}}>Description (optionnel)</label>
               <input className="inp" value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="Détails de l'objectif"/>
@@ -1942,7 +1988,11 @@ function QuetesView({profile,creators,reload}){
                       <div style={{fontSize:13.5,fontWeight:700,color:palier&&!isComplete?palier.color:T.tx,marginBottom:2}}>{q.titre}</div>
                       {q.description&&<div style={{fontSize:11,color:T.sec}}>{q.description}</div>}
                       <div style={{fontSize:10,color:T.sec,marginTop:2}}>
-                        {q.type==="collective"?"🌐 Collectif — toute l'agence":"👤 Individuel — par créateur"}
+                        {q.type==="collective"
+                        ?"🌐 Collectif — toute l'agence"
+                        :q.creator_id
+                          ?`👤 ${creators.find(c=>c.id===q.creator_id)?.pseudo||"Créateur spécifique"}`
+                          :"👤 Individuel — tous les créateurs"}
                         {q.deadline&&<span> · Deadline : {new Date(q.deadline).toLocaleDateString("fr-FR")}</span>}
                       </div>
                     </div>
@@ -2544,13 +2594,21 @@ function SettingsView({profile,reload}){
   const ROLES=[{k:"creator",l:"Part créateur",c:T.ok},{k:"agent",l:"Commission agent",c:T.cy},{k:"manager",l:"Commission manager",c:T.pu},{k:"director",l:"Commission directeur",c:T.acc}];
   const total=Object.values(pcts).reduce((s,v)=>s+v,0);
   const saveAgency=async()=>{
-    if(!sb) return;setSaving(true);
-    if(ag?.id){
-      const payload={name:agName.trim()||ag.name,valeur_diamant_pivot:diamondValue,pct_director:pcts.director,pct_manager:pcts.manager,pct_agent:pcts.agent,pct_creator:pcts.creator,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel,activer_regle_evolution:perms.evolution};
-      let ok=false;
-      try{await executeAdminUpdate("agencies",ag.id,payload);ok=true;}catch(e){console.error("saveAgency service key:",e);}
-      if(!ok){const {error}=await sb.from("agencies").update(payload).eq("id",ag.id);if(error)console.error("saveAgency anon:",error);}
-    }
+    if(!sb||!ag?.id) return;
+    setSaving(true);
+    const payload={
+      name:agName.trim()||ag.name,
+      valeur_diamant_pivot:parseFloat(diamondValue)||0.017,
+      pct_director:pcts.director,pct_manager:pcts.manager,
+      pct_agent:pcts.agent,pct_creator:pcts.creator,
+      min_days:minD,min_hours:minH,
+      director_can_import:perms.dir,manager_can_import:perms.mgr,
+      accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,
+      can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,
+      can_director_delete_all:perms.dirDel,activer_regle_evolution:perms.evolution,
+    };
+    const {error}=await sb.from("agencies").update(payload).eq("id",ag.id);
+    if(error) console.error("saveAgency error:",error.message,error.details);
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
 
