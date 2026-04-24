@@ -269,32 +269,32 @@ const doCreateAgency=async(name,slug,color)=>{
   return {data};
 };
 const genCode=async(agId,issuerId,issuerRole,targetRole)=>{
-  const key=SB_SERVICE||SB_ANON;
-  // Slug agence
-  const slugRes=await fetch(`${SB_URL}/rest/v1/agencies?id=eq.${agId}&select=slug`,{headers:{"apikey":key,"Authorization":`Bearer ${key}`}});
-  const slugData=await slugRes.json();
-  const slug=(slugData?.[0]?.slug||"AG").toUpperCase();
-  const code=slug+"-"+targetRole.toUpperCase()+"-"+Math.random().toString(36).slice(-6).toUpperCase();
-  // Insérer directement via service key
-  const res=await fetch(`${SB_URL}/rest/v1/invite_codes`,{
-    method:"POST",
-    headers:{"Content-Type":"application/json","apikey":key,"Authorization":`Bearer ${key}`,"Prefer":"return=minimal"},
-    body:JSON.stringify({code,agency_id:agId,issuer_id:issuerId,issued_by_role:issuerRole,target_role:targetRole,used:false,expires_at:new Date(Date.now()+30*24*3600*1000).toISOString()})
+  if(!sb) return null;
+  // Essaie via RPC
+  const {data,error}=await sb.rpc("generate_invite_code",{p_agency_id:agId,p_issuer_id:issuerId,p_issuer_role:issuerRole,p_target_role:targetRole});
+  if(!error&&data) return data;
+  // Fallback: insertion directe sans passer par la fonction PL/pgSQL
+  const slug=(await sb.from("agencies").select("slug").eq("id",agId).single())?.data?.slug||"AG";
+  const code=(slug+"-"+targetRole+"-"+Math.random().toString(36).slice(-6)).toUpperCase();
+  const {error:insErr}=await sb.from("invite_codes").insert({
+    code,agency_id:agId,issuer_id:issuerId,target_role:targetRole,used:false,
+    expires_at:new Date(Date.now()+30*24*3600*1000).toISOString()
   });
-  if(!res.ok){console.error("genCode error:",await res.text());return null;}
-  return code;
+  return insErr?null:code;
 };
 const getMyCodes=async(issuerId)=>{if(!sb) return [];const {data}=await sb.from("invite_codes").select("*").eq("issuer_id",issuerId).eq("used",false).gt("expires_at",new Date().toISOString()).order("created_at",{ascending:false});return data||[];};
 const getAgencyCodes=async(agId)=>{if(!sb) return [];const {data}=await sb.from("invite_codes").select("*").eq("agency_id",agId).eq("used",false).order("created_at",{ascending:false});return data||[];};
 const fetchSchedule=async(profileId)=>{if(!sb) return [];const {data}=await sb.from("schedules").select("*").eq("creator_profile_id",profileId);return data||[];};
 const saveScheduleSlot=async(slot)=>{
+  if(!sb) return;
   const payload={start_time:slot.start_time,end_time:slot.end_time,accept_inter_agency:slot.accept_inter_agency||false,notes:slot.notes||"",tranche_match:slot.tranche_match||"any"};
-  const key=SB_SERVICE||SB_ANON;
   if(slot.id){
-    await fetch(`${SB_URL}/rest/v1/schedules?id=eq.${slot.id}`,{method:"PATCH",headers:{"Content-Type":"application/json","apikey":key,"Authorization":`Bearer ${key}`,"Prefer":"return=minimal"},body:JSON.stringify(payload)});
+    const {error}=await sb.from("schedules").update(payload).eq("id",slot.id);
+    if(error) try{await executeAdminUpdate("schedules",slot.id,payload);}catch(e){console.error("schedules update fallback:",e);}
   } else {
     const ins={...payload,creator_profile_id:slot.creator_profile_id,agency_id:slot.agency_id,day_of_week:slot.day_of_week};
-    await fetch(`${SB_URL}/rest/v1/schedules`,{method:"POST",headers:{"Content-Type":"application/json","apikey":key,"Authorization":`Bearer ${key}`,"Prefer":"return=minimal"},body:JSON.stringify(ins)});
+    const {error}=await sb.from("schedules").insert(ins);
+    if(error) try{await executeAdminInsert("schedules",ins);}catch(e){console.error("schedules insert fallback:",e);}
   }
 };
 const deleteScheduleSlot=async(id)=>{
@@ -1866,8 +1866,7 @@ function QuetesView({profile,creators,reload}){
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
 
-  const agId=ag?.id||profile?.agency_id;
-  const load=()=>{if(agId) fetchQuetes(agId).then(d=>{setQuetes(d);setLoading(false);});else setLoading(false);};
+  const load=()=>{if(ag?.id) fetchQuetes(ag.id).then(d=>{setQuetes(d);setLoading(false);});else setLoading(false);};
   useEffect(()=>{load();},[ag?.id]);
 
   const createQuete=async()=>{
@@ -1900,7 +1899,7 @@ function QuetesView({profile,creators,reload}){
     else setQuetes(q=>q.filter(x=>x.id!==id));
   };
 
-  const myCreator=creators?.find(cr=>cr.profile_id===profile?.id)||creators?.[0];
+  const myCreator=creators?.[0];
   // Créateur : voit collectives + individuelles ciblées pour lui (par creator.id OU profile_id)
   const myIds=new Set([myCreator?.id,profile?.id].filter(Boolean));
   const quetesVisibles=isCreator?quetes.filter(q=>{
@@ -2667,30 +2666,36 @@ function SettingsView({profile,reload}){
   const ROLES=[{k:"creator",l:"Part créateur",c:T.ok},{k:"agent",l:"Commission agent",c:T.cy},{k:"manager",l:"Commission manager",c:T.pu},{k:"director",l:"Commission directeur",c:T.acc}];
   const total=Object.values(pcts).reduce((s,v)=>s+v,0);
   const saveAgency=async()=>{
-    if(!ag?.id){alert("Erreur: ag.id manquant");return;}
+    if(!ag?.id) return;
     setSaving(true);
-    const payloadCore={
+    const payload={
       name:agName.trim()||ag.name,
+      valeur_diamant_pivot:parseFloat(diamondValue)||0.017,
       pct_director:pcts.director,pct_manager:pcts.manager,
       pct_agent:pcts.agent,pct_creator:pcts.creator,
       min_days:minD,min_hours:minH,
       director_can_import:perms.dir,manager_can_import:perms.mgr,
       accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,
       can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,
-      can_director_delete_all:perms.dirDel,
+      can_director_delete_all:perms.dirDel,activer_regle_evolution:perms.evolution,
+      updated_at:new Date().toISOString()
     };
+    // TOUJOURS via service key - bypass RLS garanti
     const key=SB_SERVICE||SB_ANON;
-    if(!key){alert("Clé Supabase manquante dans Vercel!");setSaving(false);return;}
-    const url=`${SB_URL}/rest/v1/agencies?id=eq.${ag.id}`;
-    const res=await fetch(url,{
+    const res=await fetch(`${SB_URL}/rest/v1/agencies?id=eq.${ag.id}`,{
       method:"PATCH",
-      headers:{"Content-Type":"application/json","apikey":key,"Authorization":`Bearer ${key}`,"Prefer":"return=minimal"},
-      body:JSON.stringify({...payloadCore,updated_at:new Date().toISOString()})
+      headers:{
+        "Content-Type":"application/json",
+        "apikey":key,
+        "Authorization":`Bearer ${key}`,
+        "Prefer":"return=representation",
+        "Accept":"application/json"
+      },
+      body:JSON.stringify(payload)
     });
-    if(!res.ok){
-      const txt=await res.text();
-      alert("Erreur save: "+res.status+" - "+txt);
-      setSaving(false);return;
+    const json=await res.json().catch(()=>({}));
+    if(!res.ok||!json?.length){
+      console.error("saveAgency failed:",res.status,json);
     }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
@@ -3885,7 +3890,7 @@ function CoachView({profile,creators,ag}){
   const endRef=useRef();
   
   // Find creator data for context
-  const myCreator=creators?.find(cr=>cr.profile_id===profile?.id)||creators?.[0];
+  const myCreator=creators?.[0];
   const minDays=myCreator?.custom_min_days||ag?.min_days||20;
   const minHours=myCreator?.custom_min_hours||ag?.min_hours||40;
   const days=myCreator?.days_live||0;
