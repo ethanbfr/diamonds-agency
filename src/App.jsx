@@ -2668,35 +2668,19 @@ function SettingsView({profile,reload}){
   const saveAgency=async()=>{
     if(!ag?.id) return;
     setSaving(true);
-    const payload={
-      name:agName.trim()||ag.name,
-      valeur_diamant_pivot:parseFloat(diamondValue)||0.017,
-      pct_director:pcts.director,pct_manager:pcts.manager,
-      pct_agent:pcts.agent,pct_creator:pcts.creator,
-      min_days:minD,min_hours:minH,
-      director_can_import:perms.dir,manager_can_import:perms.mgr,
-      accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,
-      can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,
-      can_director_delete_all:perms.dirDel,activer_regle_evolution:perms.evolution,
-      updated_at:new Date().toISOString()
-    };
-    // TOUJOURS via service key - bypass RLS garanti
-    const key=SB_SERVICE||SB_ANON;
-    const res=await fetch(`${SB_URL}/rest/v1/agencies?id=eq.${ag.id}`,{
-      method:"PATCH",
-      headers:{
-        "Content-Type":"application/json",
-        "apikey":key,
-        "Authorization":`Bearer ${key}`,
-        "Prefer":"return=representation",
-        "Accept":"application/json"
-      },
-      body:JSON.stringify(payload)
+    // Via RPC SECURITY DEFINER - bypass RLS garanti
+    const {error}=await sb.rpc("save_agency_settings",{
+      p_agency_id:ag.id,
+      p_pct_creator:pcts.creator,p_pct_agent:pcts.agent,
+      p_pct_manager:pcts.manager,p_pct_director:pcts.director,
+      p_min_days:minD,p_min_hours:minH,
+      p_director_can_import:perms.dir,p_manager_can_import:perms.mgr,
+      p_accept_inter_agency:perms.inter,p_coach_enabled:perms.coachEnabled,
+      p_can_agent_delete_creator:perms.agentDel,
+      p_can_manager_delete_agent:perms.mgrDel,
+      p_can_director_delete_all:perms.dirDel
     });
-    const json=await res.json().catch(()=>({}));
-    if(!res.ok||!json?.length){
-      console.error("saveAgency failed:",res.status,json);
-    }
+    if(error) console.error("saveAgency RPC error:",error.message);
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
 
