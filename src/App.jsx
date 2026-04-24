@@ -2667,9 +2667,8 @@ function SettingsView({profile,reload}){
   const ROLES=[{k:"creator",l:"Part créateur",c:T.ok},{k:"agent",l:"Commission agent",c:T.cy},{k:"manager",l:"Commission manager",c:T.pu},{k:"director",l:"Commission directeur",c:T.acc}];
   const total=Object.values(pcts).reduce((s,v)=>s+v,0);
   const saveAgency=async()=>{
-    if(!ag?.id) return;
+    if(!ag?.id){alert("Erreur: ag.id manquant");return;}
     setSaving(true);
-    // Payload core (colonnes garanties)
     const payloadCore={
       name:agName.trim()||ag.name,
       pct_director:pcts.director,pct_manager:pcts.manager,
@@ -2681,14 +2680,17 @@ function SettingsView({profile,reload}){
       can_director_delete_all:perms.dirDel,
     };
     const key=SB_SERVICE||SB_ANON;
-    const res=await fetch(`${SB_URL}/rest/v1/agencies?id=eq.${ag.id}`,{
+    if(!key){alert("Clé Supabase manquante dans Vercel!");setSaving(false);return;}
+    const url=`${SB_URL}/rest/v1/agencies?id=eq.${ag.id}`;
+    const res=await fetch(url,{
       method:"PATCH",
       headers:{"Content-Type":"application/json","apikey":key,"Authorization":`Bearer ${key}`,"Prefer":"return=minimal"},
       body:JSON.stringify({...payloadCore,updated_at:new Date().toISOString()})
     });
     if(!res.ok){
       const txt=await res.text();
-      console.error("saveAgency error:",txt);
+      alert("Erreur save: "+res.status+" - "+txt);
+      setSaving(false);return;
     }
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
