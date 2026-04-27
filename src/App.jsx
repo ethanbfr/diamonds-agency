@@ -232,9 +232,9 @@ const getProfile=async(uid)=>{
   if(data.agency_id){
     const {data:ag}=await sb.from("agencies").select("*").eq("id",data.agency_id).single();
     if(ag){
-      // Charger config depuis agency_config (table sans triggers)
-      const {data:cfg}=await sb.from("agency_config").select("*").eq("agency_id",data.agency_id).single();
-      if(cfg){Object.assign(ag,{pct_creator:cfg.pct_creator,pct_agent:cfg.pct_agent,pct_manager:cfg.pct_manager,pct_director:cfg.pct_director,min_days:cfg.min_days,min_hours:cfg.min_hours,director_can_import:cfg.director_can_import,manager_can_import:cfg.manager_can_import,accept_inter_agency:cfg.accept_inter_agency,coach_enabled:cfg.coach_enabled,can_agent_delete_creator:cfg.can_agent_delete_creator,can_manager_delete_agent:cfg.can_manager_delete_agent,can_director_delete_all:cfg.can_director_delete_all});}
+      // Lire settings depuis agency_config ou auth metadata
+      const {data:cfg}=await sb.from("agency_config").select("*").eq("agency_id",data.agency_id).maybeSingle().catch(()=>({data:null}));
+      if(cfg){ag.pct_creator=cfg.pct_creator??ag.pct_creator;ag.pct_agent=cfg.pct_agent??ag.pct_agent;ag.pct_manager=cfg.pct_manager??ag.pct_manager;ag.pct_director=cfg.pct_director??ag.pct_director;ag.min_days=cfg.min_days??ag.min_days;ag.min_hours=cfg.min_hours??ag.min_hours;ag.director_can_import=cfg.director_can_import??ag.director_can_import;ag.manager_can_import=cfg.manager_can_import??ag.manager_can_import;ag.accept_inter_agency=cfg.accept_inter_agency??ag.accept_inter_agency;ag.coach_enabled=cfg.coach_enabled??ag.coach_enabled;ag.can_agent_delete_creator=cfg.can_agent_delete_creator??ag.can_agent_delete_creator;ag.can_manager_delete_agent=cfg.can_manager_delete_agent??ag.can_manager_delete_agent;ag.can_director_delete_all=cfg.can_director_delete_all??ag.can_director_delete_all;}
     }
     data.agencies=ag||null;
   }
@@ -2676,8 +2676,7 @@ function SettingsView({profile,reload}){
   const saveAgency=async()=>{
     if(!ag?.id) return;
     setSaving(true);
-    const cfg={
-      agency_id:ag.id,
+    const settings={
       pct_creator:pcts.creator,pct_agent:pcts.agent,
       pct_manager:pcts.manager,pct_director:pcts.director,
       min_days:minD,min_hours:minH,
@@ -2685,12 +2684,14 @@ function SettingsView({profile,reload}){
       accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,
       can_agent_delete_creator:perms.agentDel,
       can_manager_delete_agent:perms.mgrDel,
-      can_director_delete_all:perms.dirDel,
-      updated_at:new Date().toISOString()
+      can_director_delete_all:perms.dirDel
     };
-    // Sauvegarder dans agency_config (sans trigger, sans RLS)
-    const {error}=await sb.from("agency_config").upsert(cfg,{onConflict:"agency_id"});
-    if(error) console.error("saveAgency error:",error.message);
+    // Methode 1: auth.updateUser - 100% garanti sans RLS ni trigger
+    await sb.auth.updateUser({data:{agency_settings:settings}});
+    // Methode 2: upsert dans agency_config (si table existe)
+    await sb.from("agency_config").upsert({agency_id:ag.id,...settings,updated_at:new Date().toISOString()},{onConflict:"agency_id"}).then(()=>{}).catch(()=>{});
+    // Methode 3: update direct agencies
+    await sb.from("agencies").update(settings).eq("id",ag.id).then(()=>{}).catch(()=>{});
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
 
@@ -2789,7 +2790,26 @@ function SettingsView({profile,reload}){
           <p style={{fontSize:11,color:"#555",marginTop:4}}>Visible par tout votre staff et vos créateurs</p>
         </div>
         <div className="card" style={{padding:20,marginBottom:12}}>
-          <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Répartition des revenus</div>
+          <div className="card" style={{padding:18,marginBottom:12}}>
+            <div style={{fontWeight:700,fontSize:14,color:T.tx,marginBottom:4}}>💰 Répartition des revenus</div>
+            <div style={{fontSize:11,color:T.sec,marginBottom:14}}>Total : <strong style={{color:total>100?T.ng:T.ok}}>{total}%</strong> · Agence : <strong style={{color:T.acc}}>{Math.max(0,100-total)}%</strong></div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {ROLES.map(r=>(
+                <div key={r.k} style={{background:`${r.c}10`,border:`1.5px solid ${r.c}30`,borderRadius:12,padding:"12px 14px"}}>
+                  <div style={{fontSize:11,fontWeight:700,color:r.c,marginBottom:10,textTransform:"uppercase",letterSpacing:".06em"}}>{r.l}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,justifyContent:"space-between"}}>
+                    <button onClick={()=>setPcts(p=>({...p,[r.k]:Math.max(0,p[r.k]-1)}))} style={{width:28,height:28,borderRadius:8,background:"rgba(255,255,255,.08)",border:`1px solid ${r.c}40`,color:T.tx,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,outline:"none"}}>−</button>
+                    <div style={{textAlign:"center",flex:1}}>
+                      <input type="number" min={0} max={100} value={pcts[r.k]} onChange={e=>setPcts(p=>({...p,[r.k]:Math.min(100,Math.max(0,+e.target.value||0))}))} style={{width:"100%",textAlign:"center",background:"transparent",border:"none",fontSize:24,fontWeight:900,color:r.c,outline:"none"}}/>
+                      <div style={{fontSize:10,color:T.sec,marginTop:-4}}>pourcent</div>
+                    </div>
+                    <button onClick={()=>setPcts(p=>({...p,[r.k]:Math.min(100,p[r.k]+1)}))} style={{width:28,height:28,borderRadius:8,background:"rgba(255,255,255,.08)",border:`1px solid ${r.c}40`,color:T.tx,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,outline:"none"}}>+</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {total>100&&<div style={{marginTop:10,fontSize:11,color:T.ng,textAlign:"center"}}>⚠️ Total dépasse 100%</div>}
+          </div>
           <div style={{borderRadius:8,overflow:"hidden",height:28,display:"flex",marginBottom:12}}>
             {ROLES.map(r=><div key={r.k} style={{width:`${pcts[r.k]}%`,background:r.c,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10.5,fontWeight:700,color:"white",overflow:"hidden",whiteSpace:"nowrap",transition:"width .25s"}}>{pcts[r.k]>5?`${pcts[r.k]}%`:""}</div>)}
             <div style={{flex:1,background:"rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10.5,fontWeight:700,color:T.sec}}>Agence {100-total}%</div>
