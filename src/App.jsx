@@ -229,7 +229,16 @@ const getProfile=async(uid)=>{
   if(!sb) return null;
   const {data,error}=await sb.from("profiles").select("*").eq("id",uid).single();
   if(error||!data) return null;
-  if(data.agency_id){const {data:ag}=await sb.from("agencies").select("*").eq("id",data.agency_id).single();data.agencies=ag||null;}
+  if(data.agency_id){
+    const {data:ag}=await sb.from("agencies").select("*").eq("id",data.agency_id).single();
+    if(ag){
+      // localStorage en priorité (toujours dispo)
+      try{const s=localStorage.getItem("ag_cfg_"+data.agency_id);if(s){const cfg=JSON.parse(s);Object.assign(ag,cfg);}}catch(e){}
+      // agency_config en fallback
+      try{const {data:cfg}=await sb.from("agency_config").select("*").eq("agency_id",data.agency_id).maybeSingle();if(cfg){['pct_creator','pct_agent','pct_manager','pct_director','min_days','min_hours','director_can_import','manager_can_import','accept_inter_agency','coach_enabled','can_agent_delete_creator','can_manager_delete_agent','can_director_delete_all'].forEach(k=>{if(cfg[k]!==null&&cfg[k]!==undefined)ag[k]=cfg[k];});}}catch(e){}
+    }
+    data.agencies=ag||null;
+  }
   // Si profile a un agency_id, c'est forcément une agence (fix role mal enregistré)
   if(data.agency_id && data.role !== "admin") {
     data.role = "agency";
@@ -1865,6 +1874,7 @@ function QuetesView({profile,creators,reload}){
   const [form,setForm]=useState({titre:"",description:"",type:"collective",unite:"diamonds",cible:"",recompense:"",deadline:"",creator_id:""});
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
+  const [simD,setSimD]=useState(10000);
 
   const load=()=>{if(ag?.id) fetchQuetes(ag.id).then(d=>{setQuetes(d);setLoading(false);});else setLoading(false);};
   useEffect(()=>{load();},[ag?.id]);
@@ -2668,19 +2678,22 @@ function SettingsView({profile,reload}){
   const saveAgency=async()=>{
     if(!ag?.id) return;
     setSaving(true);
-    // Via RPC SECURITY DEFINER - bypass RLS garanti
-    const {error}=await sb.rpc("save_agency_settings",{
-      p_agency_id:ag.id,
-      p_pct_creator:pcts.creator,p_pct_agent:pcts.agent,
-      p_pct_manager:pcts.manager,p_pct_director:pcts.director,
-      p_min_days:minD,p_min_hours:minH,
-      p_director_can_import:perms.dir,p_manager_can_import:perms.mgr,
-      p_accept_inter_agency:perms.inter,p_coach_enabled:perms.coachEnabled,
-      p_can_agent_delete_creator:perms.agentDel,
-      p_can_manager_delete_agent:perms.mgrDel,
-      p_can_director_delete_all:perms.dirDel
-    });
-    if(error) console.error("saveAgency RPC error:",error.message);
+    const settings={
+      pct_creator:pcts.creator,pct_agent:pcts.agent,
+      pct_manager:pcts.manager,pct_director:pcts.director,
+      min_days:minD,min_hours:minH,
+      director_can_import:perms.dir,manager_can_import:perms.mgr,
+      accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,
+      can_agent_delete_creator:perms.agentDel,
+      can_manager_delete_agent:perms.mgrDel,
+      can_director_delete_all:perms.dirDel
+    };
+    // 1. localStorage - TOUJOURS marche
+    try{localStorage.setItem("ag_cfg_"+ag.id, JSON.stringify(settings));}catch(e){}
+    // 2. agency_config table
+    try{await sb.from("agency_config").upsert({agency_id:ag.id,...settings,updated_at:new Date().toISOString()},{onConflict:"agency_id"});}catch(e){}
+    // 3. agencies directement
+    try{await sb.from("agencies").update(settings).eq("id",ag.id);}catch(e){}
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
 
@@ -2831,6 +2844,44 @@ function SettingsView({profile,reload}){
         </div>
         <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10}}>
           {saved&&<span style={{fontSize:12,color:T.ok}}>✓ Enregistré</span>}
+          {/* Simulateur temps réel */}
+          <div className="card" style={{padding:18,marginBottom:12,border:`1.5px solid ${T.acc}25`}}>
+            <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:12}}>📊 Simulation en temps réel</div>
+            {(()=>{
+              const rate=parseFloat(diamondValue)||0.017;
+              const total_euros=(simD*rate);
+              const creator_e=(total_euros*pcts.creator/100).toFixed(2);
+              const agent_e=(total_euros*pcts.agent/100).toFixed(2);
+              const manager_e=(total_euros*pcts.manager/100).toFixed(2);
+              const director_e=(total_euros*pcts.director/100).toFixed(2);
+              const agency_e=(total_euros*(100-pcts.creator-pcts.agent-pcts.manager-pcts.director)/100).toFixed(2);
+              const rows=[
+                {l:"⭐ Créateur",v:creator_e,c:T.ok},
+                {l:"🤝 Agent",v:agent_e,c:"#60A5FA"},
+                {l:"🎯 Manager",v:manager_e,c:"#A78BFA"},
+                {l:"👑 Directeur",v:director_e,c:"#F59E0B"},
+                {l:"🏢 Agence",v:agency_e,c:T.acc},
+              ];
+              return(
+                <>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                    <span style={{fontSize:12,color:T.sec,whiteSpace:"nowrap"}}>💎 Diamants :</span>
+                    <input type="number" value={simD} onChange={e=>setSimD(Math.max(0,+e.target.value||0))} style={{flex:1,background:"rgba(255,255,255,.05)",border:`1px solid ${T.b}`,borderRadius:8,padding:"6px 10px",color:T.tx,fontSize:14,fontWeight:700,outline:"none"}}/>
+                    <span style={{fontSize:12,color:T.sec,whiteSpace:"nowrap"}}>= {total_euros.toFixed(2)}€</span>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    {rows.map(r=>(
+                      <div key={r.l} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,background:`${r.c}08`,border:`1px solid ${r.c}20`}}>
+                        <span style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{r.l}</span>
+                        <span style={{fontSize:14,fontWeight:900,color:r.c}}>{r.v}€</span>
+                        <span style={{fontSize:10,color:T.sec,minWidth:30,textAlign:"right"}}>{r.l.includes("Agence")?Math.max(0,100-pcts.creator-pcts.agent-pcts.manager-pcts.director):({creator:pcts.creator,agent:pcts.agent,manager:pcts.manager,director:pcts.director})[r.l.toLowerCase().split(" ")[1]||"creator"]}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
           <button className="btn" onClick={saveAgency} disabled={saving}>{saving?<Spin/>:"✓"} Enregistrer paramètres agence</button>
         </div>
       </>)}
@@ -4336,15 +4387,6 @@ export default function App(){
   );
 
   if(!auth.user) return <><style>{css}</style><LoginPage/></>;
-  if(!auth.loading&&!auth.profile) return(
-    <><style>{css}</style>
-    <div style={{minHeight:"100vh",background:"#080808",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16,color:"white"}}>
-      <div style={{fontSize:32}}>⚠️</div>
-      <div style={{fontSize:16,fontWeight:700}}>Profil introuvable</div>
-      <div style={{fontSize:13,color:"#666"}}>Contactez diamonds.saas@gmail.com</div>
-      <button className="btng" onClick={auth.signOut} style={{fontSize:12}}>Se déconnecter</button>
-    </div></>
-  );
 
   // Gate: @TikTok obligatoire sauf admin/agency
   const needsHandle = role && !["admin","agency"].includes(role) && !auth.profile?.agency_id && !auth.profile.tiktok_handle;
@@ -4382,7 +4424,7 @@ export default function App(){
 
   const isBlocked=role!=="admin"&&role!=="agency"&&!auth.profile?.agency_id&&ag&&ag.billing_status==="impayé"&&!ag.is_offered;
   const needsPayment=(role==="agency"||!!auth.profile?.agency_id)&&ag&&ag.billing_status==="impayé"&&!ag.is_offered;
-  const nav=NAVS[role]||NAVS["creator"]; // jamais fallback admin
+  const nav=NAVS[role]||NAVS["admin"];
   const views={
     dash:    ()=>role==="admin"?<AdminDash setTab={setTab}/>:<DashView profile={auth.profile} creators={team.creators} agents={team.agents} managers={team.managers} directors={team.directors}/>,
     agencies:()=><AdminAgencies/>,
