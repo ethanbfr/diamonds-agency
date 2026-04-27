@@ -2844,45 +2844,30 @@ function SettingsView({profile,reload}){
         </div>
         <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10}}>
           {saved&&<span style={{fontSize:12,color:T.ok}}>✓ Enregistré</span>}
-          {/* Simulateur temps réel */}
           <div className="card" style={{padding:18,marginBottom:12,border:`1.5px solid ${T.acc}25`}}>
-            <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:12}}>📊 Simulation en temps réel</div>
-            {(()=>{
-              const rate=parseFloat(diamondValue)||0.017;
-              const total_euros=(simD*rate);
-              const creator_e=(total_euros*pcts.creator/100).toFixed(2);
-              const agent_e=(total_euros*pcts.agent/100).toFixed(2);
-              const manager_e=(total_euros*pcts.manager/100).toFixed(2);
-              const director_e=(total_euros*pcts.director/100).toFixed(2);
-              const agency_e=(total_euros*(100-pcts.creator-pcts.agent-pcts.manager-pcts.director)/100).toFixed(2);
-              const rows=[
-                {l:"⭐ Créateur",v:creator_e,c:T.ok},
-                {l:"🤝 Agent",v:agent_e,c:"#60A5FA"},
-                {l:"🎯 Manager",v:manager_e,c:"#A78BFA"},
-                {l:"👑 Directeur",v:director_e,c:"#F59E0B"},
-                {l:"🏢 Agence",v:agency_e,c:T.acc},
-              ];
-              return(
-                <>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
-                    <span style={{fontSize:12,color:T.sec,whiteSpace:"nowrap"}}>💎 Diamants :</span>
-                    <input type="number" value={simD} onChange={e=>setSimD(Math.max(0,+e.target.value||0))} style={{flex:1,background:"rgba(255,255,255,.05)",border:`1px solid ${T.b}`,borderRadius:8,padding:"6px 10px",color:T.tx,fontSize:14,fontWeight:700,outline:"none"}}/>
-                    <span style={{fontSize:12,color:T.sec,whiteSpace:"nowrap"}}>= {total_euros.toFixed(2)}€</span>
-                  </div>
-                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                    {rows.map(r=>(
-                      <div key={r.l} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,background:`${r.c}08`,border:`1px solid ${r.c}20`}}>
-                        <span style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{r.l}</span>
-                        <span style={{fontSize:14,fontWeight:900,color:r.c}}>{r.v}€</span>
-                        <span style={{fontSize:10,color:T.sec,minWidth:30,textAlign:"right"}}>{r.l.includes("Agence")?Math.max(0,100-pcts.creator-pcts.agent-pcts.manager-pcts.director):({creator:pcts.creator,agent:pcts.agent,manager:pcts.manager,director:pcts.director})[r.l.toLowerCase().split(" ")[1]||"creator"]}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              );
-            })()}
+            <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:12}}>📊 Simulation temps réel</div>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+              <span style={{fontSize:12,color:T.sec}}>💎 Diamants :</span>
+              <input type="number" value={simD} onChange={e=>setSimD(Math.max(0,+e.target.value||0))} style={{flex:1,background:"rgba(255,255,255,.05)",border:`1px solid ${T.b}`,borderRadius:8,padding:"6px 10px",color:T.tx,fontSize:14,fontWeight:700,outline:"none"}}/>
+              <span style={{fontSize:12,color:T.sec,whiteSpace:"nowrap"}}>= {((simD)*(parseFloat(diamondValue)||0.017)).toFixed(2)}€</span>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {[
+                {l:"⭐ Créateur",pct:pcts.creator,c:T.ok},
+                {l:"🤝 Agent",pct:pcts.agent,c:"#60A5FA"},
+                {l:"🎯 Manager",pct:pcts.manager,c:"#A78BFA"},
+                {l:"👑 Directeur",pct:pcts.director,c:"#F59E0B"},
+                {l:"🏢 Agence",pct:Math.max(0,100-pcts.creator-pcts.agent-pcts.manager-pcts.director),c:T.acc},
+              ].map(r=>(
+                <div key={r.l} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,background:`${r.c}10`,border:`1px solid ${r.c}25`}}>
+                  <span style={{flex:1,fontSize:12,fontWeight:600,color:T.tx}}>{r.l}</span>
+                  <span style={{fontSize:13,fontWeight:900,color:r.c}}>{((simD*(parseFloat(diamondValue)||0.017))*r.pct/100).toFixed(2)}€</span>
+                  <span style={{fontSize:10,color:T.sec,minWidth:28,textAlign:"right"}}>{r.pct}%</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <button className="btn" onClick={saveAgency} disabled={saving}>{saving?<Spin/>:"✓"} Enregistrer paramètres agence</button>
+                    <button className="btn" onClick={saveAgency} disabled={saving}>{saving?<Spin/>:"✓"} Enregistrer paramètres agence</button>
         </div>
       </>)}
     </div>
