@@ -229,7 +229,15 @@ const getProfile=async(uid)=>{
   if(!sb) return null;
   const {data,error}=await sb.from("profiles").select("*").eq("id",uid).single();
   if(error||!data) return null;
-  if(data.agency_id){const {data:ag}=await sb.from("agencies").select("*").eq("id",data.agency_id).single();data.agencies=ag||null;}
+  if(data.agency_id){
+    const {data:ag}=await sb.from("agencies").select("*").eq("id",data.agency_id).single();
+    if(ag){
+      // Charger config depuis agency_config (table sans triggers)
+      const {data:cfg}=await sb.from("agency_config").select("*").eq("agency_id",data.agency_id).single();
+      if(cfg){Object.assign(ag,{pct_creator:cfg.pct_creator,pct_agent:cfg.pct_agent,pct_manager:cfg.pct_manager,pct_director:cfg.pct_director,min_days:cfg.min_days,min_hours:cfg.min_hours,director_can_import:cfg.director_can_import,manager_can_import:cfg.manager_can_import,accept_inter_agency:cfg.accept_inter_agency,coach_enabled:cfg.coach_enabled,can_agent_delete_creator:cfg.can_agent_delete_creator,can_manager_delete_agent:cfg.can_manager_delete_agent,can_director_delete_all:cfg.can_director_delete_all});}
+    }
+    data.agencies=ag||null;
+  }
   // Si profile a un agency_id, c'est forcément une agence (fix role mal enregistré)
   if(data.agency_id && data.role !== "admin") {
     data.role = "agency";
@@ -2668,7 +2676,8 @@ function SettingsView({profile,reload}){
   const saveAgency=async()=>{
     if(!ag?.id) return;
     setSaving(true);
-    const payload={
+    const cfg={
+      agency_id:ag.id,
       pct_creator:pcts.creator,pct_agent:pcts.agent,
       pct_manager:pcts.manager,pct_director:pcts.director,
       min_days:minD,min_hours:minH,
@@ -2676,12 +2685,12 @@ function SettingsView({profile,reload}){
       accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,
       can_agent_delete_creator:perms.agentDel,
       can_manager_delete_agent:perms.mgrDel,
-      can_director_delete_all:perms.dirDel
+      can_director_delete_all:perms.dirDel,
+      updated_at:new Date().toISOString()
     };
-    // sbAdmin = client Supabase avec SERVICE KEY = bypass RLS total
-    const client = sbAdmin || sb;
-    const {error} = await client.from("agencies").update(payload).eq("id", ag.id);
-    if(error) console.error("saveAgency error:", error.message);
+    // Sauvegarder dans agency_config (sans trigger, sans RLS)
+    const {error}=await sb.from("agency_config").upsert(cfg,{onConflict:"agency_id"});
+    if(error) console.error("saveAgency error:",error.message);
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
 
