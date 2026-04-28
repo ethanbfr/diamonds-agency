@@ -1866,23 +1866,6 @@ function QuetesView({profile,creators,reload}){
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
 
-  // Charger les settings depuis localStorage ou ag
-  useEffect(()=>{
-    if(settingsLoaded) return;
-    let cfg=null;
-    // 1. localStorage
-    try{const s=localStorage.getItem("ag_cfg_"+(ag?.id||""));if(s)cfg=JSON.parse(s);}catch(e){}
-    // 2. ag object
-    if(!cfg&&ag) cfg={pct_creator:ag.pct_creator,pct_agent:ag.pct_agent,pct_manager:ag.pct_manager,pct_director:ag.pct_director,min_days:ag.min_days,min_hours:ag.min_hours,director_can_import:ag.director_can_import,manager_can_import:ag.manager_can_import,accept_inter_agency:ag.accept_inter_agency,coach_enabled:ag.coach_enabled,can_agent_delete_creator:ag.can_agent_delete_creator,can_manager_delete_agent:ag.can_manager_delete_agent,can_director_delete_all:ag.can_director_delete_all};
-    if(cfg){
-      if(cfg.pct_creator!=null) setPcts({creator:cfg.pct_creator||55,agent:cfg.pct_agent||10,manager:cfg.pct_manager||5,director:cfg.pct_director||3});
-      if(cfg.min_days!=null) setMinD(cfg.min_days||20);
-      if(cfg.min_hours!=null) setMinH(cfg.min_hours||40);
-      setPerms({dir:!!cfg.director_can_import,mgr:!!cfg.manager_can_import,inter:cfg.accept_inter_agency!==false,coachEnabled:cfg.coach_enabled!==false,agentDel:!!cfg.can_agent_delete_creator,mgrDel:!!cfg.can_manager_delete_agent,dirDel:cfg.can_director_delete_all!==false,evolution:!!cfg.activer_regle_evolution});
-    }
-    setSettingsLoaded(true);
-  },[ag?.id]);
-
   const load=()=>{if(ag?.id) fetchQuetes(ag.id).then(d=>{setQuetes(d);setLoading(false);});else setLoading(false);};
   useEffect(()=>{load();},[ag?.id]);
 
@@ -2674,30 +2657,12 @@ function SettingsView({profile,reload}){
   // Paramètres agence
   const [agName,setAgName]=useState(ag?.name||"");
   const [diamondValue,setDiamondValue]=useState(ag?.valeur_diamant_pivot??0.017);
-  const [pcts,setPcts]=useState({director:3,manager:5,agent:10,creator:55});
-  const [minD,setMinD]=useState(20);
-  const [minH,setMinH]=useState(40);
-  const [perms,setPerms]=useState({dir:false,mgr:false,inter:true,coachEnabled:true,agentDel:false,mgrDel:false,dirDel:true,evolution:false});
-  const [settingsLoaded,setSettingsLoaded]=useState(false);
+  const [pcts,setPcts]=useState({director:ag?.pct_director||3,manager:ag?.pct_manager||5,agent:ag?.pct_agent||10,creator:ag?.pct_creator||55});
+  const [minD,setMinD]=useState(ag?.min_days||20);
+  const [minH,setMinH]=useState(ag?.min_hours||40);
+  const [perms,setPerms]=useState({dir:ag?.director_can_import||false,mgr:ag?.manager_can_import||false,inter:ag?.accept_inter_agency!==false,coachEnabled:ag?.coach_enabled!==false,agentDel:ag?.can_agent_delete_creator||false,mgrDel:ag?.can_manager_delete_agent||false,dirDel:ag?.can_director_delete_all!==false,evolution:ag?.activer_regle_evolution||false});
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
-
-  // Charger les settings depuis localStorage ou ag
-  useEffect(()=>{
-    if(settingsLoaded) return;
-    let cfg=null;
-    // 1. localStorage
-    try{const s=localStorage.getItem("ag_cfg_"+(ag?.id||""));if(s)cfg=JSON.parse(s);}catch(e){}
-    // 2. ag object
-    if(!cfg&&ag) cfg={pct_creator:ag.pct_creator,pct_agent:ag.pct_agent,pct_manager:ag.pct_manager,pct_director:ag.pct_director,min_days:ag.min_days,min_hours:ag.min_hours,director_can_import:ag.director_can_import,manager_can_import:ag.manager_can_import,accept_inter_agency:ag.accept_inter_agency,coach_enabled:ag.coach_enabled,can_agent_delete_creator:ag.can_agent_delete_creator,can_manager_delete_agent:ag.can_manager_delete_agent,can_director_delete_all:ag.can_director_delete_all};
-    if(cfg){
-      if(cfg.pct_creator!=null) setPcts({creator:cfg.pct_creator||55,agent:cfg.pct_agent||10,manager:cfg.pct_manager||5,director:cfg.pct_director||3});
-      if(cfg.min_days!=null) setMinD(cfg.min_days||20);
-      if(cfg.min_hours!=null) setMinH(cfg.min_hours||40);
-      setPerms({dir:!!cfg.director_can_import,mgr:!!cfg.manager_can_import,inter:cfg.accept_inter_agency!==false,coachEnabled:cfg.coach_enabled!==false,agentDel:!!cfg.can_agent_delete_creator,mgrDel:!!cfg.can_manager_delete_agent,dirDel:cfg.can_director_delete_all!==false,evolution:!!cfg.activer_regle_evolution});
-    }
-    setSettingsLoaded(true);
-  },[ag?.id]);
   const ROLES=[{k:"creator",l:"Part créateur",c:T.ok},{k:"agent",l:"Commission agent",c:T.cy},{k:"manager",l:"Commission manager",c:T.pu},{k:"director",l:"Commission directeur",c:T.acc}];
   const total=Object.values(pcts).reduce((s,v)=>s+v,0);
   const saveAgency=async()=>{
@@ -2815,30 +2780,35 @@ function SettingsView({profile,reload}){
         </div>
         <div className="card" style={{padding:20,marginBottom:12}}>
           <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Répartition des revenus</div>
-          <div style={{borderRadius:8,overflow:"hidden",height:28,display:"flex",marginBottom:12}}>
-            {ROLES.map(r=><div key={r.k} style={{width:`${pcts[r.k]}%`,background:r.c,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10.5,fontWeight:700,color:"white",overflow:"hidden",whiteSpace:"nowrap",transition:"width .25s"}}>{pcts[r.k]>5?`${pcts[r.k]}%`:""}</div>)}
-            <div style={{flex:1,background:"rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10.5,fontWeight:700,color:T.sec}}>Agence {100-total}%</div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div style={{fontSize:11,color:T.sec,marginBottom:12}}>Total : <strong style={{color:total>100?T.ng:T.ok}}>{total}%</strong> · Agence : <strong style={{color:T.acc}}>{Math.max(0,100-total)}%</strong></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             {ROLES.map(r=>(
-              <div key={r.k}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><label style={{fontSize:12,fontWeight:600,color:T.tx}}>{r.l}</label><span style={{fontSize:13,fontWeight:800,color:r.c}}>{pcts[r.k]}%</span></div>
-                <input type="range" min={0} max={100} step={1} value={pcts[r.k]} style={{accentColor:r.c}} onChange={e=>setPcts(p=>({...p,[r.k]:+e.target.value}))}/>
+              <div key={r.k} style={{background:`${r.c}10`,border:`1.5px solid ${r.c}30`,borderRadius:12,padding:"12px"}}>
+                <div style={{fontSize:10,fontWeight:700,color:r.c,marginBottom:8,textTransform:"uppercase",letterSpacing:".06em"}}>{r.l}</div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <button onClick={()=>setPcts(p=>({...p,[r.k]:Math.max(0,p[r.k]-1)}))} onPointerDown={()=>{const t=setInterval(()=>setPcts(p=>({...p,[r.k]:Math.max(0,p[r.k]-1)})),100);const s=()=>{clearInterval(t);window.removeEventListener("pointerup",s);};window.addEventListener("pointerup",s);}} style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,.08)",border:`1px solid ${r.c}40`,color:"white",fontSize:18,cursor:"pointer",outline:"none",flexShrink:0}}>−</button>
+                  <input type="number" min={0} max={100} value={pcts[r.k]} onChange={e=>setPcts(p=>({...p,[r.k]:Math.min(100,Math.max(0,+e.target.value||0))}))} style={{flex:1,textAlign:"center",background:"transparent",border:"none",fontSize:26,fontWeight:900,color:r.c,outline:"none",width:0}}/>
+                  <button onClick={()=>setPcts(p=>({...p,[r.k]:Math.min(100,p[r.k]+1)}))} onPointerDown={()=>{const t=setInterval(()=>setPcts(p=>({...p,[r.k]:Math.min(100,p[r.k]+1)})),100);const s=()=>{clearInterval(t);window.removeEventListener("pointerup",s);};window.addEventListener("pointerup",s);}} style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,.08)",border:`1px solid ${r.c}40`,color:"white",fontSize:18,cursor:"pointer",outline:"none",flexShrink:0}}>+</button>
+                </div>
+                <div style={{fontSize:9,color:T.sec,textAlign:"center",marginTop:2}}>%</div>
               </div>
             ))}
           </div>
         </div>
         <div className="card" style={{padding:18,marginBottom:12}}>
           <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Conditions minimales</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-            <div>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><label style={{fontSize:12,fontWeight:600,color:T.tx}}>Jours min.</label><span style={{fontSize:13,fontWeight:800,color:"#FF6D00"}}>{minD}j</span></div>
-              <input type="range" min={0} max={31} step={1} value={minD} style={{accentColor:"#FF6D00"}} onChange={e=>setMinD(+e.target.value)}/>
-            </div>
-            <div>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><label style={{fontSize:12,fontWeight:600,color:T.tx}}>Heures min.</label><span style={{fontSize:13,fontWeight:800,color:T.go}}>{minH}h</span></div>
-              <input type="range" min={0} max={100} step={1} value={minH} style={{accentColor:T.go}} onChange={e=>setMinH(+e.target.value)}/>
-            </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            {[{l:"Jours min.",v:minD,set:setMinD,max:31,unit:"j",c:"#FF6D00"},{l:"Heures min.",v:minH,set:setMinH,max:200,unit:"h",c:T.go}].map(item=>(
+              <div key={item.l} style={{background:`${item.c}10`,border:`1.5px solid ${item.c}30`,borderRadius:12,padding:"12px"}}>
+                <div style={{fontSize:10,fontWeight:700,color:item.c,marginBottom:8,textTransform:"uppercase",letterSpacing:".06em"}}>{item.l}</div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <button onClick={()=>item.set(v=>Math.max(0,v-1))} onPointerDown={()=>{const t=setInterval(()=>item.set(v=>Math.max(0,v-1)),100);const s=()=>{clearInterval(t);window.removeEventListener("pointerup",s);};window.addEventListener("pointerup",s);}} style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,.08)",border:`1px solid ${item.c}40`,color:"white",fontSize:18,cursor:"pointer",outline:"none",flexShrink:0}}>−</button>
+                  <input type="number" min={0} max={item.max} value={item.v} onChange={e=>item.set(Math.min(item.max,Math.max(0,+e.target.value||0)))} style={{flex:1,textAlign:"center",background:"transparent",border:"none",fontSize:26,fontWeight:900,color:item.c,outline:"none",width:0}}/>
+                  <button onClick={()=>item.set(v=>Math.min(item.max,v+1))} onPointerDown={()=>{const t=setInterval(()=>item.set(v=>Math.min(item.max,v+1)),100);const s=()=>{clearInterval(t);window.removeEventListener("pointerup",s);};window.addEventListener("pointerup",s);}} style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,.08)",border:`1px solid ${item.c}40`,color:"white",fontSize:18,cursor:"pointer",outline:"none",flexShrink:0}}>+</button>
+                </div>
+                <div style={{fontSize:9,color:T.sec,textAlign:"center",marginTop:2}}>{item.unit}</div>
+              </div>
+            ))}
           </div>
         </div>
         <div className="card" style={{padding:18,marginBottom:12}}>
