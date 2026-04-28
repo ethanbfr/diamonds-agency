@@ -2675,13 +2675,15 @@ function SettingsView({profile,reload}){
   const ROLES=[{k:"creator",l:"Part créateur",c:T.ok},{k:"agent",l:"Commission agent",c:T.cy},{k:"manager",l:"Commission manager",c:T.pu},{k:"director",l:"Commission directeur",c:T.acc}];
   const total=Object.values(pcts).reduce((s,v)=>s+v,0);
   const saveAgency=async()=>{
-    if(!ag?.id) return;
+    const agId=ag?.id||profile?.agency_id;
+    if(!agId){alert("ID agence introuvable - contactez le support");return;}
     setSaving(true);
     const cfg={pct_creator:pcts.creator,pct_agent:pcts.agent,pct_manager:pcts.manager,pct_director:pcts.director,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel};
-    // localStorage - marche toujours
-    try{localStorage.setItem("ag_cfg_"+ag.id,JSON.stringify(cfg));}catch(e){}
-    // agency_config - table sans trigger
-    try{await sb.from("agency_config").upsert({agency_id:ag.id,...cfg,updated_at:new Date().toISOString()},{onConflict:"agency_id"});}catch(e){}
+    // localStorage toujours
+    try{localStorage.setItem("ag_cfg_"+agId,JSON.stringify(cfg));}catch(e){}
+    // agency_config DB
+    const {error}=await sb.from("agency_config").upsert({agency_id:agId,...cfg,updated_at:new Date().toISOString()},{onConflict:"agency_id"});
+    if(error) alert("Erreur save: "+error.message);
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);
   };
 
