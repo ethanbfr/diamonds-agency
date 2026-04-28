@@ -1865,7 +1865,23 @@ function QuetesView({profile,creators,reload}){
   const [form,setForm]=useState({titre:"",description:"",type:"collective",unite:"diamonds",cible:"",recompense:"",deadline:"",creator_id:""});
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
-  const [simD,setSimD]=useState(10000);
+
+  // Charger les settings depuis localStorage ou ag
+  useEffect(()=>{
+    if(settingsLoaded) return;
+    let cfg=null;
+    // 1. localStorage
+    try{const s=localStorage.getItem("ag_cfg_"+(ag?.id||""));if(s)cfg=JSON.parse(s);}catch(e){}
+    // 2. ag object
+    if(!cfg&&ag) cfg={pct_creator:ag.pct_creator,pct_agent:ag.pct_agent,pct_manager:ag.pct_manager,pct_director:ag.pct_director,min_days:ag.min_days,min_hours:ag.min_hours,director_can_import:ag.director_can_import,manager_can_import:ag.manager_can_import,accept_inter_agency:ag.accept_inter_agency,coach_enabled:ag.coach_enabled,can_agent_delete_creator:ag.can_agent_delete_creator,can_manager_delete_agent:ag.can_manager_delete_agent,can_director_delete_all:ag.can_director_delete_all};
+    if(cfg){
+      if(cfg.pct_creator!=null) setPcts({creator:cfg.pct_creator||55,agent:cfg.pct_agent||10,manager:cfg.pct_manager||5,director:cfg.pct_director||3});
+      if(cfg.min_days!=null) setMinD(cfg.min_days||20);
+      if(cfg.min_hours!=null) setMinH(cfg.min_hours||40);
+      setPerms({dir:!!cfg.director_can_import,mgr:!!cfg.manager_can_import,inter:cfg.accept_inter_agency!==false,coachEnabled:cfg.coach_enabled!==false,agentDel:!!cfg.can_agent_delete_creator,mgrDel:!!cfg.can_manager_delete_agent,dirDel:cfg.can_director_delete_all!==false,evolution:!!cfg.activer_regle_evolution});
+    }
+    setSettingsLoaded(true);
+  },[ag?.id]);
 
   const load=()=>{if(ag?.id) fetchQuetes(ag.id).then(d=>{setQuetes(d);setLoading(false);});else setLoading(false);};
   useEffect(()=>{load();},[ag?.id]);
@@ -2658,12 +2674,30 @@ function SettingsView({profile,reload}){
   // Paramètres agence
   const [agName,setAgName]=useState(ag?.name||"");
   const [diamondValue,setDiamondValue]=useState(ag?.valeur_diamant_pivot??0.017);
-  const [pcts,setPcts]=useState({director:ag?.pct_director||3,manager:ag?.pct_manager||5,agent:ag?.pct_agent||10,creator:ag?.pct_creator||55});
-  const [minD,setMinD]=useState(ag?.min_days||20);
-  const [minH,setMinH]=useState(ag?.min_hours||40);
-  const [perms,setPerms]=useState({dir:ag?.director_can_import||false,mgr:ag?.manager_can_import||false,inter:ag?.accept_inter_agency!==false,coachEnabled:ag?.coach_enabled!==false,agentDel:ag?.can_agent_delete_creator||false,mgrDel:ag?.can_manager_delete_agent||false,dirDel:ag?.can_director_delete_all!==false,evolution:ag?.activer_regle_evolution||false});
+  const [pcts,setPcts]=useState({director:3,manager:5,agent:10,creator:55});
+  const [minD,setMinD]=useState(20);
+  const [minH,setMinH]=useState(40);
+  const [perms,setPerms]=useState({dir:false,mgr:false,inter:true,coachEnabled:true,agentDel:false,mgrDel:false,dirDel:true,evolution:false});
+  const [settingsLoaded,setSettingsLoaded]=useState(false);
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
+
+  // Charger les settings depuis localStorage ou ag
+  useEffect(()=>{
+    if(settingsLoaded) return;
+    let cfg=null;
+    // 1. localStorage
+    try{const s=localStorage.getItem("ag_cfg_"+(ag?.id||""));if(s)cfg=JSON.parse(s);}catch(e){}
+    // 2. ag object
+    if(!cfg&&ag) cfg={pct_creator:ag.pct_creator,pct_agent:ag.pct_agent,pct_manager:ag.pct_manager,pct_director:ag.pct_director,min_days:ag.min_days,min_hours:ag.min_hours,director_can_import:ag.director_can_import,manager_can_import:ag.manager_can_import,accept_inter_agency:ag.accept_inter_agency,coach_enabled:ag.coach_enabled,can_agent_delete_creator:ag.can_agent_delete_creator,can_manager_delete_agent:ag.can_manager_delete_agent,can_director_delete_all:ag.can_director_delete_all};
+    if(cfg){
+      if(cfg.pct_creator!=null) setPcts({creator:cfg.pct_creator||55,agent:cfg.pct_agent||10,manager:cfg.pct_manager||5,director:cfg.pct_director||3});
+      if(cfg.min_days!=null) setMinD(cfg.min_days||20);
+      if(cfg.min_hours!=null) setMinH(cfg.min_hours||40);
+      setPerms({dir:!!cfg.director_can_import,mgr:!!cfg.manager_can_import,inter:cfg.accept_inter_agency!==false,coachEnabled:cfg.coach_enabled!==false,agentDel:!!cfg.can_agent_delete_creator,mgrDel:!!cfg.can_manager_delete_agent,dirDel:cfg.can_director_delete_all!==false,evolution:!!cfg.activer_regle_evolution});
+    }
+    setSettingsLoaded(true);
+  },[ag?.id]);
   const ROLES=[{k:"creator",l:"Part créateur",c:T.ok},{k:"agent",l:"Commission agent",c:T.cy},{k:"manager",l:"Commission manager",c:T.pu},{k:"director",l:"Commission directeur",c:T.acc}];
   const total=Object.values(pcts).reduce((s,v)=>s+v,0);
   const saveAgency=async()=>{
@@ -2832,25 +2866,6 @@ function SettingsView({profile,reload}){
         </div>
         <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10}}>
           {saved&&<span style={{fontSize:12,color:T.ok}}>✓ Enregistré</span>}
-          <div className="card" style={{padding:18,marginBottom:12,border:`1px solid ${T.acc}30`}}>
-            <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:12}}>📊 Simulation réelle</div>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-              <span style={{fontSize:12,color:T.sec}}>💎 Diamants :</span>
-              <input type="number" min={0} value={simD} onChange={e=>setSimD(Math.max(0,+e.target.value||0))} style={{flex:1,background:"rgba(255,255,255,.06)",border:`1px solid ${T.b}`,borderRadius:8,padding:"6px 10px",color:T.tx,fontSize:14,fontWeight:700,outline:"none"}}/>
-              <span style={{fontSize:11,color:T.sec}}>{((simD)*(parseFloat(diamondValue)||0.017)).toFixed(2)}€</span>
-            </div>
-            {[{l:"⭐ Créateur",k:"creator",c:T.ok},{l:"🤝 Agent",k:"agent",c:"#60A5FA"},{l:"🎯 Manager",k:"manager",c:"#A78BFA"},{l:"👑 Directeur",k:"director",c:"#F59E0B"},{l:"🏢 Agence",k:"agency",c:T.acc}].map(r=>{
-              const pct=r.k==="agency"?Math.max(0,100-pcts.creator-pcts.agent-pcts.manager-pcts.director):pcts[r.k];
-              const euros=((simD*(parseFloat(diamondValue)||0.017))*pct/100).toFixed(2);
-              return(
-                <div key={r.k} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:8,marginBottom:5,background:`${r.c}10`,border:`1px solid ${r.c}20`}}>
-                  <span style={{flex:1,fontSize:12,color:T.tx}}>{r.l}</span>
-                  <span style={{fontWeight:900,fontSize:13,color:r.c}}>{euros}€</span>
-                  <span style={{fontSize:10,color:T.sec,minWidth:25,textAlign:"right"}}>{pct}%</span>
-                </div>
-              );
-            })}
-          </div>
           <button className="btn" onClick={saveAgency} disabled={saving}>{saving?<Spin/>:"✓"} Enregistrer paramètres agence</button>
         </div>
       </>)}
