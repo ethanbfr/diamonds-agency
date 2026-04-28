@@ -229,16 +229,7 @@ const getProfile=async(uid)=>{
   if(!sb) return null;
   const {data,error}=await sb.from("profiles").select("*").eq("id",uid).single();
   if(error||!data) return null;
-  if(data.agency_id){
-    const {data:ag}=await sb.from("agencies").select("*").eq("id",data.agency_id).single();
-    if(ag){
-      // localStorage en priorité (toujours dispo)
-      try{const s=localStorage.getItem("ag_cfg_"+data.agency_id);if(s){const cfg=JSON.parse(s);Object.assign(ag,cfg);}}catch(e){}
-      // agency_config en fallback
-      try{const {data:cfg}=await sb.from("agency_config").select("*").eq("agency_id",data.agency_id).maybeSingle();if(cfg){['pct_creator','pct_agent','pct_manager','pct_director','min_days','min_hours','director_can_import','manager_can_import','accept_inter_agency','coach_enabled','can_agent_delete_creator','can_manager_delete_agent','can_director_delete_all'].forEach(k=>{if(cfg[k]!==null&&cfg[k]!==undefined)ag[k]=cfg[k];});}}catch(e){}
-    }
-    data.agencies=ag||null;
-  }
+  if(data.agency_id){const {data:ag}=await sb.from("agencies").select("*").eq("id",data.agency_id).single();data.agencies=ag||null;}
   // Si profile a un agency_id, c'est forcément une agence (fix role mal enregistré)
   if(data.agency_id && data.role !== "admin") {
     data.role = "agency";
@@ -2678,22 +2669,19 @@ function SettingsView({profile,reload}){
   const saveAgency=async()=>{
     if(!ag?.id) return;
     setSaving(true);
-    const settings={
-      pct_creator:pcts.creator,pct_agent:pcts.agent,
-      pct_manager:pcts.manager,pct_director:pcts.director,
-      min_days:minD,min_hours:minH,
-      director_can_import:perms.dir,manager_can_import:perms.mgr,
-      accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,
-      can_agent_delete_creator:perms.agentDel,
-      can_manager_delete_agent:perms.mgrDel,
-      can_director_delete_all:perms.dirDel
-    };
-    // 1. localStorage - TOUJOURS marche
-    try{localStorage.setItem("ag_cfg_"+ag.id, JSON.stringify(settings));}catch(e){}
-    // 2. agency_config table
-    try{await sb.from("agency_config").upsert({agency_id:ag.id,...settings,updated_at:new Date().toISOString()},{onConflict:"agency_id"});}catch(e){}
-    // 3. agencies directement
-    try{await sb.from("agencies").update(settings).eq("id",ag.id);}catch(e){}
+    // Via RPC SECURITY DEFINER - bypass RLS garanti
+    const {error}=await sb.rpc("save_agency_settings",{
+      p_agency_id:ag.id,
+      p_pct_creator:pcts.creator,p_pct_agent:pcts.agent,
+      p_pct_manager:pcts.manager,p_pct_director:pcts.director,
+      p_min_days:minD,p_min_hours:minH,
+      p_director_can_import:perms.dir,p_manager_can_import:perms.mgr,
+      p_accept_inter_agency:perms.inter,p_coach_enabled:perms.coachEnabled,
+      p_can_agent_delete_creator:perms.agentDel,
+      p_can_manager_delete_agent:perms.mgrDel,
+      p_can_director_delete_all:perms.dirDel
+    });
+    if(error) console.error("saveAgency RPC error:",error.message);
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
 
@@ -2844,30 +2832,26 @@ function SettingsView({profile,reload}){
         </div>
         <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10}}>
           {saved&&<span style={{fontSize:12,color:T.ok}}>✓ Enregistré</span>}
-          <div className="card" style={{padding:18,marginBottom:12,border:`1.5px solid ${T.acc}25`}}>
-            <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:12}}>📊 Simulation temps réel</div>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+          <div className="card" style={{padding:18,marginBottom:12,border:`1px solid ${T.acc}30`}}>
+            <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:12}}>📊 Simulation réelle</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
               <span style={{fontSize:12,color:T.sec}}>💎 Diamants :</span>
-              <input type="number" value={simD} onChange={e=>setSimD(Math.max(0,+e.target.value||0))} style={{flex:1,background:"rgba(255,255,255,.05)",border:`1px solid ${T.b}`,borderRadius:8,padding:"6px 10px",color:T.tx,fontSize:14,fontWeight:700,outline:"none"}}/>
-              <span style={{fontSize:12,color:T.sec,whiteSpace:"nowrap"}}>= {((simD)*(parseFloat(diamondValue)||0.017)).toFixed(2)}€</span>
+              <input type="number" min={0} value={simD} onChange={e=>setSimD(Math.max(0,+e.target.value||0))} style={{flex:1,background:"rgba(255,255,255,.06)",border:`1px solid ${T.b}`,borderRadius:8,padding:"6px 10px",color:T.tx,fontSize:14,fontWeight:700,outline:"none"}}/>
+              <span style={{fontSize:11,color:T.sec}}>{((simD)*(parseFloat(diamondValue)||0.017)).toFixed(2)}€</span>
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              {[
-                {l:"⭐ Créateur",pct:pcts.creator,c:T.ok},
-                {l:"🤝 Agent",pct:pcts.agent,c:"#60A5FA"},
-                {l:"🎯 Manager",pct:pcts.manager,c:"#A78BFA"},
-                {l:"👑 Directeur",pct:pcts.director,c:"#F59E0B"},
-                {l:"🏢 Agence",pct:Math.max(0,100-pcts.creator-pcts.agent-pcts.manager-pcts.director),c:T.acc},
-              ].map(r=>(
-                <div key={r.l} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,background:`${r.c}10`,border:`1px solid ${r.c}25`}}>
-                  <span style={{flex:1,fontSize:12,fontWeight:600,color:T.tx}}>{r.l}</span>
-                  <span style={{fontSize:13,fontWeight:900,color:r.c}}>{((simD*(parseFloat(diamondValue)||0.017))*r.pct/100).toFixed(2)}€</span>
-                  <span style={{fontSize:10,color:T.sec,minWidth:28,textAlign:"right"}}>{r.pct}%</span>
+            {[{l:"⭐ Créateur",k:"creator",c:T.ok},{l:"🤝 Agent",k:"agent",c:"#60A5FA"},{l:"🎯 Manager",k:"manager",c:"#A78BFA"},{l:"👑 Directeur",k:"director",c:"#F59E0B"},{l:"🏢 Agence",k:"agency",c:T.acc}].map(r=>{
+              const pct=r.k==="agency"?Math.max(0,100-pcts.creator-pcts.agent-pcts.manager-pcts.director):pcts[r.k];
+              const euros=((simD*(parseFloat(diamondValue)||0.017))*pct/100).toFixed(2);
+              return(
+                <div key={r.k} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:8,marginBottom:5,background:`${r.c}10`,border:`1px solid ${r.c}20`}}>
+                  <span style={{flex:1,fontSize:12,color:T.tx}}>{r.l}</span>
+                  <span style={{fontWeight:900,fontSize:13,color:r.c}}>{euros}€</span>
+                  <span style={{fontSize:10,color:T.sec,minWidth:25,textAlign:"right"}}>{pct}%</span>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
-                    <button className="btn" onClick={saveAgency} disabled={saving}>{saving?<Spin/>:"✓"} Enregistrer paramètres agence</button>
+          <button className="btn" onClick={saveAgency} disabled={saving}>{saving?<Spin/>:"✓"} Enregistrer paramètres agence</button>
         </div>
       </>)}
     </div>
@@ -4539,10 +4523,4 @@ export default function App(){
             </div>
           </aside>
           <main className="app-main-pad" style={{flex:1,overflowY:"auto",padding:"28px 32px",background:"#0F0F0F",marginLeft:isNarrow?0:220,minHeight:isNarrow?"calc(100vh - 52px)":"100vh",width:"100%"}}>
-            {loadT?<div style={{textAlign:"center",padding:40,color:T.sec}}>Chargement…</div>:<View/>}
-          </main>
-        </div>
-      </div>
-    </>
-  );
-}
+            {loadT?
