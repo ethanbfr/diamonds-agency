@@ -2666,12 +2666,37 @@ function SettingsView({profile,reload}){
   // Paramètres agence
   const [agName,setAgName]=useState(ag?.name||"");
   const [diamondValue,setDiamondValue]=useState(ag?.valeur_diamant_pivot??0.017);
-  const [pcts,setPcts]=useState({director:ag?.pct_director||3,manager:ag?.pct_manager||5,agent:ag?.pct_agent||10,creator:ag?.pct_creator||55});
-  const [minD,setMinD]=useState(ag?.min_days||20);
-  const [minH,setMinH]=useState(ag?.min_hours||40);
-  const [perms,setPerms]=useState({dir:ag?.director_can_import||false,mgr:ag?.manager_can_import||false,inter:ag?.accept_inter_agency!==false,coachEnabled:ag?.coach_enabled!==false,agentDel:ag?.can_agent_delete_creator||false,mgrDel:ag?.can_manager_delete_agent||false,dirDel:ag?.can_director_delete_all!==false,evolution:ag?.activer_regle_evolution||false});
+  const [pcts,setPcts]=useState({director:ag?.pct_director??3,manager:ag?.pct_manager??5,agent:ag?.pct_agent??10,creator:ag?.pct_creator??55});
+  const [minD,setMinD]=useState(ag?.min_days??20);
+  const [minH,setMinH]=useState(ag?.min_hours??40);
+  const [perms,setPerms]=useState({dir:!!ag?.director_can_import,mgr:!!ag?.manager_can_import,inter:ag?.accept_inter_agency!==false,coachEnabled:ag?.coach_enabled!==false,agentDel:!!ag?.can_agent_delete_creator,mgrDel:!!ag?.can_manager_delete_agent,dirDel:ag?.can_director_delete_all!==false,evolution:!!ag?.activer_regle_evolution});
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
+
+  // Charger depuis agency_config au mount
+  useEffect(()=>{
+    const agId=ag?.id||profile?.agency_id;
+    if(!agId) return;
+    // D'abord localStorage
+    try{
+      const s=localStorage.getItem("ag_cfg_"+agId);
+      if(s){
+        const cfg=JSON.parse(s);
+        setPcts({creator:cfg.pct_creator??55,agent:cfg.pct_agent??10,manager:cfg.pct_manager??5,director:cfg.pct_director??3});
+        setMinD(cfg.min_days??20);setMinH(cfg.min_hours??40);
+        setPerms({dir:!!cfg.director_can_import,mgr:!!cfg.manager_can_import,inter:cfg.accept_inter_agency!==false,coachEnabled:cfg.coach_enabled!==false,agentDel:!!cfg.can_agent_delete_creator,mgrDel:!!cfg.can_manager_delete_agent,dirDel:cfg.can_director_delete_all!==false,evolution:!!cfg.activer_regle_evolution});
+        return;
+      }
+    }catch(e){}
+    // Sinon agency_config DB
+    sb.from("agency_config").select("*").eq("agency_id",agId).maybeSingle().then(({data:cfg})=>{
+      if(!cfg) return;
+      setPcts({creator:cfg.pct_creator??55,agent:cfg.pct_agent??10,manager:cfg.pct_manager??5,director:cfg.pct_director??3});
+      setMinD(cfg.min_days??20);setMinH(cfg.min_hours??40);
+      setPerms({dir:!!cfg.director_can_import,mgr:!!cfg.manager_can_import,inter:cfg.accept_inter_agency!==false,coachEnabled:cfg.coach_enabled!==false,agentDel:!!cfg.can_agent_delete_creator,mgrDel:!!cfg.can_manager_delete_agent,dirDel:cfg.can_director_delete_all!==false,evolution:!!cfg.activer_regle_evolution});
+      try{localStorage.setItem("ag_cfg_"+agId,JSON.stringify(cfg));}catch(e){}
+    });
+  },[ag?.id,profile?.agency_id]);
   const ROLES=[{k:"creator",l:"Part créateur",c:T.ok},{k:"agent",l:"Commission agent",c:T.cy},{k:"manager",l:"Commission manager",c:T.pu},{k:"director",l:"Commission directeur",c:T.acc}];
   const total=Object.values(pcts).reduce((s,v)=>s+v,0);
   const saveAgency=async()=>{
@@ -2685,6 +2710,7 @@ function SettingsView({profile,reload}){
     const {error}=await sb.from("agency_config").upsert({agency_id:agId,...cfg,updated_at:new Date().toISOString()},{onConflict:"agency_id"});
     if(error) alert("Erreur save: "+error.message);
     setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);
+    reload?.();
   };
 
   return(
