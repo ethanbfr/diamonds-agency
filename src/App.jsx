@@ -1874,6 +1874,7 @@ function QuetesView({profile,creators,reload}){
   const [form,setForm]=useState({titre:"",description:"",type:"collective",unite:"diamonds",cible:"",recompense:"",deadline:"",creator_id:""});
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
+  const [simD,setSimD]=useState(10000);
 
   const load=()=>{if(ag?.id) fetchQuetes(ag.id).then(d=>{setQuetes(d);setLoading(false);});else setLoading(false);};
   useEffect(()=>{load();},[ag?.id]);
@@ -2865,6 +2866,31 @@ function SettingsView({profile,reload}){
         </div>
         <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:10}}>
           {saved&&<span style={{fontSize:12,color:T.ok}}>✓ Enregistré</span>}
+          <div className="card" style={{padding:18,marginBottom:12,border:`1px solid ${T.acc}30`}}>
+            <div style={{fontWeight:700,fontSize:13,color:T.tx,marginBottom:4}}>💰 Simulateur de rentabilité</div>
+            <div style={{fontSize:11,color:T.sec,marginBottom:12}}>Entrez un montant de diamants pour voir la répartition</div>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,background:"rgba(255,255,255,.04)",borderRadius:10,padding:"10px 14px",border:`1px solid ${T.b}`}}>
+              <span style={{fontSize:20}}>💎</span>
+              <input type="number" min={0} value={simD} onChange={e=>setSimD(Math.max(0,+e.target.value||0))} style={{flex:1,background:"transparent",border:"none",fontSize:20,fontWeight:800,color:T.tx,outline:"none"}}/>
+              <span style={{fontSize:12,color:T.sec}}>= <strong style={{color:T.pu}}>{((simD)*(parseFloat(diamondValue)||0.017)).toFixed(2)}€</strong></span>
+            </div>
+            {[
+              {l:"⭐ Créateur",pct:pcts.creator,c:T.ok},
+              {l:"🤝 Agent",pct:pcts.agent,c:"#60A5FA"},
+              {l:"🎯 Manager",pct:pcts.manager,c:"#A78BFA"},
+              {l:"👑 Directeur",pct:pcts.director,c:"#F59E0B"},
+              {l:"🏢 Agence",pct:Math.max(0,100-pcts.creator-pcts.agent-pcts.manager-pcts.director),c:T.acc},
+            ].map(r=>{
+              const euros=((simD*(parseFloat(diamondValue)||0.017))*r.pct/100);
+              return(
+                <div key={r.l} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,marginBottom:5,background:`${r.c}08`,border:`1px solid ${r.c}18`}}>
+                  <span style={{flex:1,fontSize:12.5,fontWeight:600,color:T.tx}}>{r.l}</span>
+                  <span style={{fontSize:13,fontWeight:900,color:r.c}}>{euros.toFixed(2)}€</span>
+                  <span style={{fontSize:10,color:T.sec,minWidth:28,textAlign:"right"}}>{r.pct}%</span>
+                </div>
+              );
+            })}
+          </div>
           <button className="btn" onClick={saveAgency} disabled={saving}>{saving?<Spin/>:"✓"} Enregistrer paramètres agence</button>
         </div>
       </>)}
