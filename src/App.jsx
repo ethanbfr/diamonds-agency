@@ -234,7 +234,7 @@ const getProfile=async(uid)=>{
     if(ag){
       try{
         const {data:cfg}=await sb.from("agency_config").select("*").eq("agency_id",data.agency_id).maybeSingle();
-        if(cfg){ag.pct_creator=cfg.pct_creator;ag.pct_agent=cfg.pct_agent;ag.pct_manager=cfg.pct_manager;ag.pct_director=cfg.pct_director;ag.min_days=cfg.min_days;ag.min_hours=cfg.min_hours;ag.director_can_import=cfg.director_can_import;ag.manager_can_import=cfg.manager_can_import;ag.accept_inter_agency=cfg.accept_inter_agency;ag.coach_enabled=cfg.coach_enabled;ag.can_agent_delete_creator=cfg.can_agent_delete_creator;ag.can_manager_delete_agent=cfg.can_manager_delete_agent;ag.can_director_delete_all=cfg.can_director_delete_all;}
+        if(cfg){ag.pct_creator=cfg.pct_creator??ag.pct_creator;ag.pct_agent=cfg.pct_agent??ag.pct_agent;ag.pct_manager=cfg.pct_manager??ag.pct_manager;ag.pct_director=cfg.pct_director??ag.pct_director;ag.min_days=cfg.min_days??ag.min_days;ag.min_hours=cfg.min_hours??ag.min_hours;ag.director_can_import=cfg.director_can_import??ag.director_can_import;ag.manager_can_import=cfg.manager_can_import??ag.manager_can_import;ag.accept_inter_agency=cfg.accept_inter_agency??ag.accept_inter_agency;ag.coach_enabled=cfg.coach_enabled??ag.coach_enabled;ag.can_agent_delete_creator=cfg.can_agent_delete_creator??ag.can_agent_delete_creator;ag.can_manager_delete_agent=cfg.can_manager_delete_agent??ag.can_manager_delete_agent;ag.can_director_delete_all=cfg.can_director_delete_all??ag.can_director_delete_all;}
       }catch(e){}
     }
     data.agencies=ag||null;
@@ -2819,10 +2819,14 @@ function SettingsView({profile,reload}){
                   <input type="number" min={0} max={100} value={pcts[r.k]} onChange={e=>setPcts(p=>({...p,[r.k]:Math.min(100,Math.max(0,+e.target.value||0))}))} style={{flex:1,textAlign:"center",background:"transparent",border:"none",fontSize:26,fontWeight:900,color:r.c,outline:"none",width:0}}/>
                   <button onClick={()=>setPcts(p=>({...p,[r.k]:Math.min(100,p[r.k]+1)}))} onPointerDown={()=>{const t=setInterval(()=>setPcts(p=>({...p,[r.k]:Math.min(100,p[r.k]+1)})),100);const s=()=>{clearInterval(t);window.removeEventListener("pointerup",s);};window.addEventListener("pointerup",s);}} style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,.08)",border:`1px solid ${r.c}40`,color:"white",fontSize:18,cursor:"pointer",outline:"none",flexShrink:0}}>+</button>
                 </div>
-                <div style={{fontSize:9,color:T.sec,textAlign:"center",marginTop:2}}>%</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:5}}>
+                  <span style={{fontSize:9,color:T.sec}}>%</span>
+                  <span style={{fontSize:10,fontWeight:700,color:r.c}}>≈ {(10000*0.017*pcts[r.k]/100).toFixed(2)}€<span style={{fontSize:8,color:T.sec}}>/10k💎</span></span>
+                </div>
               </div>
             ))}
           </div>
+          <div style={{fontSize:10,color:T.sec,textAlign:"right",marginTop:-6,marginBottom:8}}>Agence : <strong style={{color:T.acc}}>{Math.max(0,100-total)}%</strong> = <strong style={{color:T.acc}}>{(10000*0.017*Math.max(0,100-total)/100).toFixed(2)}€</strong> /10k💎</div>
         </div>
         <div className="card" style={{padding:18,marginBottom:12}}>
           <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Conditions minimales</div>
