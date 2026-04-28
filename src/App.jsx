@@ -4523,4 +4523,10 @@ export default function App(){
             </div>
           </aside>
           <main className="app-main-pad" style={{flex:1,overflowY:"auto",padding:"28px 32px",background:"#0F0F0F",marginLeft:isNarrow?0:220,minHeight:isNarrow?"calc(100vh - 52px)":"100vh",width:"100%"}}>
-            {loadT?
+            {loadT?<div style={{textAlign:"center",padding:40,color:T.sec}}>Chargement…</div>:<View/>}
+          </main>
+        </div>
+      </div>
+    </>
+  );
+}
