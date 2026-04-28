@@ -229,7 +229,16 @@ const getProfile=async(uid)=>{
   if(!sb) return null;
   const {data,error}=await sb.from("profiles").select("*").eq("id",uid).single();
   if(error||!data) return null;
-  if(data.agency_id){const {data:ag}=await sb.from("agencies").select("*").eq("id",data.agency_id).single();data.agencies=ag||null;}
+  if(data.agency_id){
+    const {data:ag}=await sb.from("agencies").select("*").eq("id",data.agency_id).single();
+    if(ag){
+      try{
+        const {data:cfg}=await sb.from("agency_config").select("*").eq("agency_id",data.agency_id).maybeSingle();
+        if(cfg){ag.pct_creator=cfg.pct_creator;ag.pct_agent=cfg.pct_agent;ag.pct_manager=cfg.pct_manager;ag.pct_director=cfg.pct_director;ag.min_days=cfg.min_days;ag.min_hours=cfg.min_hours;ag.director_can_import=cfg.director_can_import;ag.manager_can_import=cfg.manager_can_import;ag.accept_inter_agency=cfg.accept_inter_agency;ag.coach_enabled=cfg.coach_enabled;ag.can_agent_delete_creator=cfg.can_agent_delete_creator;ag.can_manager_delete_agent=cfg.can_manager_delete_agent;ag.can_director_delete_all=cfg.can_director_delete_all;}
+      }catch(e){}
+    }
+    data.agencies=ag||null;
+  }
   // Si profile a un agency_id, c'est forcément une agence (fix role mal enregistré)
   if(data.agency_id && data.role !== "admin") {
     data.role = "agency";
