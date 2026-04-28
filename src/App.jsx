@@ -140,7 +140,7 @@ const TRANCHES=[
 const getTranche=(diamonds)=>TRANCHES.find(t=>t.id!=="any"&&diamonds>=t.min&&diamonds<t.max)?.id||"any";
 
 // Valeur diamant dynamique
-const getDiamondValue=(ag)=>ag?.valeur_diamant_pivot??0.017;
+const getDiamondValue=(ag)=>{const v=ag?.valeur_diamant_pivot;return(v&&v>0.001&&v<1)?v:0.017;};
 const diamondsToEurosDyn=(diamonds,ag)=>((diamonds||0)*getDiamondValue(ag)).toFixed(2);
 
 // Statut évolution
@@ -234,7 +234,14 @@ const getProfile=async(uid)=>{
     if(ag){
       try{
         const {data:cfg}=await sb.from("agency_config").select("*").eq("agency_id",data.agency_id).maybeSingle();
-        if(cfg){ag.pct_creator=cfg.pct_creator??ag.pct_creator;ag.pct_agent=cfg.pct_agent??ag.pct_agent;ag.pct_manager=cfg.pct_manager??ag.pct_manager;ag.pct_director=cfg.pct_director??ag.pct_director;ag.min_days=cfg.min_days??ag.min_days;ag.min_hours=cfg.min_hours??ag.min_hours;ag.director_can_import=cfg.director_can_import??ag.director_can_import;ag.manager_can_import=cfg.manager_can_import??ag.manager_can_import;ag.accept_inter_agency=cfg.accept_inter_agency??ag.accept_inter_agency;ag.coach_enabled=cfg.coach_enabled??ag.coach_enabled;ag.can_agent_delete_creator=cfg.can_agent_delete_creator??ag.can_agent_delete_creator;ag.can_manager_delete_agent=cfg.can_manager_delete_agent??ag.can_manager_delete_agent;ag.can_director_delete_all=cfg.can_director_delete_all??ag.can_director_delete_all;}
+        if(cfg){
+          if(cfg.pct_creator!=null) ag.pct_creator=cfg.pct_creator;
+          if(cfg.pct_agent!=null) ag.pct_agent=cfg.pct_agent;
+          if(cfg.pct_manager!=null) ag.pct_manager=cfg.pct_manager;
+          if(cfg.pct_director!=null) ag.pct_director=cfg.pct_director;
+          if(cfg.min_days!=null) ag.min_days=cfg.min_days;
+          if(cfg.min_hours!=null) ag.min_hours=cfg.min_hours;
+        }
       }catch(e){}
     }
     data.agencies=ag||null;
@@ -2669,48 +2676,20 @@ function SettingsView({profile,reload}){
   const [pcts,setPcts]=useState({director:ag?.pct_director??3,manager:ag?.pct_manager??5,agent:ag?.pct_agent??10,creator:ag?.pct_creator??55});
   const [minD,setMinD]=useState(ag?.min_days??20);
   const [minH,setMinH]=useState(ag?.min_hours??40);
-  const [perms,setPerms]=useState({dir:!!ag?.director_can_import,mgr:!!ag?.manager_can_import,inter:ag?.accept_inter_agency!==false,coachEnabled:ag?.coach_enabled!==false,agentDel:!!ag?.can_agent_delete_creator,mgrDel:!!ag?.can_manager_delete_agent,dirDel:ag?.can_director_delete_all!==false,evolution:!!ag?.activer_regle_evolution});
+  const [perms,setPerms]=useState({dir:ag?.director_can_import||false,mgr:ag?.manager_can_import||false,inter:ag?.accept_inter_agency!==false,coachEnabled:ag?.coach_enabled!==false,agentDel:ag?.can_agent_delete_creator||false,mgrDel:ag?.can_manager_delete_agent||false,dirDel:ag?.can_director_delete_all!==false,evolution:ag?.activer_regle_evolution||false});
   const [saving,setSaving]=useState(false);
   const [saved,setSaved]=useState(false);
-
-  // Charger depuis agency_config au mount
-  useEffect(()=>{
-    const agId=ag?.id||profile?.agency_id;
-    if(!agId) return;
-    // D'abord localStorage
-    try{
-      const s=localStorage.getItem("ag_cfg_"+agId);
-      if(s){
-        const cfg=JSON.parse(s);
-        setPcts({creator:cfg.pct_creator??55,agent:cfg.pct_agent??10,manager:cfg.pct_manager??5,director:cfg.pct_director??3});
-        setMinD(cfg.min_days??20);setMinH(cfg.min_hours??40);
-        setPerms({dir:!!cfg.director_can_import,mgr:!!cfg.manager_can_import,inter:cfg.accept_inter_agency!==false,coachEnabled:cfg.coach_enabled!==false,agentDel:!!cfg.can_agent_delete_creator,mgrDel:!!cfg.can_manager_delete_agent,dirDel:cfg.can_director_delete_all!==false,evolution:!!cfg.activer_regle_evolution});
-        return;
-      }
-    }catch(e){}
-    // Sinon agency_config DB
-    sb.from("agency_config").select("*").eq("agency_id",agId).maybeSingle().then(({data:cfg})=>{
-      if(!cfg) return;
-      setPcts({creator:cfg.pct_creator??55,agent:cfg.pct_agent??10,manager:cfg.pct_manager??5,director:cfg.pct_director??3});
-      setMinD(cfg.min_days??20);setMinH(cfg.min_hours??40);
-      setPerms({dir:!!cfg.director_can_import,mgr:!!cfg.manager_can_import,inter:cfg.accept_inter_agency!==false,coachEnabled:cfg.coach_enabled!==false,agentDel:!!cfg.can_agent_delete_creator,mgrDel:!!cfg.can_manager_delete_agent,dirDel:cfg.can_director_delete_all!==false,evolution:!!cfg.activer_regle_evolution});
-      try{localStorage.setItem("ag_cfg_"+agId,JSON.stringify(cfg));}catch(e){}
-    });
-  },[ag?.id,profile?.agency_id]);
   const ROLES=[{k:"creator",l:"Part créateur",c:T.ok},{k:"agent",l:"Commission agent",c:T.cy},{k:"manager",l:"Commission manager",c:T.pu},{k:"director",l:"Commission directeur",c:T.acc}];
   const total=Object.values(pcts).reduce((s,v)=>s+v,0);
   const saveAgency=async()=>{
     const agId=ag?.id||profile?.agency_id;
-    if(!agId){alert("ID agence introuvable - contactez le support");return;}
+    if(!agId) return;
     setSaving(true);
     const cfg={pct_creator:pcts.creator,pct_agent:pcts.agent,pct_manager:pcts.manager,pct_director:pcts.director,min_days:minD,min_hours:minH,director_can_import:perms.dir,manager_can_import:perms.mgr,accept_inter_agency:perms.inter,coach_enabled:perms.coachEnabled,can_agent_delete_creator:perms.agentDel,can_manager_delete_agent:perms.mgrDel,can_director_delete_all:perms.dirDel};
-    // localStorage toujours
     try{localStorage.setItem("ag_cfg_"+agId,JSON.stringify(cfg));}catch(e){}
-    // agency_config DB
     const {error}=await sb.from("agency_config").upsert({agency_id:agId,...cfg,updated_at:new Date().toISOString()},{onConflict:"agency_id"});
-    if(error) alert("Erreur save: "+error.message);
-    setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);
-    reload?.();
+    if(error) alert("Erreur: "+error.message);
+    setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);reload?.();
   };
 
   return(
@@ -2809,37 +2788,36 @@ function SettingsView({profile,reload}){
         </div>
         <div className="card" style={{padding:20,marginBottom:12}}>
           <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Répartition des revenus</div>
-          <div style={{fontSize:11,color:T.sec,marginBottom:12}}>Total : <strong style={{color:total>100?T.ng:T.ok}}>{total}%</strong> · Agence : <strong style={{color:T.acc}}>{Math.max(0,100-total)}%</strong></div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div style={{fontSize:11,color:T.sec,marginBottom:12}}>Total : <strong style={{color:total>100?T.ng:T.ok}}>{total}%</strong> · Agence : <strong style={{color:T.acc}}>{Math.max(0,100-total)}%</strong> ≈ <strong style={{color:T.acc}}>{(10000*0.017*Math.max(0,100-total)/100).toFixed(2)}€</strong>/10k💎</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
             {ROLES.map(r=>(
               <div key={r.k} style={{background:`${r.c}10`,border:`1.5px solid ${r.c}30`,borderRadius:12,padding:"12px"}}>
-                <div style={{fontSize:10,fontWeight:700,color:r.c,marginBottom:8,textTransform:"uppercase",letterSpacing:".06em"}}>{r.l}</div>
+                <div style={{fontSize:10,fontWeight:700,color:r.c,marginBottom:8,textTransform:"uppercase"}}>{r.l}</div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   <button onClick={()=>setPcts(p=>({...p,[r.k]:Math.max(0,p[r.k]-1)}))} onPointerDown={()=>{const t=setInterval(()=>setPcts(p=>({...p,[r.k]:Math.max(0,p[r.k]-1)})),100);const s=()=>{clearInterval(t);window.removeEventListener("pointerup",s);};window.addEventListener("pointerup",s);}} style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,.08)",border:`1px solid ${r.c}40`,color:"white",fontSize:18,cursor:"pointer",outline:"none",flexShrink:0}}>−</button>
-                  <input type="number" min={0} max={100} value={pcts[r.k]} onChange={e=>setPcts(p=>({...p,[r.k]:Math.min(100,Math.max(0,+e.target.value||0))}))} style={{flex:1,textAlign:"center",background:"transparent",border:"none",fontSize:26,fontWeight:900,color:r.c,outline:"none",width:0}}/>
+                  <input type="number" min={0} max={100} value={pcts[r.k]} onChange={e=>setPcts(p=>({...p,[r.k]:Math.min(100,Math.max(0,+e.target.value||0))}))} style={{flex:1,textAlign:"center",background:"transparent",border:"none",fontSize:24,fontWeight:900,color:r.c,outline:"none",width:0}}/>
                   <button onClick={()=>setPcts(p=>({...p,[r.k]:Math.min(100,p[r.k]+1)}))} onPointerDown={()=>{const t=setInterval(()=>setPcts(p=>({...p,[r.k]:Math.min(100,p[r.k]+1)})),100);const s=()=>{clearInterval(t);window.removeEventListener("pointerup",s);};window.addEventListener("pointerup",s);}} style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,.08)",border:`1px solid ${r.c}40`,color:"white",fontSize:18,cursor:"pointer",outline:"none",flexShrink:0}}>+</button>
                 </div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:5}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
                   <span style={{fontSize:9,color:T.sec}}>%</span>
-                  <span style={{fontSize:10,fontWeight:700,color:r.c}}>≈ {(10000*0.017*pcts[r.k]/100).toFixed(2)}€<span style={{fontSize:8,color:T.sec}}>/10k💎</span></span>
+                  <span style={{fontSize:10,fontWeight:700,color:r.c}}>≈{(10000*0.017*pcts[r.k]/100).toFixed(2)}€/10k💎</span>
                 </div>
               </div>
             ))}
           </div>
-          <div style={{fontSize:10,color:T.sec,textAlign:"right",marginTop:-6,marginBottom:8}}>Agence : <strong style={{color:T.acc}}>{Math.max(0,100-total)}%</strong> = <strong style={{color:T.acc}}>{(10000*0.017*Math.max(0,100-total)/100).toFixed(2)}€</strong> /10k💎</div>
         </div>
         <div className="card" style={{padding:18,marginBottom:12}}>
           <div style={{fontWeight:700,fontSize:13.5,color:T.tx,marginBottom:12}}>Conditions minimales</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             {[{l:"Jours min.",v:minD,set:setMinD,max:31,unit:"j",c:"#FF6D00"},{l:"Heures min.",v:minH,set:setMinH,max:200,unit:"h",c:T.go}].map(item=>(
               <div key={item.l} style={{background:`${item.c}10`,border:`1.5px solid ${item.c}30`,borderRadius:12,padding:"12px"}}>
-                <div style={{fontSize:10,fontWeight:700,color:item.c,marginBottom:8,textTransform:"uppercase",letterSpacing:".06em"}}>{item.l}</div>
+                <div style={{fontSize:10,fontWeight:700,color:item.c,marginBottom:8,textTransform:"uppercase"}}>{item.l}</div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   <button onClick={()=>item.set(v=>Math.max(0,v-1))} onPointerDown={()=>{const t=setInterval(()=>item.set(v=>Math.max(0,v-1)),100);const s=()=>{clearInterval(t);window.removeEventListener("pointerup",s);};window.addEventListener("pointerup",s);}} style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,.08)",border:`1px solid ${item.c}40`,color:"white",fontSize:18,cursor:"pointer",outline:"none",flexShrink:0}}>−</button>
-                  <input type="number" min={0} max={item.max} value={item.v} onChange={e=>item.set(Math.min(item.max,Math.max(0,+e.target.value||0)))} style={{flex:1,textAlign:"center",background:"transparent",border:"none",fontSize:26,fontWeight:900,color:item.c,outline:"none",width:0}}/>
+                  <input type="number" min={0} max={item.max} value={item.v} onChange={e=>item.set(Math.min(item.max,Math.max(0,+e.target.value||0)))} style={{flex:1,textAlign:"center",background:"transparent",border:"none",fontSize:24,fontWeight:900,color:item.c,outline:"none",width:0}}/>
                   <button onClick={()=>item.set(v=>Math.min(item.max,v+1))} onPointerDown={()=>{const t=setInterval(()=>item.set(v=>Math.min(item.max,v+1)),100);const s=()=>{clearInterval(t);window.removeEventListener("pointerup",s);};window.addEventListener("pointerup",s);}} style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,.08)",border:`1px solid ${item.c}40`,color:"white",fontSize:18,cursor:"pointer",outline:"none",flexShrink:0}}>+</button>
                 </div>
-                <div style={{fontSize:9,color:T.sec,textAlign:"center",marginTop:2}}>{item.unit}</div>
+                <div style={{fontSize:9,color:T.sec,textAlign:"center",marginTop:4}}>{item.unit}</div>
               </div>
             ))}
           </div>
